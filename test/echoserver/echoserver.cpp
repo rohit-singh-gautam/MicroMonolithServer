@@ -43,11 +43,8 @@ void init_log_thread(const std::filesystem::path &filename) {
 class echoserver_t : public rohit::event::protocol_implementation_t {
     rohit::event::buffer_t localbuffer { };
 public:
-    void ProcessRead(const uint8_t *buffer, const size_t size) {
-        localbuffer.increase_buffer(size);
-        auto writebuffer = localbuffer.GetBuffer<uint8_t *>();
-        std::copy(buffer, buffer + size, writebuffer);
-        Write<true>(buffer, size);
+    void ProcessRead(const uint8_t *buffer, const size_t size, rohit::event::writer_t &writer) {
+        writer.Write<true>(buffer, size, 0);
     }
 };
 
@@ -70,7 +67,7 @@ int main(int, char *[]) {
     init_log_thread(filename);
 
     ecchoservercreator_t echoservercreator { };
-    rohit::event::listner_t locallistner { 1 };
+    rohit::event::listner_t locallistner { };
     rohit::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
     locallistner.add(server);
     locallistner.loop();

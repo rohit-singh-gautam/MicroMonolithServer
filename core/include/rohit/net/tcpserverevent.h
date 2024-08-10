@@ -91,19 +91,10 @@ class connection_t;
 class protocol_implementation_t;
 
 class protocol_implementation_t {
-    tcp::connection_t *connection { nullptr };
 public:
     virtual ~protocol_implementation_t() = default;
 
-    virtual void ProcessRead(const uint8_t *buffer, const size_t size) = 0;
-
-    void SetConnection(tcp::connection_t *connection) {
-        this->connection = connection;
-    }
-
-    template <bool CopyBuffer, typename buffertype>
-    void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0);
-    
+    virtual void ProcessRead(const uint8_t *buffer, const size_t size, writer_t &writer) = 0;
 };
 
 class protocol_implementation_creator_t {
@@ -145,8 +136,8 @@ public:
             }
             return ret;
         }
-        if (offset) protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset);
-        return err_t::SUCCESS;
+        if (offset) protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset, *this);
+        return pending_wirte.empty() ? err_t::SUCCESS : err_t::SOCKET_RETRY;
     }
 
     err_t ProcessWrite() override {
@@ -172,28 +163,26 @@ public:
         return err_t::SUCCESS;
     }
 
-    // If copy buffer is false use buffer as it is
-    // Buffer will be deleted once it is used.
-    // All buffer must be created using malloc.
-    template <bool CopyBuffer, typename buffertype>
-    void Write(buffertype buffer, size_t bytesize, size_t byteoffset) {
-        if constexpr (CopyBuffer) {
-            auto oldbuffer = reinterpret_cast<const uint8_t *>(buffer);
-            auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
-            std::copy(oldbuffer, oldbuffer + bytesize, newbuffer);
-            pending_wirte.emplace(newbuffer, bytesize, byteoffset );
-        } else {
-            pending_wirte.emplace(buffer, bytesize, byteoffset);
-        }
-        SetToWrite();
-    }
-
     int GetFD() const override { 
         return connection_socket.GetFD();
     }
 
     auto get_peer_ipv6_addr() const {
         return connection_socket.get_peer_ipv6_addr();
+    }
+
+    // If copy buffer is false use buffer as it is
+    // Buffer will be deleted once it is used.
+    // All buffer must be created using malloc.
+    void WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) override {
+        pending_wirte.emplace(buffer, bytesize, byteoffset);
+    }
+
+    void WriteWithCopy(const uint8_t* buffer, size_t bytesize, size_t byteoffset) override {
+        auto oldbuffer = reinterpret_cast<const uint8_t *>(buffer);
+        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
+        std::copy(oldbuffer, oldbuffer + bytesize, newbuffer);
+        pending_wirte.emplace(newbuffer, bytesize, byteoffset );
     }
 };
 
@@ -212,11 +201,7 @@ public:
             auto connection_socket = server_socket.accept();
             auto protocol_implementation = protocol_implementation_creator.create_protocol_implementation();
             auto connection = new connection_t(std::move(connection_socket), protocol_implementation);
-            protocol_implementation->SetConnection(connection);
-            assert(connection);
-            connection->SetToRead();
-            listener->add(connection, true);
-            listener->AddToQueue(connection);
+            listener->add(connection);
             log<log_t::EVENT_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
         } catch (const exception_t e) {
             if (e == err_t::ACCEPT_FAILURE) {
@@ -239,8 +224,4 @@ public:
 
 } // namespace tcp
 
-template <bool CopyBuffer, typename buffertype>
-void protocol_implementation_t::Write(buffertype buffer, size_t bytesize, size_t byteoffset) {
-    connection->Write<CopyBuffer>(buffer, bytesize, byteoffset);
-}
 } // namespace rohit::event
