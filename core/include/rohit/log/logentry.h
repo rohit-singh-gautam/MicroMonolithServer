@@ -150,6 +150,9 @@ namespace rohit {
     LOGGER_ENTRY(EVENT_SERVER_SSL_CLOSED_WRITE, INFO, EVENT_SERVER, "FD %i: SSL Event failed to write as socket is closed") \
     LOGGER_ENTRY(EVENT_SERVER_CONNECTION_CLOSED, INFO, IOT_EVENT_SERVER, "FD %i: Event Server connection closed") \
     \
+    LOGGER_ENTRY(TCP_CONNECTION_EMPTY_READ, DEBUG, EVENT_SERVER, "FD %i: TCP empty read") \
+    LOGGER_ENTRY(TCP_CONNECTION_READ, DEBUG, EVENT_SERVER, "FD %i: TCP read %lu bytes") \
+    \
     LOGGER_ENTRY(IOT_EVENT_SERVER_READ_FAILED, DEBUG, IOT_EVENT_SERVER, "IOT Event Server peer read failed with error %vE") \
     LOGGER_ENTRY(IOT_EVENT_SERVER_WRITE_FAILED, ERROR, IOT_EVENT_SERVER, "IOT Event Server peer write failed with error %vE") \
     \

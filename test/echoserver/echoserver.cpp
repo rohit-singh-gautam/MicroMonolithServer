@@ -70,7 +70,7 @@ int main(int, char *[]) {
     rohit::event::listner_t locallistner { };
     rohit::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
     locallistner.add(server);
-    locallistner.loop();
+    locallistner.multithread_loop(16);
 
     plog_thread->join();
 

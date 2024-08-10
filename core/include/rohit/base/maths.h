@@ -117,17 +117,17 @@ constexpr size_t to_string(std::floating_point auto val, typecheck::byte auto *d
 
 template <std::unsigned_integral T, T radix = 10>
 constexpr T to_uint(const char *src, size_t *len = nullptr) {
-    T val { 0 };
-    char current = 0;
-    const char *psrc = src;
+    T val {  };
+    uint8_t current = 0;
+    auto psrc = reinterpret_cast<const uint8_t *>(src);
     if ((current = *psrc++)) {
-        val = constant::char_to_int[(size_t)current];
+        val = constant::char_to_int[current];
         while((current = *psrc++)) {
-            val = val * radix + constant::char_to_int[(size_t)current];
+            val = val * radix + constant::char_to_int[current];
         }
     }
 
-    if (len != nullptr) *len = (size_t)(psrc - src);
+    if (len != nullptr) *len = (size_t)(psrc - reinterpret_cast<const uint8_t *>(src));
 
     return val;
 }

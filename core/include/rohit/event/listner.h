@@ -57,6 +57,8 @@ class listner_t {
     int epollfd;
     bool IsTerminated { false };
 
+    std::vector<std::jthread> threadlist { };
+
 public:
     listner_t() : epollfd(epoll_create1(0)) {
         if (epollfd == -1) {
@@ -193,6 +195,12 @@ public:
                     }
                 }
             }
+        }
+    }
+
+    void multithread_loop(size_t threadcount) {
+        for(size_t index { 0 }; index < threadcount; ++index) {
+            threadlist.emplace_back(&listner_t::loop, this);
         }
     }
 };

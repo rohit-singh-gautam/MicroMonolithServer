@@ -136,7 +136,11 @@ public:
             }
             return ret;
         }
-        if (offset) protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset, *this);
+        if (offset) {
+            protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset, *this);
+            log<log_t::TCP_CONNECTION_READ>(GetFD(), offset);
+        }
+        else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
         return pending_wirte.empty() ? err_t::SUCCESS : err_t::SOCKET_RETRY;
     }
 

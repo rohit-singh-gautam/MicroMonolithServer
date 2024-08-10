@@ -23,7 +23,6 @@ int main(int , char *[]) {
     const char *message { "Test" };
     auto message_len = strlen(message);
     size_t actualsent { 0 };
-    sleep(2);
     rohit::err_t ret = clientsocket.write_wait(message, message_len, actualsent);
     std::cout << "Written: " << message << " readlen: " << message_len << " Error: " << ret << std::endl;
     const size_t buffersize { 256 };
@@ -36,6 +35,7 @@ int main(int , char *[]) {
     } while(ret != rohit::err_t::SUCCESS);
 
     std::cout << "Received: \"" << buffer << "\" readlen: " << readlen << " Error: " << ret << std::endl;
+    std::cout << "Received: \"" << buffer << "\" readlen: " << readlen << std::endl;
     
     return 0;
 }
