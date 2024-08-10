@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -fanalyzer -Wno-analyzer-malloc-leak -Wno-analyzer-fd-leak -Wno-analyzer-use-of-uninitialized-value)
+add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -fanalyzer -Wno-analyzer-malloc-leak -Wno-analyzer-use-of-uninitialized-value)
 #add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -fno-analyzer -Wno-analyzer-malloc-leak -Wno-analyzer-fd-leak)
 
 add_executable(echoserver echoserver.cpp)

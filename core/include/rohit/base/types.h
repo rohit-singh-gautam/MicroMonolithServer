@@ -25,16 +25,6 @@ namespace typecheck {
 template <typename BYTE_TYPE>
 concept byte = std::is_same_v<BYTE_TYPE, char> || std::is_same_v<BYTE_TYPE, uint8_t>;
 } // namespace typecheck
-template <typename T>
-struct enum_hash_t
-{
-    using enum_type = typename std::underlying_type<typename std::decay<T>::type>::type;
-    using result_type = typename std::hash<enum_type>::result_type;
-    result_type operator()(const T &t) const
-    {
-        return std::hash<enum_type>()(static_cast<enum_type>(t));
-    }
-};
 
 template <typename T>
 constexpr T changeEndian(const T &val) {

@@ -46,7 +46,15 @@ class socket_t {
 protected:
     int socket_id;
 
-    inline socket_t() : socket_id(create_socket()) {}
+    inline socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) {
+        if (socket_id < 0) {
+        log<log_t::SOCKET_CREATE_FAILED>(errno);
+            throw exception_t(rohit::error_helper_t::socket_create_ret());
+        }
+
+        log<log_t::SOCKET_CREATE_SUCCESS>(socket_id);
+    }
+
 public:
     constexpr socket_t(const int socket_id) : socket_id(socket_id) {}
     constexpr socket_t(socket_t &&sock) : socket_id(sock.socket_id) { sock.socket_id = 0; }
