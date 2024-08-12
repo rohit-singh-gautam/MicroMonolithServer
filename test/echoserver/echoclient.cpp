@@ -16,14 +16,14 @@ int main(int , char *[]) {
         std::cout << "Usage: echoclient <address> <port> <message>" << std::endl;
         return 0;
     } */
-    auto port = rohit::to_ipv6_port_t("4833");
-    auto addr = rohit::to_ipv6_addr_t("::1");
-    rohit::ipv6_socket_addr_t socketaddr { addr, port };
-    rohit::client_socket_t clientsocket { socketaddr };
+    auto port = MMS::to_ipv6_port_t("4833");
+    auto addr = MMS::to_ipv6_addr_t("::1");
+    MMS::ipv6_socket_addr_t socketaddr { addr, port };
+    MMS::client_socket_t clientsocket { socketaddr };
     const char *message { "Test" };
     auto message_len = strlen(message);
     size_t actualsent { 0 };
-    rohit::err_t ret = clientsocket.write_wait(message, message_len, actualsent);
+    MMS::err_t ret = clientsocket.write_wait(message, message_len, actualsent);
     std::cout << "Written: " << message << " readlen: " << message_len << " Error: " << ret << std::endl;
     const size_t buffersize { 256 };
     char buffer[buffersize] { };
@@ -32,7 +32,7 @@ int main(int , char *[]) {
     do {
         ret = clientsocket.read(buffer + offset, buffersize  - offset, readlen);
         offset += readlen;
-    } while(ret != rohit::err_t::SUCCESS);
+    } while(ret != MMS::err_t::SUCCESS);
 
     std::cout << "Received: \"" << buffer << "\" readlen: " << readlen << " Error: " << ret << std::endl;
     std::cout << "Received: \"" << buffer << "\" readlen: " << readlen << std::endl;

@@ -7,7 +7,7 @@
 
 #pragma once
 #include <cstdint>
-namespace rohit {
+namespace MMS {
 namespace config {
     constexpr bool debug = true;
 
@@ -22,4 +22,4 @@ namespace config {
     constexpr int socket_backlog = 5;
 
 } // namespace config
-} // namespace rohit
+} // namespace MMS

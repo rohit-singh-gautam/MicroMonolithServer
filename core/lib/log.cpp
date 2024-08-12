@@ -17,7 +17,7 @@
 #include <chrono>
 #include <thread>
 
-namespace rohit {
+namespace MMS {
 
 thread_local logger _log;
 
@@ -613,4 +613,4 @@ void active_module::enable_all(const logger_level_t level) {
     std::fill(std::begin(module_level), std::end(module_level), level);
 }
 
-} // namespace rohit
+} // namespace MMS

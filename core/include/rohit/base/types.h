@@ -15,7 +15,7 @@
 #include <string>
 
 struct sockaddr_in6;
-namespace rohit {
+namespace MMS {
 
 #ifndef LIST_DEFINITION_END
 #define LIST_DEFINITION_END
@@ -275,13 +275,13 @@ constexpr unsigned long long int operator "" _pb (const unsigned long long int v
     return 1024_tb * value;
 }
 
-} // namespace rohit 
+} // namespace MMS 
 
 namespace std {
 template<>
-struct hash<rohit::ipv6_port_t>
+struct hash<MMS::ipv6_port_t>
 {
-    size_t operator()(const rohit::ipv6_port_t &val) const noexcept
+    size_t operator()(const MMS::ipv6_port_t &val) const noexcept
     {
         auto ret = hash<uint16_t> {} (val);
         return ret;
@@ -289,8 +289,8 @@ struct hash<rohit::ipv6_port_t>
 };
 
 template<>
-struct hash<rohit::guid_t> {
-    size_t operator()(const rohit::guid_t &guid) const noexcept
+struct hash<MMS::guid_t> {
+    size_t operator()(const MMS::guid_t &guid) const noexcept
     {
         return guid.hash();
     }

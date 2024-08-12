@@ -16,7 +16,7 @@ namespace MMS::http {
         }
 
         if (start == requesttext) {
-            throw rohit::http_parser_failed_t(requesttext, size);
+            throw MMS::http_parser_failed_t(requesttext, size);
         }
 
         return { start, static_cast<size_t>(requesttext - start) };
@@ -33,7 +33,7 @@ namespace MMS::http {
             --size;
         }
         if (start == requesttext) {
-            throw rohit::http_parser_failed_t(requesttext, size);
+            throw MMS::http_parser_failed_t(requesttext, size);
         }
         std::string_view ret = { start, static_cast<size_t>(requesttext - start) };
 
@@ -72,7 +72,7 @@ namespace MMS::http {
             if (*requesttext == '\r') {
                 ++requesttext;
                 --size;
-                if (!size || *requesttext != '\n') throw rohit::http_parser_failed_t(requesttext, size);
+                if (!size || *requesttext != '\n') throw MMS::http_parser_failed_t(requesttext, size);
                 ++requesttext;
                 --size;
             } else if(*requesttext == '\n') {
@@ -85,7 +85,7 @@ namespace MMS::http {
     }
 
     void parse_skip_one(const char *&requesttext, size_t &size) {
-        if (!size) throw rohit::http_parser_failed_t(requesttext, size);
+        if (!size) throw MMS::http_parser_failed_t(requesttext, size);
         ++requesttext;
         --size;
     }
@@ -95,7 +95,7 @@ namespace MMS::http {
 
         auto itr = request.method_map.find(methodtext);
         if (itr == std::end(request.method_map)) {
-            throw rohit::http_parser_failed_t(requesttext, size);
+            throw MMS::http_parser_failed_t(requesttext, size);
         }
 
         request.method = itr->second;
@@ -110,7 +110,7 @@ namespace MMS::http {
         if (*requesttext == '\r') {
             ++requesttext;
             --size;
-            if (!size || *requesttext != '\n') throw rohit::http_parser_failed_t(requesttext, size);
+            if (!size || *requesttext != '\n') throw MMS::http_parser_failed_t(requesttext, size);
             ++requesttext;
             --size;
             return true;
@@ -128,7 +128,7 @@ namespace MMS::http {
 
         if (versiontext.compare("HTTP/1.1") == 0) request.version = header::VERSION::VER_1_1;
         else if (versiontext.compare("HTTP/2.0") == 0) request.version = header::VERSION::VER_1_1;
-        else throw rohit::http_parser_failed_t(requesttext, size);
+        else throw MMS::http_parser_failed_t(requesttext, size);
     }
 
     // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF

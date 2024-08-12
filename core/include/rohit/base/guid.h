@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <ostream>
 
-namespace rohit {
+namespace MMS {
 
 template <number_case_t number_case = number_case_t::lower>
 constexpr void guid_t_str_copy_helper(char * const dest, size_t &dest_i, const guid_t &guid, size_t &guid_i) {
@@ -99,4 +99,4 @@ inline std::ostream& operator<<(std::ostream& os, const guid_t &guid) {
     return os << str;
 }
 
-} // namespace rohit {
+} // namespace MMS {

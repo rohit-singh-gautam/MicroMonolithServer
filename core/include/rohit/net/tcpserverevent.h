@@ -10,7 +10,7 @@
 #include <rohit/base/types.h>
 #include <rohit/net/socket.h>
 
-namespace rohit::event {
+namespace MMS::event {
 
 struct buffer_t {
 public:
@@ -228,4 +228,4 @@ public:
 
 } // namespace tcp
 
-} // namespace rohit::event
+} // namespace MMS::event

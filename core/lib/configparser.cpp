@@ -9,7 +9,7 @@
 #include <rohit/cmd/typecast.h>
 #include <libgen.h>
 
-namespace rohit {
+namespace MMS {
 
 enum class parser_state {
     OPTION,
@@ -82,4 +82,4 @@ const std::string commandline::usage() const {
     return usage_line;
 }
 
-} // namespace rohit
+} // namespace MMS

@@ -12,7 +12,7 @@
 #include <rohit/net/ipv6addr.h>
 #include <rohit/log/varadic.h>
 
-namespace rohit {
+namespace MMS {
 
 constexpr bool to_bool(const char *value) {
     return *value == 'T' || *value == 't';

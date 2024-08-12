@@ -11,7 +11,7 @@
 #include <iostream>
 #include <string_view>
 
-namespace rohit {
+namespace MMS {
 
 template <typename T>
 concept non_pointer = !std::is_pointer_v<T>;
@@ -632,4 +632,4 @@ consteval void check_formatstring_assert() {
     static_assert(ret <= check_fmtstr_error + 15, "Formatted String: bad format specifier in string after 16th specifier");
 }
 
-} // namespace rohit
+} // namespace MMS

@@ -8,7 +8,7 @@
 #pragma once
 #include <memory>
 
-namespace rohit {
+namespace MMS {
 
 namespace lockfree {
 
@@ -117,4 +117,4 @@ public:
 
 } // namespace lockfree
 
-} // namespace rohit
+} // namespace MMS

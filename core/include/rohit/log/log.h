@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <filesystem>
 
-namespace rohit {
+namespace MMS {
 
 enum class log_t : log_id_type {
 #define LOGGER_ENTRY(x, y, m, z) x,
@@ -310,4 +310,4 @@ public:
 }; // class logreader
 
 
-} // namespace rohit
+} // namespace MMS

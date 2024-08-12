@@ -18,7 +18,7 @@
 #include <cstring>
 #include <filesystem>
 
-namespace rohit {
+namespace MMS {
 
 constexpr ipv6_socket_addr_t::operator sockaddr_in6() const {
     sockaddr_in6 sockaddr = {};
@@ -35,7 +35,7 @@ inline int create_socket() {
     int socket_id = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
     if (socket_id < 0) {
         log<log_t::SOCKET_CREATE_FAILED>(errno);
-        throw exception_t(rohit::error_helper_t::socket_create_ret());
+        throw exception_t(MMS::error_helper_t::socket_create_ret());
     }
 
     log<log_t::SOCKET_CREATE_SUCCESS>(socket_id);
@@ -49,7 +49,7 @@ protected:
     inline socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) {
         if (socket_id < 0) {
         log<log_t::SOCKET_CREATE_FAILED>(errno);
-            throw exception_t(rohit::error_helper_t::socket_create_ret());
+            throw exception_t(MMS::error_helper_t::socket_create_ret());
         }
 
         log<log_t::SOCKET_CREATE_SUCCESS>(socket_id);
@@ -290,4 +290,4 @@ public:
 };
 
 
-} // namespace rohit
+} // namespace MMS

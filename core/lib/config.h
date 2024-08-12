@@ -7,7 +7,7 @@
 
 #pragma once
 #include <cstdint>
-namespace rohit {
+namespace MMS {
 namespace config {
     constexpr bool debug = true;
 
@@ -23,4 +23,4 @@ namespace config {
     constexpr int64_t log_thread_wait_in_millis = 50;
 
 } // namespace config
-} // namespace rohit
+} // namespace MMS

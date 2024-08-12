@@ -11,7 +11,7 @@
 #include <cassert>
 #include <cstdint>
 
-namespace rohit {
+namespace MMS {
 
 #define LIST_DEFINITION_END
 
@@ -280,4 +280,4 @@ constexpr size_t to_string(const module_t &val, char *dest) {
     }
 }
 
-} // namespace rohit
+} // namespace MMS

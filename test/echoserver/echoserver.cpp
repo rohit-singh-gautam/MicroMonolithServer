@@ -19,10 +19,10 @@ static void log_thread_function() {
     log_thread_running = true;
     while(log_thread_running) {
         std::this_thread::sleep_for(wait_time);
-        rohit::logger::all.flush();
+        MMS::logger::all.flush();
     }
 
-    rohit::logger::all.flush();
+    MMS::logger::all.flush();
 }
 
 void init_log_thread(const std::filesystem::path &filename) {
@@ -35,40 +35,40 @@ void init_log_thread(const std::filesystem::path &filename) {
         std::cerr << "Failed to open file " << filename.c_str() << ", error " << errno << ", " << strerror(errno) << std::endl;
     }
 
-    rohit::logger::all.set_fd(log_filedescriptor);
+    MMS::logger::all.set_fd(log_filedescriptor);
 
     plog_thread.reset(new std::thread { log_thread_function });
 }
 
-class echoserver_t : public rohit::event::protocol_implementation_t {
-    rohit::event::buffer_t localbuffer { };
+class echoserver_t : public MMS::event::protocol_implementation_t {
+    MMS::event::buffer_t localbuffer { };
 public:
-    void ProcessRead(const uint8_t *buffer, const size_t size, rohit::event::writer_t &writer) {
+    void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) {
         writer.Write<true>(buffer, size, 0);
     }
 };
 
-thread_local rohit::event::buffer_t rohit::event::tcp::connection_t::tempbuffer { };
+thread_local MMS::event::buffer_t MMS::event::tcp::connection_t::tempbuffer { };
 
-class ecchoservercreator_t : public rohit::event::protocol_implementation_creator_t {
+class ecchoservercreator_t : public MMS::event::protocol_implementation_creator_t {
 
 public:
 
-    rohit::event::protocol_implementation_t *create_protocol_implementation() override {
+    MMS::event::protocol_implementation_t *create_protocol_implementation() override {
         return new echoserver_t();
     }
 
 };
 
 int main(int, char *[]) {
-    rohit::log<rohit::log_t::APPLICATION_STARTING>();
+    MMS::log<MMS::log_t::APPLICATION_STARTING>();
 
     const std::filesystem::path filename("/tmp/iotcloud/log/deviceserver.log");
     init_log_thread(filename);
 
     ecchoservercreator_t echoservercreator { };
-    rohit::event::listner_t locallistner { };
-    rohit::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
+    MMS::event::listner_t locallistner { };
+    MMS::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
     locallistner.add(server);
     locallistner.multithread_loop(16);
 

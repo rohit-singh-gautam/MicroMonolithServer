@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <vector>
 
-namespace rohit {
+namespace MMS {
 
 struct commandline_option {
     const char ch;

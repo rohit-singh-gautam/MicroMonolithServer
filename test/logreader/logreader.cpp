@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     bool clean;
     bool display_version;
     std::filesystem::path log_file;
-    rohit::commandline param_parser(
+    MMS::commandline param_parser(
         "Parse and display logs",
         "Parse and display logs in sorted format",
         {
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    rohit::logreader log_reader(log_file);
+    MMS::logreader log_reader(log_file);
 
     while(true) {
         auto logstr = log_reader.readnextstring(live);

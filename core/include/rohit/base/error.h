@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <cstring>
 
-namespace rohit {
+namespace MMS {
 
 #ifndef LIST_DEFINITION_END
 #define LIST_DEFINITION_END
@@ -344,4 +344,4 @@ public:
     }
 };
 
-} // namespace rohit
+} // namespace MMS

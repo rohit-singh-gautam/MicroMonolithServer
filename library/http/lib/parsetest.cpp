@@ -18,7 +18,7 @@ bool http_request_line_parse(const std::string_view &text) {
         const char *requesttext = text.data();
         size_t size = text.size();
         MMS::http::parse_request_line(request, requesttext, size);
-    } catch(rohit::http_parser_failed_t &e) {
+    } catch(MMS::http_parser_failed_t &e) {
         std::cout << e.to_string(text.data()) << std::endl;
         return false;
     }
@@ -29,7 +29,7 @@ bool http_request_parse(const std::string_view &text) {
     try {
         MMS::http::header_request request { };
         request.parse(text);
-    } catch(rohit::http_parser_failed_t &e) {
+    } catch(MMS::http_parser_failed_t &e) {
         std::cout << e.to_string(text.data()) << std::endl;
         return false;
     }

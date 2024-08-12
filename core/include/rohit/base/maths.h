@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <cmath>
 
-namespace rohit {
+namespace MMS {
 
 enum class number_case_t {
     lower,
@@ -232,4 +232,4 @@ constexpr uint8_t * base64_decode(const typecheck::byte auto *const buffer, cons
     return dest;
 }
 
-} // namespace rohit
+} // namespace MMS

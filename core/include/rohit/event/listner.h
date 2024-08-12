@@ -13,7 +13,7 @@
 #include <rohit/log/log.h>
 #include <rohit/lockfree/fixedqueue.h>
 
-namespace rohit::event {
+namespace MMS::event {
 using namespace std::chrono_literals;
 
 class writer_t {
@@ -134,9 +134,9 @@ public:
     }
 
     void loop() {
-        epoll_event events[rohit::config::eventlistner::maxeventcount];
+        epoll_event events[MMS::config::eventlistner::maxeventcount];
         while(true) {
-            auto ret = epoll_wait(epollfd, events, rohit::config::eventlistner::maxeventcount, -1);
+            auto ret = epoll_wait(epollfd, events, MMS::config::eventlistner::maxeventcount, -1);
 
             if (ret == -1) {
                 if (errno == EINTR || errno == EINVAL) {
@@ -205,4 +205,4 @@ public:
     }
 };
 
-} // namespace rohit::event
+} // namespace MMS::event
