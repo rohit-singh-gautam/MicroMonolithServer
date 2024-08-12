@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <rohit/log/logentry.h>
-#include <rohit/log/varadic.h>
+#include <mms/log/logentry.h>
+#include <mms/log/varadic.h>
 #include <unistd.h>
 #include <iostream>
 #include <thread>

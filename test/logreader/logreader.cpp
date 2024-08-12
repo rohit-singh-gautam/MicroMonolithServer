@@ -5,8 +5,8 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <rohit/log/log.h>
-#include <rohit/cmd/configparser.h>
+#include <mms/log/log.h>
+#include <mms/cmd/configparser.h>
 
 #include <iostream>
 #include <filesystem>

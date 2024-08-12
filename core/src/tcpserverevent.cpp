@@ -5,22 +5,10 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <iostream>
-#include <mms/server/echo.h>
-#include <thread>
+#include <mms/net/tcpserverevent.h>
 
+namespace MMS::event {
 
-int main(int, char *[]) {
-    MMS::log<MMS::log_t::APPLICATION_STARTING>();
+thread_local buffer_t tcp::connection_t::tempbuffer { };
 
-    const std::filesystem::path filename("/tmp/iotcloud/log/deviceserver.log");
-
-    MMS::server::echocreator_t echoservercreator { };
-    MMS::event::listner_t locallistner { filename };
-    MMS::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
-    locallistner.add(server);
-    locallistner.multithread_loop(4);
-    locallistner.wait();
-
-    return 0;
 }

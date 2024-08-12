@@ -11,9 +11,7 @@
 bool http_request_parse(const std::string_view &text) {
     try {
         MMS::http::request req { text };
-        std::cout << req.to_string() << std::endl;
     } catch(MMS::http_parser_failed_t &e) {
-        std::cout << e.to_string(text.data()) << std::endl;
         return false;
     }
     return true;

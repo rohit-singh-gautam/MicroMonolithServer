@@ -96,7 +96,9 @@ namespace MMS {
     \
     ERROR_T_ENTRY(MATH_INSUFFICIENT_BUFFER, "Buffer is not sufficient to store result, partial and wrong result may have been written to buffer") \
     \
-    ERROR_T_ENTRY(EVENT_DIST_CREATE_FAILED, "Event distributor creation failed") \
+    ERROR_T_ENTRY(LISTNER_CREATE_FAILED, "Listner creation failed") \
+    ERROR_T_ENTRY(LISTNER_ALREADY_CREATE_FAILED, "Listner can have only one instance. Second instance to create listner will fail") \
+    \
     ERROR_T_ENTRY(EVENT_CREATE_FAILED, "Event creation failed") \
     ERROR_T_ENTRY(EVENT_ENABLE_FAILED, "Event enable failed") \
     ERROR_T_ENTRY(EVENT_CREATE_FAILED_ZERO, "Event creation failed for 0 file descriptor value") \
@@ -293,55 +295,22 @@ public:
     constexpr http_parser_failed_t(const char *const current_position, const size_t buffer_remaining) 
         : exception_t(err_t::HTTP11_PARSER_FAILURE), current_position { current_position }, buffer_remaining { buffer_remaining } { }
 
-    std::string to_string(const char *start_position) {
-        auto errstr = error_helper_t::to_string() + ": ";
+    std::string to_string(const char *start_position);
+};
 
-        if (current_position < start_position) {
-            errstr += "Underflow - ";
-        } else 
-        {
-            if (current_position - start_position >= 40 ){
-                for(size_t index { 0 }; index < 16; ++index) {
-                    auto current_ch = start_position[index];
-                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
-                        errstr.push_back(current_ch);
-                    } else errstr.push_back('#');
-                }
-                errstr += " ... ";
+class listner_create_failed_t : public exception_t {
+protected:
+    using exception_t::exception_t;
 
-                for(size_t index { 16 }; index; --index) {
-                    auto current_ch = *(current_position - index);
-                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
-                        errstr.push_back(current_ch);
-                    } else errstr.push_back('#');
-                }
-            } else {
-                auto itr = start_position;
-                while(itr < current_position) {
-                    auto current_ch = *itr;
-                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
-                        errstr.push_back(current_ch);
-                    } else errstr.push_back(current_ch);
+public:
+    constexpr listner_create_failed_t() : exception_t { err_t::LISTNER_CREATE_FAILED } { }
+};
 
-                    ++itr;
-                }
-            }
+class listner_already_created_failed_t : public listner_create_failed_t {
+public:
+    constexpr listner_already_created_failed_t() : listner_create_failed_t { err_t::LISTNER_ALREADY_CREATE_FAILED } { }
 
-            errstr += " <-- error is here -- ";
-        }
 
-        for(size_t index { 0 }; index < std::min(16UL, buffer_remaining); ++index) {
-            auto current_ch = current_position[index];
-            if (current_ch >= 32 /* &&  current_ch <= 127 */) {
-                errstr.push_back(current_ch);
-            } else errstr.push_back('#');
-        }
-        if (buffer_remaining > 16) {
-            errstr += " ... more " + std::to_string(buffer_remaining - 16UL) + " characters.";
-        }
-
-        return errstr;
-    }
 };
 
 } // namespace MMS

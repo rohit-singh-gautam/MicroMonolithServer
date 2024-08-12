@@ -8,10 +8,10 @@
 #pragma once
 #include <sys/epoll.h>
 #include <thread>
-#include <rohit/base/error.h>
-#include <rohit/base/types.h>
-#include <rohit/log/log.h>
-#include <rohit/lockfree/fixedqueue.h>
+#include <mms/base/error.h>
+#include <mms/base/types.h>
+#include <mms/log/log.h>
+#include <mms/lockfree/fixedqueue.h>
 
 namespace MMS::event {
 using namespace std::chrono_literals;
@@ -54,28 +54,34 @@ public:
  * multiplexer_t implementation can be multi threaded or single threaded.
  */
 class listner_t {
-    int epollfd;
+public:
+    static constexpr size_t max_event_epoll_return_default { 8 };
+private:
+    int epollfd { };
+
+    // This is number of event that can be returned from epoll in one wait
+    // For single threaded this can be very high.
+    const size_t max_event_epoll_return;
     bool IsTerminated { false };
 
     std::vector<std::jthread> threadlist { };
 
+    std::jthread log_thread { };
+    void log_thread_function();
+    void init_log_thread(const std::filesystem::path &filename);
+
+    static bool created;
+
 public:
-    listner_t() : epollfd(epoll_create1(0)) {
-        if (epollfd == -1) {
-            log<log_t::EVENT_DIST_CREATE_FAILED>(errno);
-            throw exception_t(err_t::EVENT_DIST_CREATE_FAILED);
-        } else {
-            log<log_t::EVENT_DIST_CREATE_SUCCESS>();
-        }
-    }
+    listner_t(const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
 
     err_t add(const int fd, auto CustomData) const {
         epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(CustomData) } };
-        if constexpr (config::debug) {
+#ifdef DEBUG
             if (fd == 0) {
                 throw exception_t(err_t::EVENT_CREATE_FAILED_ZERO);
             }
-        }
+#endif
 
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &epoll_data);
 
@@ -133,74 +139,17 @@ public:
         IsTerminated = true;
     }
 
-    void loop() {
-        epoll_event events[MMS::config::eventlistner::maxeventcount];
-        while(true) {
-            auto ret = epoll_wait(epollfd, events, MMS::config::eventlistner::maxeventcount, -1);
-
-            if (ret == -1) {
-                if (errno == EINTR || errno == EINVAL) {
-                    if (IsTerminated) {
-                        pthread_exit(nullptr);
-                    }
-                }
-
-                log<log_t::EVENT_DIST_LOOP_WAIT_INTERRUPTED>(errno);
-                std::this_thread::sleep_for(1s);
-                // Check again if terminated
-                if (IsTerminated) {
-                    pthread_exit(nullptr);
-                }
-                continue;
-            }
-
-            for(decltype(ret) index = 0; index < ret; ++index) {
-                epoll_event &event = events[index];
-                auto processor = reinterpret_cast<event::processor_t *>(event.data.ptr);
-
-                log<log_t::EVENT_DIST_EVENT_RECEIVED>(processor->GetFD(), event.events);
-                if ((event.events & EPOLLRDHUP)) {
-                    delete processor;
-                } else {
-                    err_t ret { err_t::SUCCESS };
-                    if ((event.events & (EPOLLIN | EPOLLHUP | EPOLLERR))) {
-                        // EPOLLHUP | EPOLLERR
-                        // recv() will return 0 for EPOLLHUP and -1 for EPOLLERR
-                        // recv() 0 means end of file.
-                        ret = processor->ProcessRead();
-                        if (ret == err_t::SOCKET_RETRY) {
-                            event.events |= EPOLLOUT;
-                        }
-                    }
-                    if ((event.events & EPOLLOUT)) {
-                        ret = processor->ProcessWrite();
-                    }
-
-                    switch(ret) {
-                        case err_t::SUCCESS:
-                            enable(processor, false);
-                            break;
-                        
-                        // SOCKET_RETRY will only happen for Write
-                        // read converts it to SUCCESS
-                        case err_t::SOCKET_RETRY:
-                            enable(processor, true);
-                            break;
-
-                        // case err_t::BAD_FILE_DESCRIPTOR:
-                        default:
-                            delete processor;
-                            break;
-
-                    }
-                }
-            }
-        }
-    }
+    void loop();
 
     void multithread_loop(size_t threadcount) {
         for(size_t index { 0 }; index < threadcount; ++index) {
             threadlist.emplace_back(&listner_t::loop, this);
+        }
+    }
+
+    void wait() {
+        for(auto &th: threadlist) {
+            th.join();
         }
     }
 };

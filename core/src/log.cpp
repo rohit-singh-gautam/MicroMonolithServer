@@ -6,11 +6,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
-#include <rohit/log/log.h>
-#include <rohit/base/maths.h>
-#include <rohit/base/guid.h>
-#include <rohit/base/error.h>
-#include <rohit/net/socket.h>
+#include <mms/log/log.h>
+#include <mms/base/maths.h>
+#include <mms/base/guid.h>
+#include <mms/base/error.h>
+#include <mms/net/socket.h>
 #include <sys/epoll.h>
 #include <cstring>
 #include <iostream>

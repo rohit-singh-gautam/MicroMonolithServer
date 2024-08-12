@@ -5,22 +5,28 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <iostream>
-#include <mms/server/echo.h>
-#include <thread>
+#pragma once
+#include <mms/net/tcpserverevent.h>
+
+namespace MMS::server {
+
+class echo_t : public MMS::event::protocol_implementation_t {
+    MMS::event::buffer_t localbuffer { };
+public:
+    void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) {
+        writer.Write<true>(buffer, size, 0);
+    }
+};
+
+class echocreator_t : public MMS::event::protocol_implementation_creator_t {
+
+public:
+
+    MMS::event::protocol_implementation_t *create_protocol_implementation() override {
+        return new echo_t();
+    }
+
+};
 
 
-int main(int, char *[]) {
-    MMS::log<MMS::log_t::APPLICATION_STARTING>();
-
-    const std::filesystem::path filename("/tmp/iotcloud/log/deviceserver.log");
-
-    MMS::server::echocreator_t echoservercreator { };
-    MMS::event::listner_t locallistner { filename };
-    MMS::event::tcp::server_t server { 4833, echoservercreator, &locallistner };
-    locallistner.add(server);
-    locallistner.multithread_loop(4);
-    locallistner.wait();
-
-    return 0;
-}
+};

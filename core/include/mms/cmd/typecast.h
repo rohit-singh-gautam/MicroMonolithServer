@@ -6,11 +6,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <rohit/base/types.h>
-#include <rohit/base/maths.h>
-#include <rohit/base/guid.h>
-#include <rohit/net/ipv6addr.h>
-#include <rohit/log/varadic.h>
+#include <mms/base/types.h>
+#include <mms/base/maths.h>
+#include <mms/base/guid.h>
+#include <mms/net/ipv6addr.h>
+#include <mms/log/varadic.h>
 
 namespace MMS {
 

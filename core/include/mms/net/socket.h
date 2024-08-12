@@ -6,10 +6,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <rohit/base/error.h>
-#include <rohit/base/maths.h>
-#include <rohit/net/ipv6addr.h>
-#include <rohit/log/log.h>
+#include <mms/base/error.h>
+#include <mms/base/maths.h>
+#include <mms/net/ipv6addr.h>
+#include <mms/log/log.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -120,8 +120,8 @@ public:
                 const void *buf,
                 const size_t send_len,
                 size_t &actual_sent,
-                int64_t wait_in_millisecond = config::attempt_to_write_wait_in_ms,
-                int write_attempt = config::attempt_to_write) const
+                int64_t wait_in_millisecond = 50,
+                int write_attempt = 20) const
     {
         int attempt_to_write = 0;
         while(attempt_to_write < write_attempt) {
@@ -231,6 +231,8 @@ inline std::ostream& operator<<(std::ostream& os, const socket_t &client_id) {
 
 class server_socket_t : public socket_t {
 public:
+    static constexpr int socket_backlog { 5 };
+public:
     inline server_socket_t(const int port) {
         int enable = 1;
         if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
@@ -250,7 +252,7 @@ public:
         }
         log<log_t::SOCKET_BIND_SUCCESS>(socket_id, port);
 
-        if (listen(socket_id, config::socket_backlog) < 0) {
+        if (listen(socket_id, socket_backlog) < 0) {
             close();
             throw exception_t(err_t::LISTEN_FAILURE);
         }

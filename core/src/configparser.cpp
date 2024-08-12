@@ -5,8 +5,8 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <rohit/cmd/configparser.h>
-#include <rohit/cmd/typecast.h>
+#include <mms/cmd/configparser.h>
+#include <mms/cmd/typecast.h>
 #include <libgen.h>
 
 namespace MMS {

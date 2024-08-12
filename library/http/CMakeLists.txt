@@ -4,8 +4,8 @@ add_compile_options(-Wno-analyzer-malloc-leak)
 
 find_package(GTest CONFIG REQUIRED)
 
-
 add_library(httplib lib/parser.cpp)
+target_link_libraries(httplib PUBLIC corelib)
 
 set(HTTP_INCLUDE PUBLIC 
     ${PROJECT_SOURCE_DIR}/include
