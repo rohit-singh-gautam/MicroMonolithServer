@@ -16,6 +16,12 @@
 
 namespace MMS::http {
 /*
+    GET /hello.txt HTTP/1.1
+    Host: www.example.com
+    User-Agent: curl/7.16.3 libcurl/7.16.3 OpenSSL/0.9.7l zlib/1.2.3
+    Accept-Language: en, mi
+
+
     https://www.rfc-editor.org/rfc/rfc2616
     HTTP/1.1 206 Partial content
     Date: Wed, 15 Nov 1995 06:25:24 GMT
@@ -355,9 +361,9 @@ public:
 #undef HTTP_CODE_ENTRY
     };
 
-    typedef std::unordered_map<FIELD, std::string> fields_t;
+    typedef std::unordered_map<FIELD, std::string_view> fields_t;
 
-    static const std::unordered_map<std::string, FIELD> field_map;
+    static const std::unordered_map<std::string_view, FIELD> field_map;
 
     VERSION version { };
 
@@ -368,42 +374,21 @@ private:
     static const char *strVERSION[];
     static const char *strFIELD[];
 
-    friend std::ostream& operator<<(std::ostream& os, const VERSION httpVersion);
-    friend std::ostream& operator<<(std::ostream& os, const FIELD httpField);
-
 public:
-    friend std::ostream& operator<<(std::ostream& os, const std::pair<FIELD, std::string>& httpFieldPair);
-    friend std::ostream& operator<<(std::ostream& os, const fields_t& httpFields);
 
-    static constexpr const char *get_version_string(const VERSION version) {
+    static constexpr std::string_view to_string_view(const VERSION version) {
         switch(version) {
         default:
-#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return y;
-        HTTP_VERSION_LIST
-#undef HTTP_VERSION_ENTRY
-        }
-    }
-    static constexpr size_t get_version_string_size(const VERSION version) {
-        switch(version) {
-        default:
-#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return sizeof(y);
+#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) };
         HTTP_VERSION_LIST
 #undef HTTP_VERSION_ENTRY
         }
     }
 
-    static constexpr const char *get_field_string(const FIELD field) {
+    static constexpr std::string_view to_string_view(const FIELD field) {
         switch(field) {
         default:
-#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return y;
-        HTTP_FIELD_LIST
-#undef HTTP_FIELD_ENTRY
-        }
-    }
-    static constexpr size_t get_field_string_size(const FIELD field) {
-        switch(field) {
-        default:
-#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return sizeof(y);
+#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) };
         HTTP_FIELD_LIST
 #undef HTTP_FIELD_ENTRY
         }
@@ -412,12 +397,6 @@ public:
     static constexpr const char *get_code_string(CODE code);
     static constexpr size_t get_code_string_size(CODE code);
 }; // class header
-
-
-std::ostream& operator<<(std::ostream& os, const header::VERSION httpVersion);
-std::ostream& operator<<(std::ostream& os, const header::FIELD httpField);
-std::ostream& operator<<(std::ostream& os, const std::pair<header::FIELD, std::string>& httpFieldPair);
-std::ostream& operator<<(std::ostream& os, const header::fields_t& httpFields);
 
 class header_request : public header {
 public:
@@ -430,9 +409,19 @@ public:
 #undef HTTP_METHOD_ENTRY
     };
 
+    static constexpr std::string_view to_string_view(const METHOD method) {
+        switch(method) {
+        default:
+#define HTTP_METHOD_ENTRY(x) case METHOD::x: return {#x, sizeof(#x)};
+        HTTP_METHOD_LIST
+#undef HTTP_METHOD_ENTRY
+        }
+    }
+
     static const std::unordered_map<std::string_view, METHOD> method_map;
 
-    METHOD method { }; 
+    METHOD method { };
+    std::string_view path { };
     fields_t fields { };
 
     inline header_request() {}
@@ -440,13 +429,8 @@ public:
 
     bool match_etag(const char *etag, size_t etag_size);
 
-    std::string get_path() {
-        auto field_itr = fields.find(FIELD::Path);
-        if (field_itr != fields.end()) {
-            return field_itr->second;
-        } else {
-            return "";
-        }
+    std::string_view get_path() {
+        return path;
     }
 
     VERSION upgrade_version() {
@@ -460,81 +444,31 @@ public:
         return VERSION::VER_1_1;
     }
 
-    void parse_till_space(const char *&requesttext, size_t &size) {
-        while(*requesttext != ' ' && size) {
-            ++requesttext;
-            --size;
+    std::string to_string() {
+        std::string ret {};
+        ret += to_string_view(method);
+        ret += " ";
+        ret += path;
+        ret += " ";
+        ret += header::to_string_view(version);
+        ret += "\r\n";
+        for(auto fieldentry: fields) {
+            auto field = fieldentry.first;
+            auto value = fieldentry.second;
+            ret += header::to_string_view(field);
+            ret += ": ";
+            ret += value;
+            ret += "\r\n";
         }
+        ret += "\r\n";
+        return ret;
     }
 
-    void parse_skip_one(const char *requesttext, size_t size) {
-        ++requesttext;
-        --size;
-    }
-
-    void parse_method(const char *&requesttext, size_t &size) {
-        const char *start = requesttext;
-        size_t oldsize { size };
-        parse_till_space(requesttext, size);
-        
-        std::string_view methodtext { start, oldsize - size };
-
-        auto itr = method_map.find(methodtext);
-        if (itr == std::end(method_map)) {
-            throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        }
-
-        method = itr->second;
-    }
-
-    void parse_request_uri(const char *&requesttext, size_t &size) {
-        const char *start = requesttext;
-        size_t oldsize { size };
-
-        parse_till_space(requesttext, size);
-        std::string_view requesturi { start, oldsize - size };
-
-        fields.emplace(FIELD::Path, requesturi);
-    }
-
-    void parse_version(const char *&requesttext, size_t &size) {
-        const char *start = requesttext;
-        size_t oldsize { size };
-        parse_till_space(requesttext, size);
-        
-        std::string_view versiontext { start, oldsize - size };
-
-        if (versiontext.compare("HTTP/1.1") == 0) version = VERSION::VER_1_1;
-        else if (versiontext.compare("HTTP/2.0") == 0) version = VERSION::VER_1_1;
-        else throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-    }
-
-    void parse_CRLF(const char *&requesttext, size_t &size) {
-        if (*requesttext != '\r' && *requesttext != '\n') throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        parse_skip_one(requesttext, size);
-        if (*requesttext == '\n') parse_skip_one(requesttext, size);
-    }
-
-    // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-    // We will allow CR
-    void parse(const char *requesttext, size_t size) {
-        if (!size) throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        parse_method(requesttext, size);
-        if (!size) throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        parse_skip_one(requesttext, size);
-        if (!size) throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        parse_request_uri(requesttext, size);
-        if (size < 11) throw rohit::exception_t(rohit::err_t::HTTP11_PARSER_FAILURE);
-        parse_skip_one(requesttext, size);
-        parse_version(requesttext, size);
-    }
+    // This will return position will header_request is present including last \r\n
+    size_t parse(const std::string_view &text);
 
 private:
     static const char *strMETHOD[];
-
-public:
-    friend std::ostream& operator<<(std::ostream& os, const METHOD requestMethod);
-    friend std::ostream& operator<<(std::ostream& os, const header_request& requestHeader);
 };
 
 

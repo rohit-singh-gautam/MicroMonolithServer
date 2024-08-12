@@ -125,7 +125,7 @@ namespace rohit {
     \
     ERROR_T_ENTRY(HTTP_FILEMAP_NOT_FOUND, "Failed to find filemap") \
     ERROR_T_ENTRY(HTTP11_PARSER_MEMORY_FAILURE, "HTTP 1.1 parser failed to allocate memory") \
-    ERROR_T_ENTRY(HTTP11_PARSER_FAILURE, "HTTP 1.1 parser failed to parse bad string") \
+    ERROR_T_ENTRY(HTTP11_PARSER_FAILURE, "HTTP 1.1 parser failed") \
     \
     ERROR_T_ENTRY(HTTP2_HPACK_TABLE_ERROR, "HTTP 2 HPACK internal error") \
     ERROR_T_ENTRY(HTTP2_INITIATE_GOAWAY, "HTTP 2 goaway initiated") \
@@ -184,7 +184,7 @@ constexpr size_t to_string(const err_t &val, char *dest) {
 }
 
 class error_helper_t {
-private:
+protected:
     err_t value;
 
 public:
@@ -199,13 +199,13 @@ public:
     constexpr bool operator==(const err_t rhs) const { return value == rhs; }
     constexpr bool operator!=(const err_t rhs) const { return value != rhs; }
 
-    constexpr const std::string to_string() const {
-        return std::string(err_t_string[(size_t)value]);
+    std::string to_string() const {
+        auto len = to_string_size<false>(value);
+        auto errstr = err_t_string[static_cast<size_t>(value)];
+        return { errstr, len };
     }
-    constexpr operator const std::string() const { return to_string(); }
 
     constexpr operator err_t() const { return value; }
-    constexpr operator std::underlying_type_t<err_t>() const { return static_cast<std::underlying_type_t<err_t>>(value); }
 
 
     constexpr bool isSuccess() const { return value == err_t::SUCCESS; }
@@ -286,6 +286,62 @@ inline std::ostream& operator<<(std::ostream& os, const exception_t &error) {
     return os << errdata.to_string();
 }
 
+class http_parser_failed_t : public exception_t {
+    const char *const current_position;
+    const size_t buffer_remaining;
+public:
+    constexpr http_parser_failed_t(const char *const current_position, const size_t buffer_remaining) 
+        : exception_t(err_t::HTTP11_PARSER_FAILURE), current_position { current_position }, buffer_remaining { buffer_remaining } { }
 
+    std::string to_string(const char *start_position) {
+        auto errstr = error_helper_t::to_string() + ": ";
+
+        if (current_position < start_position) {
+            errstr += "Underflow - ";
+        } else 
+        {
+            if (current_position - start_position >= 40 ){
+                for(size_t index { 0 }; index < 16; ++index) {
+                    auto current_ch = start_position[index];
+                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
+                        errstr.push_back(current_ch);
+                    } else errstr.push_back('#');
+                }
+                errstr += " ... ";
+
+                for(size_t index { 16 }; index; --index) {
+                    auto current_ch = *(current_position - index);
+                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
+                        errstr.push_back(current_ch);
+                    } else errstr.push_back('#');
+                }
+            } else {
+                auto itr = start_position;
+                while(itr < current_position) {
+                    auto current_ch = *itr;
+                    if (current_ch >= 32 /* &&  current_ch <= 127 */) {
+                        errstr.push_back(current_ch);
+                    } else errstr.push_back(current_ch);
+
+                    ++itr;
+                }
+            }
+
+            errstr += " <-- error is here -- ";
+        }
+
+        for(size_t index { 0 }; index < std::min(16UL, buffer_remaining); ++index) {
+            auto current_ch = current_position[index];
+            if (current_ch >= 32 /* &&  current_ch <= 127 */) {
+                errstr.push_back(current_ch);
+            } else errstr.push_back('#');
+        }
+        if (buffer_remaining > 16) {
+            errstr += " ... more " + std::to_string(buffer_remaining - 16UL) + " characters.";
+        }
+
+        return errstr;
+    }
+};
 
 } // namespace rohit
