@@ -106,14 +106,14 @@ public:
 
 namespace tcp {
 class connection_t : public processor_t {
-    socket_t connection_socket;
+    tcp_socket_t connection_socket;
     protocol_implementation_t *const protocol_implementation;
     std::queue<write_entry> pending_wirte { };
 
     static thread_local buffer_t tempbuffer;
 
 public:
-    connection_t(socket_t &&connection_socket, protocol_implementation_t * const protocol_implementation)
+    connection_t(tcp_socket_t &&connection_socket, protocol_implementation_t * const protocol_implementation)
         : connection_socket { std::move(connection_socket) }, protocol_implementation { protocol_implementation } { }
     connection_t(const connection_t&) = delete;
     connection_t& operator=(const connection_t&) = delete;
@@ -192,7 +192,7 @@ public:
 };
 
 class tcp_server_t : public processor_t {
-    server_socket_t server_socket;
+    tcp_server_socket_t server_socket;
     protocol_implementation_creator_t &protocol_implementation_creator;
     event::listener_t *listener;
 public:

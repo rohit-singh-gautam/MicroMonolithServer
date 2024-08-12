@@ -73,13 +73,13 @@ namespace MMS {
     \
     LOGGER_ENTRY(APPLICATION_STARTING, ALERT, SYSTEM, "Application is starting") \
     LOGGER_ENTRY(APPLICATION_STARTED_SUCCESSFULLY, ALERT, SYSTEM, "Application started successfully") \
-    LOGGER_ENTRY(SOCKET_CREATE_SUCCESS, DEBUG, SOCKET, "Socket %i created") \
-    LOGGER_ENTRY(SOCKET_CREATE_FAILED, INFO, SOCKET, "Socket creation failed with error %ve") \
-    LOGGER_ENTRY(SOCKET_CLOSE_SUCCESS, DEBUG, SOCKET, "Socket %i closed") \
-    LOGGER_ENTRY(SOCKET_CLOSE_FAILED, INFO, SOCKET, "Socket %i close failed with error %ve") \
-    LOGGER_ENTRY(SOCKET_BIND_SUCCESS, DEBUG, SOCKET, "Socket %i, port %i bind success") \
-    LOGGER_ENTRY(SOCKET_LISTEN_SUCCESS, DEBUG, SOCKET, "Socket %i, port %i listen success") \
-    LOGGER_ENTRY(SOCKET_ACCEPT_SUCCESS, DEBUG, SOCKET, "Socket %i accept success, new socket created %i") \
+    LOGGER_ENTRY(TCP_SOCKET_CREATE_SUCCESS, DEBUG, SOCKET, "TCP Socket %i created") \
+    LOGGER_ENTRY(TCP_SOCKET_CREATE_FAILED, INFO, SOCKET, "TCP Socket creation failed with error %ve") \
+    LOGGER_ENTRY(TCP_SOCKET_CLOSE_SUCCESS, DEBUG, SOCKET, "TCP Socket %i closed") \
+    LOGGER_ENTRY(TCP_SOCKET_CLOSE_FAILED, INFO, SOCKET, "TCP Socket %i close failed with error %ve") \
+    LOGGER_ENTRY(TCP_SOCKET_BIND_SUCCESS, DEBUG, SOCKET, "TCP Socket %i, port %i bind success") \
+    LOGGER_ENTRY(TCP_SOCKET_LISTEN_SUCCESS, DEBUG, SOCKET, "TCP Socket %i, port %i listen success") \
+    LOGGER_ENTRY(TCP_SOCKET_ACCEPT_SUCCESS, DEBUG, SOCKET, "TCP Socket %i accept success, new socket created %i") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_FAILED, ALERT, SYSTEM, "FAILED: Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL, ALERT, SYSTEM, "Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_ALL, ALERT, SYSTEM, "Setting Log level %vl for all modules") \

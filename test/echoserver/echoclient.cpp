@@ -18,7 +18,7 @@ int main(int , char *[]) {
     auto port = MMS::to_ipv6_port_t("4833");
     auto addr = MMS::to_ipv6_addr_t("::1");
     MMS::ipv6_socket_addr_t socketaddr { addr, port };
-    MMS::client_socket_t clientsocket { socketaddr };
+    MMS::tcp_client_socket_t clientsocket { socketaddr };
     const char *message { "Test" };
     auto message_len = strlen(message);
     size_t actualsent { 0 };

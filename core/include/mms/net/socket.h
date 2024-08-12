@@ -31,34 +31,23 @@ constexpr ipv6_socket_addr_t::operator sockaddr_in6() const {
     return sockaddr;
 }
 
-inline int create_socket() {
-    int socket_id = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-    if (socket_id < 0) {
-        log<log_t::SOCKET_CREATE_FAILED>(errno);
-        throw exception_t(MMS::error_helper_t::socket_create_ret());
-    }
-
-    log<log_t::SOCKET_CREATE_SUCCESS>(socket_id);
-    return socket_id;
-}
-
-class socket_t {
+class tcp_socket_t {
 protected:
     int socket_id;
 
-    inline socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) {
+    inline tcp_socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) {
         if (socket_id < 0) {
-        log<log_t::SOCKET_CREATE_FAILED>(errno);
+        log<log_t::TCP_SOCKET_CREATE_FAILED>(errno);
             throw exception_t(MMS::error_helper_t::socket_create_ret());
         }
 
-        log<log_t::SOCKET_CREATE_SUCCESS>(socket_id);
+        log<log_t::TCP_SOCKET_CREATE_SUCCESS>(socket_id);
     }
 
 public:
-    constexpr socket_t(const int socket_id) : socket_id(socket_id) {}
-    constexpr socket_t(socket_t &&sock) : socket_id(sock.socket_id) { sock.socket_id = 0; }
-    ~socket_t() {
+    constexpr tcp_socket_t(const int socket_id) : socket_id(socket_id) {}
+    constexpr tcp_socket_t(tcp_socket_t &&sock) : socket_id(sock.socket_id) { sock.socket_id = 0; }
+    ~tcp_socket_t() {
         if (socket_id) {
             ::close(socket_id);
             socket_id = 0;
@@ -69,10 +58,10 @@ public:
         if (socket_id) {
             auto ret = ::close(socket_id);
             if (ret == -1) {
-                log<log_t::SOCKET_CLOSE_FAILED>(socket_id, errno);
+                log<log_t::TCP_SOCKET_CLOSE_FAILED>(socket_id, errno);
                 return err_t::CLOSE_FAILURE;
             } else {
-                log<log_t::SOCKET_CLOSE_SUCCESS>(socket_id);
+                log<log_t::TCP_SOCKET_CLOSE_SUCCESS>(socket_id);
             }
             socket_id = 0;
         }
@@ -225,15 +214,15 @@ public:
     inline bool is_closed() const { return socket_id == 0; }
 };
 
-inline std::ostream& operator<<(std::ostream& os, const socket_t &client_id) {
+inline std::ostream& operator<<(std::ostream& os, const tcp_socket_t &client_id) {
     return os << client_id.get_local_ipv6_addr();
 }
 
-class server_socket_t : public socket_t {
+class tcp_server_socket_t : public tcp_socket_t {
 public:
     static constexpr int socket_backlog { 5 };
 public:
-    inline server_socket_t(const int port) {
+    inline tcp_server_socket_t(const int port) {
         int enable = 1;
         if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
             close(); 
@@ -250,16 +239,16 @@ public:
             close();
             throw exception_t(err_t::BIND_FAILURE);
         }
-        log<log_t::SOCKET_BIND_SUCCESS>(socket_id, port);
+        log<log_t::TCP_SOCKET_BIND_SUCCESS>(socket_id, port);
 
         if (listen(socket_id, socket_backlog) < 0) {
             close();
             throw exception_t(err_t::LISTEN_FAILURE);
         }
-        log<log_t::SOCKET_LISTEN_SUCCESS>(socket_id, port);
+        log<log_t::TCP_SOCKET_LISTEN_SUCCESS>(socket_id, port);
     }
 
-    inline socket_t accept() {
+    inline tcp_socket_t accept() {
         auto client_id = ::accept4(socket_id, NULL, NULL, SOCK_NONBLOCK | SOCK_CLOEXEC);
         if (client_id == -1) {
             if (errno == EAGAIN) {
@@ -268,13 +257,13 @@ public:
             throw exception_t(err_t::ACCEPT_FAILURE);
         }
 
-        log<log_t::SOCKET_ACCEPT_SUCCESS>(socket_id, client_id);
+        log<log_t::TCP_SOCKET_ACCEPT_SUCCESS>(socket_id, client_id);
         return client_id;
     }
 
 };
 
-class client_socket_t : public socket_t {
+class tcp_client_socket_t : public tcp_socket_t {
 private:
     inline err_t connect(const ipv6_socket_addr_t &ipv6addr) {
         sockaddr_in6 in6_addr = ipv6addr;
@@ -284,8 +273,8 @@ private:
     }
 
 public:
-    using socket_t::socket_t;
-    client_socket_t(const ipv6_socket_addr_t &ipv6addr) {
+    using tcp_socket_t::tcp_socket_t;
+    tcp_client_socket_t(const ipv6_socket_addr_t &ipv6addr) {
         err_t err = connect(ipv6addr);
         if (isFailure(err)) throw exception_t(err);
     }
