@@ -5,7 +5,6 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "config.h"
 #include <iostream>
 #include <mms/event/listener.h>
 #include <mms/net/tcpserverevent.h>

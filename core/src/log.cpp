@@ -5,7 +5,6 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "config.h"
 #include <mms/log/log.h>
 #include <mms/base/maths.h>
 #include <mms/base/guid.h>
@@ -87,12 +86,12 @@ void logger::flush(const int fd) {
         fd,
         next_read,
         write_size);
-    if constexpr (config::debug) {
-        if (ret < 0) {
-            // Log to console
-            std::cerr << "Failed to write log with error: " << errno << "\n";
-        }
+#ifdef DEBUG
+    if (ret < 0) {
+        // Log to console
+        std::cerr << "Failed to write log with error: " << errno << "\n";
     }
+#endif
 
     next_read = current_write;
 }
@@ -299,7 +298,7 @@ void segv_log_flush() {
 }
 
 static void log_thread_function() {
-    constexpr auto wait_time = std::chrono::milliseconds(config::log_thread_wait_in_millis);
+    constexpr auto wait_time = std::chrono::milliseconds(200);
     log_thread_running = true;
     while(log_thread_running) {
         std::this_thread::sleep_for(wait_time);
