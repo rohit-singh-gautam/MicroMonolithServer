@@ -8,27 +8,10 @@
 #include <http/httpdef.h>
 #include <gtest/gtest.h>
 
-namespace MMS::http {
-void parse_request_line(MMS::http::header_request &request, const char *&requesttext, size_t &size);
-}
-
-bool http_request_line_parse(const std::string_view &text) {
-    try {
-        MMS::http::header_request request { };
-        const char *requesttext = text.data();
-        size_t size = text.size();
-        MMS::http::parse_request_line(request, requesttext, size);
-    } catch(MMS::http_parser_failed_t &e) {
-        std::cout << e.to_string(text.data()) << std::endl;
-        return false;
-    }
-    return true;
-}
-
 bool http_request_parse(const std::string_view &text) {
     try {
-        MMS::http::header_request request { };
-        request.parse(text);
+        MMS::http::request req { text };
+        std::cout << req.to_string() << std::endl;
     } catch(MMS::http_parser_failed_t &e) {
         std::cout << e.to_string(text.data()) << std::endl;
         return false;
@@ -37,11 +20,11 @@ bool http_request_parse(const std::string_view &text) {
 }
 
 TEST(HttpParserTest, RequestLineTest) {
-    EXPECT_TRUE(http_request_line_parse({"GET /echotest HTTP/1.1"}));
-    EXPECT_TRUE(http_request_line_parse({"POST http://localhost/echotest/regional HTTP/1.1"}));
-    EXPECT_TRUE(http_request_line_parse({"HEAD http://localhost/echotest/regional HTTP/1.1"}));
-    EXPECT_TRUE(http_request_line_parse({"OPTIONS junkyard HTTP/1.1"}));
-    EXPECT_FALSE(http_request_line_parse({"FAIL http://localhost/echotest/regional HTTP/1.1"}));
+    EXPECT_FALSE(http_request_parse({"FAIL http://localhost/echotest/regional HTTP/1.1"}));
+    EXPECT_TRUE(http_request_parse({"GET /echotest HTTP/1.1"}));
+    EXPECT_TRUE(http_request_parse({"POST http://localhost/echotest/regional HTTP/1.1"}));
+    EXPECT_TRUE(http_request_parse({"HEAD http://localhost/echotest/regional HTTP/1.1"}));
+    EXPECT_TRUE(http_request_parse({"OPTIONS junkyard HTTP/1.1"}));
 }
 
 TEST(HttpParserTest, RequestTest) {

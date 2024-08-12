@@ -342,6 +342,9 @@ namespace MMS::http {
     LIST_DEFINITION_END
 
 class header {
+protected:
+    const std::string_view empty { };
+
 public:
     enum class VERSION {
 #define HTTP_VERSION_ENTRY(x, y) x,
@@ -398,16 +401,22 @@ public:
     static constexpr size_t get_code_string_size(CODE code);
 }; // class header
 
-class header_request : public header {
+class request_header : public header {
 public:
-    using header::VERSION;
-    using header::FIELD;
-
     enum class METHOD {
 #define HTTP_METHOD_ENTRY(x) x,
     HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
     };
+
+    using header::VERSION;
+    using header::FIELD;
+
+    static const std::unordered_map<std::string_view, METHOD> method_map;
+
+protected:
+
+    friend class http_parser;
 
     static constexpr std::string_view to_string_view(const METHOD method) {
         switch(method) {
@@ -418,19 +427,25 @@ public:
         }
     }
 
-    static const std::unordered_map<std::string_view, METHOD> method_map;
+public:
+
+    inline request_header() {}
+    inline request_header(VERSION version) : header(version) {}
 
     METHOD method { };
     std::string_view path { };
     fields_t fields { };
 
-    inline header_request() {}
-    inline header_request(VERSION version) : header(version) {}
-
     bool match_etag(const char *etag, size_t etag_size);
 
-    std::string_view get_path() {
-        return path;
+    auto GetMethod() const { return method; }
+    const auto &GetPath() const { return path; }
+    const auto  &GetField(FIELD field) const {
+        const auto field_itr = fields.find(field);
+        if (field_itr != fields.end()) {
+            return field_itr->second;
+        }
+        return empty;
     }
 
     VERSION upgrade_version() {
@@ -444,32 +459,21 @@ public:
         return VERSION::VER_1_1;
     }
 
-    std::string to_string() {
-        std::string ret {};
-        ret += to_string_view(method);
-        ret += " ";
-        ret += path;
-        ret += " ";
-        ret += header::to_string_view(version);
-        ret += "\r\n";
-        for(auto fieldentry: fields) {
-            auto field = fieldentry.first;
-            auto value = fieldentry.second;
-            ret += header::to_string_view(field);
-            ret += ": ";
-            ret += value;
-            ret += "\r\n";
-        }
-        ret += "\r\n";
-        return ret;
-    }
-
-    // This will return position will header_request is present including last \r\n
-    size_t parse(const std::string_view &text);
-
 private:
     static const char *strMETHOD[];
-};
+}; // class request_header
+
+class request : public request_header {
+    friend class http_parser;
+    std::string_view body { };
+
+public:
+    request(const std::string_view &);
+
+    const auto &GetBody() const { return body; }
+
+    std::string to_string();
+}; // class request
 
 
 } // namespace MMS::http
