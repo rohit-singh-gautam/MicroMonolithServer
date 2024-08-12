@@ -191,14 +191,14 @@ public:
     }
 };
 
-class server_t : public processor_t {
+class tcp_server_t : public processor_t {
     server_socket_t server_socket;
     protocol_implementation_creator_t &protocol_implementation_creator;
     event::listener_t *listener;
 public:
-    server_t(const int port, protocol_implementation_creator_t &protocol_implementation_creator, event::listener_t *listener) : server_socket { port }, protocol_implementation_creator { protocol_implementation_creator }, listener { listener } { }
-    server_t(const server_t &) = default;
-    server_t &operator=(const server_t &) = default;
+    tcp_server_t(const int port, protocol_implementation_creator_t &protocol_implementation_creator, event::listener_t *listener) : server_socket { port }, protocol_implementation_creator { protocol_implementation_creator }, listener { listener } { }
+    tcp_server_t(const tcp_server_t &) = default;
+    tcp_server_t &operator=(const tcp_server_t &) = default;
 
     err_t ProcessRead() override {
         log<log_t::TCP_SERVER_RECEIVED_EVENT>(server_socket.GetFD());

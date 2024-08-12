@@ -16,7 +16,7 @@ int main(int, char *[]) {
 
     MMS::server::echocreator_t echoservercreator { };
     MMS::event::listener_t locallistener { filename };
-    MMS::event::tcp::server_t server { 4833, echoservercreator, &locallistener };
+    MMS::event::tcp::tcp_server_t server { 4833, echoservercreator, &locallistener };
     locallistener.add(server);
     locallistener.multithread_loop(4);
     locallistener.wait();
