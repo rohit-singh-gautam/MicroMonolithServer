@@ -82,7 +82,10 @@ void logger::flush(const int fd) {
     auto current_write = next_write; 
     size_t write_size = current_write - next_read;
 
-    auto ret = ::write(
+#ifdef DEBUG
+    auto ret = 
+#endif
+    ::write(
         fd,
         next_read,
         write_size);

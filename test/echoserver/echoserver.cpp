@@ -9,7 +9,6 @@
 #include <mms/server/echo.h>
 #include <thread>
 
-
 int main(int, char *[]) {
     MMS::log<MMS::log_t::APPLICATION_STARTING>();
 

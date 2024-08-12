@@ -27,7 +27,7 @@ listener_t::listener_t(const std::filesystem::path &filename, const size_t max_e
         throw listener_create_failed_t { };
     }
 
-    log<log_t::EVENT_DIST_CREATE_SUCCESS>();
+    log<log_t::LISTENER_CREATE_SUCCESS>();
 }
 
 void listener_t::init_log_thread(const std::filesystem::path &filename) {
@@ -56,6 +56,7 @@ void listener_t::log_thread_function() {
 }
 
 void listener_t::loop() {
+    log<log_t::LISTENER_LOOP_CREATED>();
     auto events = std::make_unique<epoll_event[]>(max_event_epoll_return);
     while(true) {
         auto ret = epoll_wait(epollfd, events.get(), max_event_epoll_return, -1);
@@ -67,7 +68,7 @@ void listener_t::loop() {
                 }
             }
 
-            log<log_t::EVENT_DIST_LOOP_WAIT_INTERRUPTED>(errno);
+            log<log_t::LISTENER_LOOP_WAIT_INTERRUPTED>(errno);
             std::this_thread::sleep_for(1s);
             // Check again if terminated
             if (IsTerminated) {
@@ -80,8 +81,9 @@ void listener_t::loop() {
             epoll_event &event = events[index];
             auto processor = reinterpret_cast<event::processor_t *>(event.data.ptr);
 
-            log<log_t::EVENT_DIST_EVENT_RECEIVED>(processor->GetFD(), event.events);
+            log<log_t::LISTENER_EVENT_RECEIVED>(processor->GetFD(), event.events);
             if ((event.events & EPOLLRDHUP)) {
+                log<log_t::TCP_SERVER_PEER_CONNECTION_CLOSED>(processor->GetFD());
                 delete processor;
             } else {
                 err_t ret { err_t::SUCCESS };

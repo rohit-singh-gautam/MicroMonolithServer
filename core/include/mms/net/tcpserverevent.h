@@ -129,7 +129,7 @@ public:
             if (ret == err_t::SUCCESS) continue;
             if (ret == err_t::SOCKET_RETRY) break;
             if (ret == err_t::CONNECTION_REFUSED || ret == err_t::RECEIVE_FAILURE) {
-                log<log_t::SOCKET_READ_FAILED>(connection_socket.GetFD(), errno);
+                log<log_t::TCP_SERVER_PEER_READ_FAILED>(connection_socket.GetFD(), errno);
                 // Close will take care of termination
                 connection_socket.close();
                 return err_t::BAD_FILE_DESCRIPTOR;
@@ -155,6 +155,7 @@ public:
                 if (ret == err_t::SUCCESS) continue;
                 if (ret == err_t::CONNECTION_REFUSED || ret == err_t::RECEIVE_FAILURE) {
                     // Close will take care of termination
+                    log<log_t::TCP_SERVER_PEER_WRITE_FAILED>(connection_socket.GetFD(), errno);
                     connection_socket.close();
                     return err_t::BAD_FILE_DESCRIPTOR;
                 }
@@ -200,16 +201,16 @@ public:
     server_t &operator=(const server_t &) = default;
 
     err_t ProcessRead() override {
-        log<log_t::EVENT_SERVER_RECEIVED_EVENT>(server_socket.GetFD());
+        log<log_t::TCP_SERVER_RECEIVED_EVENT>(server_socket.GetFD());
         try {
             auto connection_socket = server_socket.accept();
             auto protocol_implementation = protocol_implementation_creator.create_protocol_implementation();
             auto connection = new connection_t(std::move(connection_socket), protocol_implementation);
             listener->add(connection);
-            log<log_t::EVENT_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+            log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
         } catch (const exception_t e) {
             if (e == err_t::ACCEPT_FAILURE) {
-                log<log_t::EVENT_SERVER_ACCEPT_FAILED>(GetFD(), errno);
+                log<log_t::TCP_SERVER_ACCEPT_FAILED>(GetFD(), errno);
             }
         }
         return err_t::SUCCESS;

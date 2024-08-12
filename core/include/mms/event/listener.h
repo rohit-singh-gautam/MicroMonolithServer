@@ -79,17 +79,17 @@ public:
         epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(CustomData) } };
 #ifdef DEBUG
             if (fd == 0) {
-                throw exception_t(err_t::EVENT_CREATE_FAILED_ZERO);
+                throw exception_t(err_t::LISTENER_CREATE_FAILED_ZERO);
             }
 #endif
 
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &epoll_data);
 
         if (ret == -1) {
-            log<log_t::EVENT_CREATE_FAILED>(fd, errno);
-            return err_t::EVENT_CREATE_FAILED;
+            log<log_t::LISTNER_EVENT_ADD_FAILED>(fd, errno);
+            return err_t::LISTNER_EVENT_ADD_FAILED;
         } else {
-            log<log_t::EVENT_CREATE_SUCCESS>(fd);
+            log<log_t::LISTNER_EVENT_ADD_SUCCESS>(fd);
             return err_t::SUCCESS;
         }
     }
@@ -108,10 +108,10 @@ public:
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &epoll_data);
 
         if (ret == -1) {
-            log<log_t::EVENT_ENABLE_FAILED>(fd, errno);
-            return err_t::EVENT_ENABLE_FAILED;
+            log<log_t::LISTNER_EVENT_ENABLE_FAILED>(fd, errno);
+            return err_t::LISTNER_EVENT_ENABLE_FAILED;
         } else {
-            log<log_t::EVENT_ENABLE_SUCCESS>(fd);
+            log<log_t::LISTNER_EVENT_ENABLE_SUCCESS>(fd);
             return err_t::SUCCESS;
         }
     }
@@ -127,10 +127,10 @@ public:
     err_t remove(const int fd) {
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, nullptr);
         if (ret == -1) {
-            log<log_t::EVENT_REMOVE_FAILED>(fd, errno);
-            return err_t::EVENT_REMOVE_FAILED;
+            log<log_t::LISTNER_EVENT_REMOVE_FAILED>(fd, errno);
+            return err_t::LISTNER_EVENT_REMOVE_FAILED;
         } else {
-            log<log_t::EVENT_REMOVE_SUCCESS>(fd);
+            log<log_t::LISTNER_EVENT_REMOVE_SUCCESS>(fd);
             return err_t::SUCCESS;
         }
     }
@@ -142,14 +142,21 @@ public:
     void loop();
 
     void multithread_loop(size_t threadcount) {
+        size_t cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+        if (!threadcount) threadcount = cpu_count;
+        if (threadcount > cpu_count) {
+            log<log_t::LISTENER_TOO_MANY_THREAD>();
+        }
+        log<log_t::LISTENER_CREATING_THREAD>(threadcount);
         for(size_t index { 0 }; index < threadcount; ++index) {
             threadlist.emplace_back(&listener_t::loop, this);
         }
     }
 
     void wait() {
-        for(auto &th: threadlist) {
-            th.join();
+        for(auto &thread: threadlist) {
+            thread.join();
+            log<log_t::LISTENER_EXIT_THREAD_JOIN_SUCCESS>();
         }
     }
 };

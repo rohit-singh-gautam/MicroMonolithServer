@@ -24,7 +24,6 @@ namespace MMS {
     ERROR_T_ENTRY(SUCCESS, "SUCCESS") \
     ERROR_T_ENTRY(SUCCESS_NONBLOCKING, "Call is non blocking") \
     ERROR_T_ENTRY(SOCKET_CONNECT_ALREADY_CONNECTED, "Socket is already connected") \
-    ERROR_T_ENTRY(GENERAL_FAILURE, "Failed") \
     ERROR_T_ENTRY(CRITICAL_FAILURE, "Critical failure such as no memory server must be restarted") \
     ERROR_T_ENTRY(ORDERLY_SHUTDOWN, "Peer has performed orderly shutdown") \
     ERROR_T_ENTRY(CONNECTION_REFUSED, "Peer connection is closed") \
@@ -35,19 +34,6 @@ namespace MMS {
     ERROR_T_ENTRY(RECEIVE_FAILURE, "Unable to read from a socket") \
     ERROR_T_ENTRY(SEND_FAILURE, "Unable to write to a socket") \
     ERROR_T_ENTRY(BAD_FILE_DESCRIPTOR, "Bad file descriptor") \
-    \
-    ERROR_T_ENTRY(MAPPING_NOT_FOUND, "General mapping error") \
-    \
-    ERROR_T_ENTRY(PTHREAD_JOIN_FAILURE, "Unable to join to a thread") \
-    ERROR_T_ENTRY(PTHREAD_JOIN_DEADLOCK_FAILURE, "pthread_join created a deadlock") \
-    ERROR_T_ENTRY(PTHREAD_JOIN_NOT_JOINABLE_FAILURE, "Either thread is not joinable probably other thread is trying to join") \
-    ERROR_T_ENTRY(PTHREAD_JOIN_INVALID_THREAD_ID_FAILURE, "No thread is running with given thread ID") \
-    \
-    ERROR_T_ENTRY(PTHREAD_CREATE_FAILURE, "Unable to create thread") \
-    \
-    ERROR_T_ENTRY(GUID_BAD_STRING_FAILURE, "Bad GUID string") \
-    \
-    ERROR_T_ENTRY(MESSAGE_COMMAND_LIMIT_FAILURE, "Cannot add more command to message") \
     \
     ERROR_T_ENTRY(SOCKET_FAILURE, "Unable to create socket") \
     ERROR_T_ENTRY(SOCKET_PERMISSION_FAILURE, "Insufficient permission to create socket") \
@@ -68,44 +54,21 @@ namespace MMS {
     ERROR_T_ENTRY(SOCKET_CONNECT_TIMEOUT, "Unable to connect as it timeout") \
     ERROR_T_ENTRY(SOCKET_WRITE_ZERO, "Socket write written zero byte") \
     ERROR_T_ENTRY(SOCKET_RETRY, "Socket retry last operation") \
-    ERROR_T_ENTRY(SOCKET_GET_READ_BUFFER_FAILED, "Socket read buffer get failed") \
-    ERROR_T_ENTRY(SOCKET_GET_WRITE_BUFFER_FAILED, "Socket write buffer get failed") \
-    ERROR_T_ENTRY(SOCKET_SET_READ_BUFFER_FAILED, "Socket read buffer set failed") \
-    ERROR_T_ENTRY(SOCKET_SET_WRITE_BUFFER_FAILED, "Socket write buffer set failed") \
-    \
-    ERROR_T_ENTRY(SOCKET_SSL_CONTEXT_FAILED, "Creation on SSL context failed") \
-    ERROR_T_ENTRY(SOCKET_SSL_CERTIFICATE_FAILED, "Failed to load SSL certificate") \
-    ERROR_T_ENTRY(SOCKET_SSL_CERTIFICATE_FILE_NOT_FOUND, "Failed to load SSL certificate, file not found") \
-    ERROR_T_ENTRY(SOCKET_SSL_PRIKEY_FAILED, "Failed to load Primay Key") \
-    \
-    ERROR_T_ENTRY(SOCKET_SSL_WANT_READ, "Non blocking SSL, want to read more data") \
-    ERROR_T_ENTRY(SOCKET_SSL_WANT_WRITE, "Non blocking SSL, want to write more data") \
-    ERROR_T_ENTRY(SOCKET_SSL_WANT_X509_LOOKUP, "Non blocking SSL, looking for certificate") \
-    ERROR_T_ENTRY(SOCKET_SSL_SYSCALL_ERROR, "SSL syscall error, probably connection is closed or wrong parameter") \
-    ERROR_T_ENTRY(SOCKET_SSL_ZERO_RETURN, "SSL zero bytes returned no data") \
-    ERROR_T_ENTRY(SOCKET_SSL_ERROR, "SSL error, Openssl call failed") \
-    ERROR_T_ENTRY(SOCKET_SSL_SANITY_ERROR, "SSL error, parameter changes requires exactly same parameter") \
     \
     ERROR_T_ENTRY(SOCKOPT_FAILURE, "Unable to set socket option") \
     ERROR_T_ENTRY(SOCKOPT_BAD_ID, "Unable to set socket option, bad socket ID") \
     ERROR_T_ENTRY(SOCKOPT_UNKNOWN_OPTION, "Unknown socket option") \
     \
     ERROR_T_ENTRY(LOG_READ_FAILURE, "Unable to read log") \
-    ERROR_T_ENTRY(LOG_UNSUPPORTED_TYPE_FAILURE, "Unsupported log type") \
     ERROR_T_ENTRY(LOG_FILE_OPEN_FAILURE, "Unable to open log file") \
-    \
-    ERROR_T_ENTRY(MATH_INSUFFICIENT_BUFFER, "Buffer is not sufficient to store result, partial and wrong result may have been written to buffer") \
     \
     ERROR_T_ENTRY(LISTENER_CREATE_FAILED, "Listener creation failed") \
     ERROR_T_ENTRY(LISTENER_ALREADY_CREATE_FAILED, "Listener can have only one instance. Second instance to create listener will fail") \
     \
-    ERROR_T_ENTRY(EVENT_CREATE_FAILED, "Event creation failed") \
-    ERROR_T_ENTRY(EVENT_ENABLE_FAILED, "Event enable failed") \
-    ERROR_T_ENTRY(EVENT_CREATE_FAILED_ZERO, "Event creation failed for 0 file descriptor value") \
-    ERROR_T_ENTRY(EVENT_REMOVE_FAILED, "Event remove failed") \
-    \
-    ERROR_T_ENTRY(FILEWATCHER_ADD_FOLDER_FAILED, "FILEWATCHER failed to add folder for watch") \
-    ERROR_T_ENTRY(FILEWATCHER_EVENT_CREATE_FAILED, "FILEWATCHER event create failed") \
+    ERROR_T_ENTRY(LISTNER_EVENT_ADD_FAILED, "Event creation failed") \
+    ERROR_T_ENTRY(LISTNER_EVENT_ENABLE_FAILED, "Event enable failed") \
+    ERROR_T_ENTRY(LISTENER_CREATE_FAILED_ZERO, "Event creation failed for 0 file descriptor value") \
+    ERROR_T_ENTRY(LISTNER_EVENT_REMOVE_FAILED, "Event remove failed") \
     \
     ERROR_T_ENTRY(SSL_CONNECT_FAILED, "Failed to create SSL session") \
     ERROR_T_ENTRY(SSL_SESSION_NULL, "SSL session in NULL") \
@@ -125,12 +88,7 @@ namespace MMS {
     ERROR_T_ENTRY(CRYPTO_KEY_ENCODE_FAIL, "Failed to encode key to binary") \
     ERROR_T_ENTRY(CRYPTO_CURVE_NOT_FOUND, "Failed to find curve from key") \
     \
-    ERROR_T_ENTRY(HTTP_FILEMAP_NOT_FOUND, "Failed to find filemap") \
-    ERROR_T_ENTRY(HTTP11_PARSER_MEMORY_FAILURE, "HTTP 1.1 parser failed to allocate memory") \
     ERROR_T_ENTRY(HTTP11_PARSER_FAILURE, "HTTP 1.1 parser failed") \
-    \
-    ERROR_T_ENTRY(HTTP2_HPACK_TABLE_ERROR, "HTTP 2 HPACK internal error") \
-    ERROR_T_ENTRY(HTTP2_INITIATE_GOAWAY, "HTTP 2 goaway initiated") \
     \
     ERROR_T_ENTRY(MAX_FAILURE, "Max failure nothing beyond this") \
     LIST_DEFINITION_END
