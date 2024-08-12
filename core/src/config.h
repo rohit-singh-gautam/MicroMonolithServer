@@ -11,12 +11,6 @@ namespace MMS {
 namespace config {
     constexpr bool debug = true;
 
-    namespace eventlistner {
-        // This is number of event that can be returned from epoll in one wait
-        // For single threaded this can be very high.
-        constexpr int maxeventcount = 256;
-    } // namespace eventlistner
-
     constexpr uint64_t attempt_to_write = 20;
     constexpr int64_t attempt_to_write_wait_in_ms = 50;
     constexpr int socket_backlog = 5;

@@ -96,8 +96,8 @@ namespace MMS {
     \
     ERROR_T_ENTRY(MATH_INSUFFICIENT_BUFFER, "Buffer is not sufficient to store result, partial and wrong result may have been written to buffer") \
     \
-    ERROR_T_ENTRY(LISTNER_CREATE_FAILED, "Listner creation failed") \
-    ERROR_T_ENTRY(LISTNER_ALREADY_CREATE_FAILED, "Listner can have only one instance. Second instance to create listner will fail") \
+    ERROR_T_ENTRY(LISTENER_CREATE_FAILED, "Listener creation failed") \
+    ERROR_T_ENTRY(LISTENER_ALREADY_CREATE_FAILED, "Listener can have only one instance. Second instance to create listener will fail") \
     \
     ERROR_T_ENTRY(EVENT_CREATE_FAILED, "Event creation failed") \
     ERROR_T_ENTRY(EVENT_ENABLE_FAILED, "Event enable failed") \
@@ -298,17 +298,17 @@ public:
     std::string to_string(const char *start_position);
 };
 
-class listner_create_failed_t : public exception_t {
+class listener_create_failed_t : public exception_t {
 protected:
     using exception_t::exception_t;
 
 public:
-    constexpr listner_create_failed_t() : exception_t { err_t::LISTNER_CREATE_FAILED } { }
+    constexpr listener_create_failed_t() : exception_t { err_t::LISTENER_CREATE_FAILED } { }
 };
 
-class listner_already_created_failed_t : public listner_create_failed_t {
+class listener_already_created_failed_t : public listener_create_failed_t {
 public:
-    constexpr listner_already_created_failed_t() : listner_create_failed_t { err_t::LISTNER_ALREADY_CREATE_FAILED } { }
+    constexpr listener_already_created_failed_t() : listener_create_failed_t { err_t::LISTENER_ALREADY_CREATE_FAILED } { }
 
 
 };

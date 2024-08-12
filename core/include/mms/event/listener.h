@@ -53,7 +53,7 @@ public:
  * This class will poll for filediscriptor and pull all the data in multiplexer_t.
  * multiplexer_t implementation can be multi threaded or single threaded.
  */
-class listner_t {
+class listener_t {
 public:
     static constexpr size_t max_event_epoll_return_default { 8 };
 private:
@@ -73,7 +73,7 @@ private:
     static bool created;
 
 public:
-    listner_t(const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
+    listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
 
     err_t add(const int fd, auto CustomData) const {
         epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(CustomData) } };
@@ -143,7 +143,7 @@ public:
 
     void multithread_loop(size_t threadcount) {
         for(size_t index { 0 }; index < threadcount; ++index) {
-            threadlist.emplace_back(&listner_t::loop, this);
+            threadlist.emplace_back(&listener_t::loop, this);
         }
     }
 

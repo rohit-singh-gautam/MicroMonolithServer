@@ -5,17 +5,17 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <mms/event/listner.h>
+#include <mms/event/listener.h>
 
 
 namespace MMS::event {
 
-bool listner_t::created { false };
+bool listener_t::created { false };
 
-listner_t::listner_t(const std::filesystem::path &filename, const size_t max_event_epoll_return) : max_event_epoll_return { max_event_epoll_return } {
+listener_t::listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return) : max_event_epoll_return { max_event_epoll_return } {
     if (created) {
-        log<log_t::LISTNER_ALREADY_CREATED_FAILED>();
-        throw listner_already_created_failed_t { };
+        log<log_t::LISTENER_ALREADY_CREATED_FAILED>();
+        throw listener_already_created_failed_t { };
     }
     created = true;
 
@@ -23,14 +23,14 @@ listner_t::listner_t(const std::filesystem::path &filename, const size_t max_eve
 
     epollfd = epoll_create1(0);
     if (epollfd == -1) {
-        log<log_t::LISTNER_CREATE_FAILED>(errno);
-        throw listner_create_failed_t { };
+        log<log_t::LISTENER_CREATE_FAILED>(errno);
+        throw listener_create_failed_t { };
     }
 
     log<log_t::EVENT_DIST_CREATE_SUCCESS>();
 }
 
-void listner_t::init_log_thread(const std::filesystem::path &filename) {
+void listener_t::init_log_thread(const std::filesystem::path &filename) {
     if (!std::filesystem::exists(filename)) {
         auto parent { filename.parent_path() };
         std::filesystem::create_directories(parent);
@@ -42,10 +42,10 @@ void listner_t::init_log_thread(const std::filesystem::path &filename) {
 
     MMS::logger::all.set_fd(log_filedescriptor);
 
-    log_thread = std::jthread { &listner_t::log_thread_function, this };
+    log_thread = std::jthread { &listener_t::log_thread_function, this };
 }
 
-void listner_t::log_thread_function() {
+void listener_t::log_thread_function() {
     constexpr auto wait_time = std::chrono::milliseconds(200);
     while(!IsTerminated) {
         std::this_thread::sleep_for(wait_time);
@@ -55,7 +55,7 @@ void listner_t::log_thread_function() {
     MMS::logger::all.flush();
 }
 
-void listner_t::loop() {
+void listener_t::loop() {
     auto events = std::make_unique<epoll_event[]>(max_event_epoll_return);
     while(true) {
         auto ret = epoll_wait(epollfd, events.get(), max_event_epoll_return, -1);

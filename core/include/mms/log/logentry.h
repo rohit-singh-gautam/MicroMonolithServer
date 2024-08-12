@@ -93,8 +93,8 @@ namespace MMS {
     LOGGER_ENTRY(SETTING_LOG_LEVEL, ALERT, SYSTEM, "Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_ALL, ALERT, SYSTEM, "Setting Log level %vl for all modules") \
     \
-    LOGGER_ENTRY(LISTNER_CREATE_FAILED, ERROR, EVENT_DISTRIBUTOR, "Listner creation failed with error %ve, terminating application") \
-    LOGGER_ENTRY(LISTNER_ALREADY_CREATED_FAILED, ERROR, EVENT_DISTRIBUTOR, "Listner can have only one instance. Second instance to create listner will fail") \
+    LOGGER_ENTRY(LISTENER_CREATE_FAILED, ERROR, EVENT_DISTRIBUTOR, "Listener creation failed with error %ve, terminating application") \
+    LOGGER_ENTRY(LISTENER_ALREADY_CREATED_FAILED, ERROR, EVENT_DISTRIBUTOR, "Listener can have only one instance. Second instance to create listener will fail") \
     \
     LOGGER_ENTRY(EVENT_DIST_CREATING_THREAD, DEBUG, EVENT_DISTRIBUTOR, "Event distributor creating %llu threads") \
     LOGGER_ENTRY(EVENT_DIST_LOOP_CREATED, DEBUG, EVENT_DISTRIBUTOR, "Event distributor thread loop created") \
@@ -111,7 +111,7 @@ namespace MMS {
     LOGGER_ENTRY(EVENT_DIST_RESUMED_THREAD, DEBUG, EVENT_DISTRIBUTOR, "Event distributor resumed thread %llu") \
     LOGGER_ENTRY(EVENT_DIST_PAUSED_THREAD_FAILED, ERROR, EVENT_DISTRIBUTOR, "Event distributor failed to pause") \
     \
-    LOGGER_ENTRY(EVENT_LISTNER_NEW_ADDED, DEBUG, EVENT_DISTRIBUTOR, "FD: %i: Added new event") \
+    LOGGER_ENTRY(EVENT_LISTENER_NEW_ADDED, DEBUG, EVENT_DISTRIBUTOR, "FD: %i: Added new event") \
     \
     LOGGER_ENTRY(CONFIG_SERVER_INIT_SUCCESS, ALERT, EVENT_SERVER, "Config Server: Started Successfully. Number of Message: %li, Message Size: %li") \
     LOGGER_ENTRY(CONFIG_SERVER_INIT_FAILED_RETRY, WARNING, EVENT_SERVER, "Config Server: initialize failed, retrying... Error: %ve") \

@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <mms/event/listner.h>
+#include <mms/event/listener.h>
 #include <mms/base/types.h>
 #include <mms/net/socket.h>
 
@@ -193,9 +193,9 @@ public:
 class server_t : public processor_t {
     server_socket_t server_socket;
     protocol_implementation_creator_t &protocol_implementation_creator;
-    event::listner_t *listener;
+    event::listener_t *listener;
 public:
-    server_t(const int port, protocol_implementation_creator_t &protocol_implementation_creator, event::listner_t *listener) : server_socket { port }, protocol_implementation_creator { protocol_implementation_creator }, listener { listener } { }
+    server_t(const int port, protocol_implementation_creator_t &protocol_implementation_creator, event::listener_t *listener) : server_socket { port }, protocol_implementation_creator { protocol_implementation_creator }, listener { listener } { }
     server_t(const server_t &) = default;
     server_t &operator=(const server_t &) = default;
 
@@ -217,7 +217,7 @@ public:
 
     void Close() {
         server_socket.close();
-        // Once socket is closed listner will schedule EPOLLRDHUP
+        // Once socket is closed listener will schedule EPOLLRDHUP
         // And remove connection from polling
     }
 
