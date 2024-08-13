@@ -47,43 +47,6 @@ public:
 
 };
 
-struct write_entry {
-private:
-    uint8_t *buffer { nullptr };
-    size_t offset { 0 };
-    size_t size { 0 };
-public:
-    constexpr write_entry() { }
-    template <typename buffertype>
-    constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
-
-
-    constexpr write_entry(const write_entry &) = default;
-    constexpr write_entry &operator=(const write_entry &) = default;
-
-    template <typename type>
-    constexpr auto GetBufferBase() { return reinterpret_cast<type>(buffer); }
-
-    template <typename type>
-    constexpr auto GetBuffer() { 
-        auto newbuffer = buffer + offset;
-        const auto newsize = size - offset;
-        return std::make_pair(reinterpret_cast<type>(newbuffer), newsize);
-    }
-
-    constexpr auto AddOffset(const size_t offset) {
-        this->offset += offset;
-    }
-
-    constexpr auto Completed() const { return offset >= size; }
-    constexpr auto Pending() const { return offset < size; }
-
-    constexpr void Delete() {
-        free(buffer);
-        size = offset = 0;
-    }
-};
-
 namespace tcp {
 class connection_t;
 }

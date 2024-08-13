@@ -16,6 +16,61 @@
 namespace MMS::event {
 using namespace std::chrono_literals;
 
+struct write_entry_const {
+    const uint8_t *buffer;
+    size_t offset;
+    size_t size;
+    template <typename buffertype>
+    constexpr write_entry_const(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
+};
+
+struct write_entry {
+private:
+    uint8_t *buffer { nullptr };
+    size_t offset { 0 };
+    size_t size { 0 };
+public:
+    constexpr write_entry() { }
+    template <typename buffertype>
+    constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
+
+
+    constexpr write_entry(const write_entry &) = default;
+    constexpr write_entry &operator=(const write_entry &) = default;
+
+    template <typename type>
+    constexpr auto GetBufferBase() { return reinterpret_cast<type>(buffer); }
+
+    template <typename type>
+    constexpr auto GetBuffer() { 
+        auto newbuffer = buffer + offset;
+        const auto newsize = size - offset;
+        return std::make_pair(reinterpret_cast<type>(newbuffer), newsize);
+    }
+
+    constexpr auto AddOffset(const size_t offset) {
+        this->offset += offset;
+    }
+
+    constexpr auto RemainingBuffer() const {
+        return size - offset;
+    }
+
+    constexpr auto Completed() const { return offset >= size; }
+    constexpr auto Pending() const { return offset < size; }
+
+    constexpr void Delete() {
+        free(buffer);
+        size = offset = 0;
+    }
+};
+
+
+namespace typecheck {
+template <typename T>
+concept write_entry = std::is_same_v<T, MMS::event::write_entry_const>;
+} // namespace typecheck
+
 class writer_t {
 protected:
     virtual void WriteNoCopy(uint8_t*, size_t, size_t) { };
@@ -28,6 +83,16 @@ public:
     inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {
         if constexpr (CopyBuffer) WriteWithCopy(buffer, bytesize, byteoffset);
         else WriteNoCopy(buffer, bytesize, byteoffset);
+    }
+
+    template <typecheck::write_entry... buffertype>
+    inline void Write(const buffertype&... buffer) {
+        auto buffersize = ((buffer.size - buffer.offset) + ...);
+        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(buffersize));
+        auto outputitr = newbuffer;
+
+        ((outputitr = std::copy(buffer.buffer + buffer.offset, buffer.buffer + buffer.size, outputitr)), ...);
+        WriteNoCopy(newbuffer, buffersize, 0);
     }
 };
 

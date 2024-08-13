@@ -14,7 +14,7 @@ class echo_t : public MMS::event::protocol_implementation_t {
     MMS::event::buffer_t localbuffer { };
 public:
     void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) {
-        writer.Write<true>(buffer, size, 0);
+        writer.Write( event::write_entry_const {buffer, size});
     }
 };
 
