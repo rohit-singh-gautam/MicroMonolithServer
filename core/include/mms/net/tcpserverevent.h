@@ -22,6 +22,7 @@ private:
 
 public:
     buffer_t(const size_t size = 512UL) : buffer { malloc(initial_size)}, size { size } { }
+    
     buffer_t(const buffer_t &) = delete;
     buffer_t &operator=(const buffer_t &) = delete;
 
@@ -79,6 +80,7 @@ public:
     connection_t(tcp_socket_t &&connection_socket, protocol_implementation_t * const protocol_implementation)
         : connection_socket { std::move(connection_socket) }, protocol_implementation { protocol_implementation } { }
     connection_t(const connection_t&) = delete;
+
     connection_t& operator=(const connection_t&) = delete;
 
 
@@ -109,7 +111,7 @@ public:
 
     err_t ProcessWrite() override {
         while(!pending_wirte.empty()) {
-            auto currentbuffer = pending_wirte.front();
+            auto &currentbuffer = pending_wirte.front();
             while(!currentbuffer.Completed()) {
                 size_t writtenlen { 0 };
                 auto [buffer, size] = currentbuffer.GetBuffer<void *>();
@@ -147,9 +149,8 @@ public:
     }
 
     void WriteWithCopy(const uint8_t* buffer, size_t bytesize, size_t byteoffset) override {
-        auto oldbuffer = reinterpret_cast<const uint8_t *>(buffer);
         auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
-        std::copy(oldbuffer, oldbuffer + bytesize, newbuffer);
+        std::copy(buffer, buffer + bytesize, newbuffer);
         pending_wirte.emplace(newbuffer, bytesize, byteoffset );
     }
 };

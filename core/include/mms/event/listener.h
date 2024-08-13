@@ -26,17 +26,20 @@ struct write_entry_const {
 
 struct write_entry {
 private:
-    uint8_t *buffer { nullptr };
-    size_t offset { 0 };
-    size_t size { 0 };
+    uint8_t *buffer;
+    size_t offset;
+    size_t size;
 public:
-    constexpr write_entry() { }
     template <typename buffertype>
     constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
+    ~write_entry() {
+        // No check is require before free as
+        // Empty write_entry is not allowed.
+        free(buffer);
+    }
 
-
-    constexpr write_entry(const write_entry &) = default;
-    constexpr write_entry &operator=(const write_entry &) = default;
+    constexpr write_entry(const write_entry &) = delete;
+    constexpr write_entry &operator=(const write_entry &) = delete;
 
     template <typename type>
     constexpr auto GetBufferBase() { return reinterpret_cast<type>(buffer); }
@@ -58,17 +61,12 @@ public:
 
     constexpr auto Completed() const { return offset >= size; }
     constexpr auto Pending() const { return offset < size; }
-
-    constexpr void Delete() {
-        free(buffer);
-        size = offset = 0;
-    }
 };
 
 
 namespace typecheck {
 template <typename T>
-concept write_entry = std::is_same_v<T, MMS::event::write_entry_const>;
+concept write_entry_const = std::is_same_v<T, MMS::event::write_entry_const>;
 } // namespace typecheck
 
 class writer_t {
@@ -85,7 +83,7 @@ public:
         else WriteNoCopy(buffer, bytesize, byteoffset);
     }
 
-    template <typecheck::write_entry... buffertype>
+    template <typecheck::write_entry_const... buffertype>
     inline void Write(const buffertype&... buffer) {
         auto buffersize = ((buffer.size - buffer.offset) + ...);
         auto newbuffer = reinterpret_cast<uint8_t *>(malloc(buffersize));
