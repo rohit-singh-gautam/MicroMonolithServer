@@ -63,7 +63,7 @@ err_t terminate_t::ProcessRead() {
     throw listener_terminate_thread_t();
 }
 
-thread_stopper_t::thread_stopper_t() : evtfd(eventfd(1, EFD_NONBLOCK)), running { true } {}
+thread_stopper_t::thread_stopper_t() : evtfd(eventfd(1, EFD_NONBLOCK | EFD_CLOEXEC)), running { true } {}
 
 err_t thread_stopper_t::ProcessRead() {
     running = false;

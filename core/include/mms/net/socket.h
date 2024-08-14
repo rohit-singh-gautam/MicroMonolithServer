@@ -35,7 +35,7 @@ class tcp_socket_t {
 protected:
     int socket_id;
 
-    inline tcp_socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) {
+    inline tcp_socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, IPPROTO_TCP)) {
         if (socket_id < 0) {
         log<log_t::TCP_SOCKET_CREATE_FAILED>(errno);
             throw exception_t(MMS::error_helper_t::socket_create_ret());
@@ -198,16 +198,6 @@ public:
     }
 
     inline bool is_null() const { return socket_id == 0; }
-
-    inline bool set_non_blocking() {
-        int flags = fcntl(socket_id, F_GETFL, 0);
-        if (flags != -1) {
-            flags |= O_NONBLOCK;
-            flags = fcntl(socket_id, F_SETFL, flags);
-        }
-
-        return flags != -1;
-    }
 
     constexpr auto GetFD() const { return socket_id; }
 
