@@ -12,6 +12,8 @@
 #include <mms/base/types.h>
 #include <mms/log/log.h>
 #include <mms/lockfree/fixedqueue.h>
+#include <unordered_set>
+#include <typeinfo>
 
 namespace MMS::event {
 using namespace std::chrono_literals;
@@ -94,32 +96,56 @@ public:
     }
 };
 
+class listener_t;
+
 class processor_t : public writer_t {
-public:
-    using ProcessorFunction = void (*)(processor_t *);
-
 protected:
-    friend class executor_t;
-
-public:
+    friend class listener_t;
     virtual ~processor_t() = default;
+public:
 
     virtual int GetFD() const = 0;
     
+    /*! To close this processor ProcessRead must return err_t::INITIATE_CLOSE */
     virtual err_t ProcessRead() = 0;
 
     /*! Write is optional in some cases */
     virtual err_t ProcessWrite() { return err_t::SUCCESS; }
 };
 
-/*! 
- * This class will poll for filediscriptor and pull all the data in multiplexer_t.
- * multiplexer_t implementation can be multi threaded or single threaded.
- */
+class terminate_t : public processor_t {
+    listener_t &listener;
+
+    int signal_fd { };
+
+public:
+    terminate_t(listener_t &listener);
+    int GetFD() const override { return signal_fd; }
+    err_t ProcessRead() override;
+};
+
+class thread_stopper_t : public processor_t {
+    int evtfd { };
+    volatile bool running;
+public:
+    thread_stopper_t();
+    int GetFD() const override { return evtfd; }
+    err_t ProcessRead() override;
+
+    auto GetRunning() const { return running; }
+    void SetRunning() { running = true;}
+};
+
+/*! Only one instannce of listener can be created.
+ * Any attempt to create more than one instance will throw listener_already_created_t exception.
+*/
 class listener_t {
 public:
     static constexpr size_t max_event_epoll_return_default { 8 };
 private:
+    friend class terminate_t;
+    size_t threadcount;
+
     int epollfd { };
 
     // This is number of event that can be returned from epoll in one wait
@@ -133,40 +159,39 @@ private:
     void log_thread_function();
     void init_log_thread(const std::filesystem::path &filename);
 
+    terminate_t terminatehandler;
+
     static bool created;
 
+    std::unordered_set<processor_t *> active_processors { };
+
+    void Delete(processor_t *processor) {
+        remove(processor);
+        delete processor;
+    }
+
 public:
-    listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
+    listener_t(const size_t threadcount, const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
+    ~listener_t();
 
-    err_t add(const int fd, auto CustomData) const {
-        epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(CustomData) } };
-#ifdef DEBUG
-            if (fd == 0) {
-                throw exception_t(err_t::LISTENER_CREATE_FAILED_ZERO);
-            }
-#endif
-
+    err_t add(processor_t *processor) {
+        const auto fd = processor->GetFD();
+        epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(processor) } };
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &epoll_data);
 
         if (ret == -1) {
             log<log_t::LISTNER_EVENT_ADD_FAILED>(fd, errno);
             return err_t::LISTNER_EVENT_ADD_FAILED;
         } else {
+            active_processors.insert(processor);
             log<log_t::LISTNER_EVENT_ADD_SUCCESS>(fd);
             return err_t::SUCCESS;
         }
     }
 
-    err_t add(processor_t &processor) {
-        return add(processor.GetFD(), &processor);
-    }
-
-    err_t add(processor_t *processor) {
-        return add(processor->GetFD(), processor);
-    }
-
-    err_t enable(const int fd, auto CustomData, bool enablewrite) const {
-        epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(CustomData) } };
+    err_t enable(processor_t *processor, bool enablewrite) const {
+        const auto fd = processor->GetFD();
+        epoll_event epoll_data { EPOLLIN | EPOLLONESHOT | EPOLLRDHUP, { reinterpret_cast<void *>(processor) } };
         if (enablewrite) epoll_data.events |= EPOLLOUT;
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &epoll_data);
 
@@ -179,16 +204,11 @@ public:
         }
     }
 
-    err_t enable(processor_t &processor, bool enablewrite) {
-        return enable(processor.GetFD(), &processor, enablewrite);
-    }
-
-    err_t enable(processor_t *processor, bool enablewrite) {
-        return enable(processor->GetFD(), processor, enablewrite);
-    }
-
-    err_t remove(const int fd) {
+    err_t remove(processor_t *processor) {
+        const auto fd = processor->GetFD();
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, nullptr);
+        active_processors.erase(processor);
+
         if (ret == -1) {
             log<log_t::LISTNER_EVENT_REMOVE_FAILED>(fd, errno);
             return err_t::LISTNER_EVENT_REMOVE_FAILED;
@@ -198,18 +218,14 @@ public:
         }
     }
 
-    void Close() {
-        IsTerminated = true;
-    }
+    auto GetThreadCount() const { return threadcount; }
+
+    void close();
 
     void loop();
 
-    void multithread_loop(size_t threadcount) {
-        size_t cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
-        if (!threadcount) threadcount = cpu_count;
-        if (threadcount > cpu_count) {
-            log<log_t::LISTENER_TOO_MANY_THREAD>();
-        }
+    void multithread_loop() {
+
         log<log_t::LISTENER_CREATING_THREAD>(threadcount);
         for(size_t index { 0 }; index < threadcount; ++index) {
             threadlist.emplace_back(&listener_t::loop, this);

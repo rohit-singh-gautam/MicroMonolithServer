@@ -15,10 +15,9 @@ int main(int, char *[]) {
     const std::filesystem::path filename("/tmp/iotcloud/log/deviceserver.log");
 
     MMS::server::echocreator_t echoservercreator { };
-    MMS::event::listener_t locallistener { filename };
-    MMS::event::tcp::tcp_server_t server { 4833, echoservercreator, &locallistener };
-    locallistener.add(server);
-    locallistener.multithread_loop(4);
+    MMS::event::listener_t locallistener { 4,  filename };
+    locallistener.add(new MMS::event::tcp::tcp_server_t { 4833, echoservercreator, &locallistener });
+    locallistener.multithread_loop();
     locallistener.wait();
 
     return 0;
