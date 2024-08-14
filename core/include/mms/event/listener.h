@@ -163,7 +163,9 @@ private:
 
     static bool created;
 
+#ifdef MMS_LISTENER_CLOSE_AT_EXIT
     std::unordered_set<processor_t *> active_processors { };
+#endif
 
     void Delete(processor_t *processor) {
         remove(processor);
@@ -183,7 +185,9 @@ public:
             log<log_t::LISTNER_EVENT_ADD_FAILED>(fd, errno);
             return err_t::LISTNER_EVENT_ADD_FAILED;
         } else {
+#ifdef MMS_LISTENER_CLOSE_AT_EXIT
             active_processors.insert(processor);
+#endif
             log<log_t::LISTNER_EVENT_ADD_SUCCESS>(fd);
             return err_t::SUCCESS;
         }
@@ -207,7 +211,9 @@ public:
     err_t remove(processor_t *processor) {
         const auto fd = processor->GetFD();
         auto ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, nullptr);
+#ifdef MMS_LISTENER_CLOSE_AT_EXIT
         active_processors.erase(processor);
+#endif
 
         if (ret == -1) {
             log<log_t::LISTNER_EVENT_REMOVE_FAILED>(fd, errno);

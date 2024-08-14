@@ -71,12 +71,14 @@ err_t thread_stopper_t::ProcessRead() {
 }
 
 void listener_t::close() {
+#ifdef MMS_LISTENER_CLOSE_AT_EXIT
     for (auto processor: active_processors) {
         // We must not call listener remove here as it will modify active_processors
         // While iterating through active_processors, it must not be modified.
         delete processor;
     }
     active_processors.clear();
+#endif
 }
 
 bool listener_t::created { false };

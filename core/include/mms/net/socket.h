@@ -35,7 +35,7 @@ class tcp_socket_t {
 protected:
     int socket_id;
 
-    inline tcp_socket_t() : socket_id(socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, IPPROTO_TCP)) {
+    inline tcp_socket_t(bool nonblocking) : socket_id(socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | (nonblocking ? SOCK_NONBLOCK : 0), IPPROTO_TCP)) {
         if (socket_id < 0) {
         log<log_t::TCP_SOCKET_CREATE_FAILED>(errno);
             throw exception_t(MMS::error_helper_t::socket_create_ret());
@@ -45,7 +45,7 @@ protected:
     }
 
 public:
-    constexpr tcp_socket_t(const int socket_id) : socket_id(socket_id) {}
+    constexpr tcp_socket_t(const int socket_id) : socket_id(socket_id)  {}
     constexpr tcp_socket_t(tcp_socket_t &&sock) : socket_id(sock.socket_id) { sock.socket_id = 0; }
     ~tcp_socket_t() {
         if (socket_id) {
@@ -212,7 +212,7 @@ class tcp_server_socket_t : public tcp_socket_t {
 public:
     static constexpr int socket_backlog { 5 };
 public:
-    inline tcp_server_socket_t(const int port) {
+    inline tcp_server_socket_t(const int port) : tcp_socket_t { true } {
         int enable = 1;
         if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
             close(); 
@@ -264,7 +264,7 @@ private:
 
 public:
     using tcp_socket_t::tcp_socket_t;
-    tcp_client_socket_t(const ipv6_socket_addr_t &ipv6addr) {
+    tcp_client_socket_t(const ipv6_socket_addr_t &ipv6addr, bool nonblocking) : tcp_socket_t { nonblocking } {
         err_t err = connect(ipv6addr);
         if (isFailure(err)) throw exception_t(err);
     }
