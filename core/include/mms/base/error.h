@@ -23,6 +23,7 @@ namespace MMS {
 #define ERROR_T_LIST \
     ERROR_T_ENTRY(SUCCESS, "SUCCESS") \
     ERROR_T_ENTRY(SUCCESS_NONBLOCKING, "Call is non blocking") \
+    ERROR_T_ENTRY(INITIATE_CLOSE, "This will initiate closure for class that returns this. This can be used in multiple way and is implementation dependent") \
     ERROR_T_ENTRY(SOCKET_CONNECT_ALREADY_CONNECTED, "Socket is already connected") \
     ERROR_T_ENTRY(CRITICAL_FAILURE, "Critical failure such as no memory server must be restarted") \
     ERROR_T_ENTRY(ORDERLY_SHUTDOWN, "Peer has performed orderly shutdown") \
@@ -34,6 +35,8 @@ namespace MMS {
     ERROR_T_ENTRY(RECEIVE_FAILURE, "Unable to read from a socket") \
     ERROR_T_ENTRY(SEND_FAILURE, "Unable to write to a socket") \
     ERROR_T_ENTRY(BAD_FILE_DESCRIPTOR, "Bad file descriptor") \
+    \
+    ERROR_T_ENTRY(SIGNAL_POLLING_FAILED, "Signal polling failed") \
     \
     ERROR_T_ENTRY(SOCKET_FAILURE, "Unable to create socket") \
     ERROR_T_ENTRY(SOCKET_PERMISSION_FAILURE, "Insufficient permission to create socket") \
@@ -69,6 +72,7 @@ namespace MMS {
     ERROR_T_ENTRY(LISTNER_EVENT_ENABLE_FAILED, "Event enable failed") \
     ERROR_T_ENTRY(LISTENER_CREATE_FAILED_ZERO, "Event creation failed for 0 file descriptor value") \
     ERROR_T_ENTRY(LISTNER_EVENT_REMOVE_FAILED, "Event remove failed") \
+    ERROR_T_ENTRY(LISTENER_TERMINATE_THREAD, "Listener will stop loop hence terminate the thread. All allocation must be RAII for this to be successful.") \
     \
     ERROR_T_ENTRY(SSL_CONNECT_FAILED, "Failed to create SSL session") \
     ERROR_T_ENTRY(SSL_SESSION_NULL, "SSL session in NULL") \
@@ -264,11 +268,22 @@ public:
     constexpr listener_create_failed_t() : exception_t { err_t::LISTENER_CREATE_FAILED } { }
 };
 
-class listener_already_created_failed_t : public listener_create_failed_t {
+class listener_already_created_t : public listener_create_failed_t {
 public:
-    constexpr listener_already_created_failed_t() : listener_create_failed_t { err_t::LISTENER_ALREADY_CREATE_FAILED } { }
+    constexpr listener_already_created_t() : listener_create_failed_t { err_t::LISTENER_ALREADY_CREATE_FAILED } { }
 
 
 };
+
+class signal_polling_failed_t : public exception_t {
+public:
+    constexpr signal_polling_failed_t() : exception_t { err_t::SIGNAL_POLLING_FAILED } { }
+};
+
+class listener_terminate_thread_t : public exception_t {
+public:
+    constexpr listener_terminate_thread_t() : exception_t { err_t::LISTENER_TERMINATE_THREAD } { }
+};
+
 
 } // namespace MMS

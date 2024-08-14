@@ -170,8 +170,13 @@ public:
             auto connection_socket = server_socket.accept();
             auto protocol_implementation = protocol_implementation_creator.create_protocol_implementation();
             auto connection = new connection_t(std::move(connection_socket), protocol_implementation);
-            listener->add(connection);
-            log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+            auto ret = listener->add(connection);
+            if (ret == err_t::SUCCESS) {
+                log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+            } else {
+                log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+                delete connection;
+            }
         } catch (const exception_t e) {
             if (e == err_t::ACCEPT_FAILURE) {
                 log<log_t::TCP_SERVER_ACCEPT_FAILED>(GetFD(), errno);

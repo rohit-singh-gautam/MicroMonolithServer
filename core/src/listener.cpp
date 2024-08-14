@@ -6,16 +6,93 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mms/event/listener.h>
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <sys/eventfd.h>
 
 
 namespace MMS::event {
 
+terminate_t::terminate_t(listener_t &listener) : listener { listener } {
+    sigset_t sigmaskignore { };
+    sigemptyset(&sigmaskignore);
+    sigaddset(&sigmaskignore, SIGTERM);
+    sigaddset(&sigmaskignore, SIGINT);
+    int ret = sigprocmask(SIG_BLOCK, &sigmaskignore, 0);
+    if (ret == -1) {
+        log<log_t::SIGNAL_POLLING_MASK_FAILED>(errno);
+        throw signal_polling_failed_t();
+    }
+
+    sigset_t sigmask { };
+    sigaddset(&sigmask, SIGTERM);
+
+    // This is a blocking fd
+    signal_fd = signalfd(-1, &sigmask, SFD_CLOEXEC);
+    if (signal_fd == -1) {
+        log<log_t::SIGNAL_FD_FAILED>(errno);
+        throw signal_polling_failed_t();
+    }
+}
+
+err_t terminate_t::ProcessRead() {
+    listener.remove(this);
+
+    signalfd_siginfo siginfo { };
+    read(signal_fd, &siginfo, sizeof(siginfo));
+    
+    thread_stopper_t stopper { };
+
+    auto stopthread { listener.GetThreadCount() - 1 };
+    listener.add(&stopper);
+    for(; stopthread; --stopthread) {
+        while(stopper.GetRunning()) {
+            // This will reduce the CPU usage to almost zero
+            std::this_thread::sleep_for(10ms);
+        }
+        stopper.SetRunning();
+        listener.enable(&stopper, false);
+    }
+
+    listener.IsTerminated = true;
+    listener.remove(&stopper);
+    close(listener.epollfd);
+    
+    listener.close();
+    MMS::logger::all.flush();
+    throw listener_terminate_thread_t();
+}
+
+thread_stopper_t::thread_stopper_t() : evtfd(eventfd(1, EFD_NONBLOCK)), running { true } {}
+
+err_t thread_stopper_t::ProcessRead() {
+    running = false;
+    throw listener_terminate_thread_t { };
+}
+
+void listener_t::close() {
+    for (auto processor: active_processors) {
+        // We must not call listener remove here as it will modify active_processors
+        // While iterating through active_processors, it must not be modified.
+        delete processor;
+    }
+    active_processors.clear();
+}
+
 bool listener_t::created { false };
 
-listener_t::listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return) : max_event_epoll_return { max_event_epoll_return } {
+listener_t::listener_t(const size_t threadcount, const std::filesystem::path &filename, const size_t max_event_epoll_return) 
+    :  threadcount { threadcount }, max_event_epoll_return { max_event_epoll_return }, terminatehandler { *this }
+{
+    size_t cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+    if (!threadcount) this->threadcount = cpu_count;
+    if (this->threadcount > cpu_count) {
+        log<log_t::LISTENER_TOO_MANY_THREAD>();
+    }
+
     if (created) {
         log<log_t::LISTENER_ALREADY_CREATED_FAILED>();
-        throw listener_already_created_failed_t { };
+        throw listener_already_created_t { };
     }
     created = true;
 
@@ -27,7 +104,13 @@ listener_t::listener_t(const std::filesystem::path &filename, const size_t max_e
         throw listener_create_failed_t { };
     }
 
+    add(&terminatehandler);
+
     log<log_t::LISTENER_CREATE_SUCCESS>();
+}
+
+listener_t::~listener_t() {
+    MMS::logger::all.flush();
 }
 
 void listener_t::init_log_thread(const std::filesystem::path &filename) {
@@ -58,67 +141,62 @@ void listener_t::log_thread_function() {
 void listener_t::loop() {
     log<log_t::LISTENER_LOOP_CREATED>();
     auto events = std::make_unique<epoll_event[]>(max_event_epoll_return);
-    while(true) {
-        auto ret = epoll_wait(epollfd, events.get(), max_event_epoll_return, -1);
+    try {
+        for(;;) {
+            auto ret = epoll_wait(epollfd, events.get(), max_event_epoll_return, -1);
 
-        if (ret == -1) {
-            if (errno == EINTR || errno == EINVAL) {
-                if (IsTerminated) {
-                    pthread_exit(nullptr);
-                }
+            if (ret == -1) {
+                log<log_t::LISTENER_LOOP_WAIT_INTERRUPTED>(errno);
+                std::this_thread::sleep_for(1s);
+                continue;
             }
 
-            log<log_t::LISTENER_LOOP_WAIT_INTERRUPTED>(errno);
-            std::this_thread::sleep_for(1s);
-            // Check again if terminated
-            if (IsTerminated) {
-                pthread_exit(nullptr);
-            }
-            continue;
-        }
+            for(decltype(ret) index = 0; index < ret; ++index) {
+                epoll_event &event = events[index];
+                auto processor = reinterpret_cast<event::processor_t *>(event.data.ptr);
 
-        for(decltype(ret) index = 0; index < ret; ++index) {
-            epoll_event &event = events[index];
-            auto processor = reinterpret_cast<event::processor_t *>(event.data.ptr);
+                log<log_t::LISTENER_EVENT_RECEIVED>(processor->GetFD(), event.events);
+                if ((event.events & EPOLLRDHUP)) {
+                    log<log_t::TCP_SERVER_PEER_CONNECTION_CLOSED>(processor->GetFD());
+                    Delete(processor);
+                } else {
+                    err_t ret { err_t::SUCCESS };
+                    if ((event.events & (EPOLLIN | EPOLLHUP | EPOLLERR))) {
+                        // EPOLLHUP | EPOLLERR
+                        // recv() will return 0 for EPOLLHUP and -1 for EPOLLERR
+                        // recv() 0 means end of file.
+                        ret = processor->ProcessRead();
+                        if (ret == err_t::SOCKET_RETRY) {
+                            event.events |= EPOLLOUT;
+                        }
+                    }
+                    if ((event.events & EPOLLOUT)) {
+                        ret = processor->ProcessWrite();
+                    }
 
-            log<log_t::LISTENER_EVENT_RECEIVED>(processor->GetFD(), event.events);
-            if ((event.events & EPOLLRDHUP)) {
-                log<log_t::TCP_SERVER_PEER_CONNECTION_CLOSED>(processor->GetFD());
-                delete processor;
-            } else {
-                err_t ret { err_t::SUCCESS };
-                if ((event.events & (EPOLLIN | EPOLLHUP | EPOLLERR))) {
-                    // EPOLLHUP | EPOLLERR
-                    // recv() will return 0 for EPOLLHUP and -1 for EPOLLERR
-                    // recv() 0 means end of file.
-                    ret = processor->ProcessRead();
-                    if (ret == err_t::SOCKET_RETRY) {
-                        event.events |= EPOLLOUT;
+                    switch(ret) {
+                        case err_t::SUCCESS:
+                            enable(processor, false);
+                            break;
+                        
+                        // SOCKET_RETRY will only happen for Write
+                        // read converts it to SUCCESS
+                        case err_t::SOCKET_RETRY:
+                            enable(processor, true);
+                            break;
+
+                        // case err_t::BAD_FILE_DESCRIPTOR:
+                        case err_t::INITIATE_CLOSE:
+                        default:
+                            Delete(processor);
+                            break;
+
                     }
                 }
-                if ((event.events & EPOLLOUT)) {
-                    ret = processor->ProcessWrite();
-                }
-
-                switch(ret) {
-                    case err_t::SUCCESS:
-                        enable(processor, false);
-                        break;
-                    
-                    // SOCKET_RETRY will only happen for Write
-                    // read converts it to SUCCESS
-                    case err_t::SOCKET_RETRY:
-                        enable(processor, true);
-                        break;
-
-                    // case err_t::BAD_FILE_DESCRIPTOR:
-                    default:
-                        delete processor;
-                        break;
-
-                }
             }
-        }
+        } // for(;;)
+    } catch(listener_terminate_thread_t &terminateexception) {
+        log<log_t::LISTENER_EXITING_THREAD>();
     }
 }
 

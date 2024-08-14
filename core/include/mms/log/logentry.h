@@ -84,9 +84,14 @@ namespace MMS {
     LOGGER_ENTRY(SETTING_LOG_LEVEL, ALERT, SYSTEM, "Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_ALL, ALERT, SYSTEM, "Setting Log level %vl for all modules") \
     \
+    LOGGER_ENTRY(SIGNAL_POLLING_MASK_FAILED, ALERT, SYSTEM, "Failed to set mask for SIGTERM and SIGINT with error %ve") \
+    LOGGER_ENTRY(SIGNAL_FD_FAILED, ALERT, SYSTEM, "Failed to get signalfd %ve") \
+    \
     LOGGER_ENTRY(LISTENER_CREATE_FAILED, ERROR, LISTENER, "Listener creation failed with error %ve, terminating application") \
     LOGGER_ENTRY(LISTENER_ALREADY_CREATED_FAILED, ERROR, LISTENER, "Listener can have only one instance. Second instance to create listener will fail") \
-    LOGGER_ENTRY(LISTENER_CREATING_THREAD, DEBUG, LISTENER, "Listener creating %llu threads") \
+    LOGGER_ENTRY(LISTENER_TERMINATION_HANDLER, ERROR, LISTENER, "Listener termination handler added successfully") \
+    LOGGER_ENTRY(LISTENER_CREATING_THREAD, INFO, LISTENER, "Listener creating %llu threads") \
+    LOGGER_ENTRY(LISTENER_EXITING_THREAD, INFO, LISTENER, "Listener exiting thread") \
     LOGGER_ENTRY(LISTENER_LOOP_CREATED, DEBUG, LISTENER, "Listener thread loop created") \
     LOGGER_ENTRY(LISTENER_LOOP_WAIT_INTERRUPTED, WARNING, LISTENER, "Listener loop interrupted with error %ve,  waiting for a second and retry") \
     LOGGER_ENTRY(LISTENER_TOO_MANY_THREAD, WARNING, LISTENER, "Listener created with threads more than CPUs") \
@@ -103,6 +108,7 @@ namespace MMS {
     LOGGER_ENTRY(TCP_SERVER_RECEIVED_EVENT, DEBUG, TCP_SERVER, "FD %i: TCP server received event") \
     LOGGER_ENTRY(TCP_SERVER_ACCEPT_FAILED, ERROR, TCP_SERVER, "FD %i: TCP server failed to accept connection with error %ve") \
     LOGGER_ENTRY(TCP_SERVER_PEER_CREATED, VERBOSE, TCP_SERVER, "FD %i: TCP server new peer %i created from remote %vN") \
+    LOGGER_ENTRY(TCP_SERVER_PEER_ADD_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer %i add to listener failed %vN") \
     LOGGER_ENTRY(TCP_SERVER_PEER_WRITE_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer write failed with error %ve") \
     LOGGER_ENTRY(TCP_SERVER_PEER_READ_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer read failed with error %ve") \
     LOGGER_ENTRY(TCP_SERVER_PEER_CONNECTION_CLOSED, INFO, TCP_SERVER, "FD %i: TCP Server peer connection closed") \
