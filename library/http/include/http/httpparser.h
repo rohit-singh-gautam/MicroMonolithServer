@@ -16,24 +16,6 @@
 #endif
 
 namespace MMS::http {
-/*
-    GET /hello.txt HTTP/1.1
-    Host: www.example.com
-    User-Agent: curl/7.16.3 libcurl/7.16.3 OpenSSL/0.9.7l zlib/1.2.3
-    Accept-Language: en, mi
-
-
-    https://www.rfc-editor.org/rfc/rfc2616
-    HTTP/1.1 206 Partial content
-    Date: Wed, 15 Nov 1995 06:25:24 GMT
-    Last-Modified: Wed, 15 Nov 1995 04:58:08 GMT
-    Content-Range: bytes 21010-47021/47022
-    Content-Length: 26012
-    Content-Type: image/gif
-
-
-*/
-
 class header {
 protected:
 
@@ -73,7 +55,7 @@ public:
     constexpr auto GetMethod() const { return method; }
     constexpr const auto &GetPath() const { return path; }
 
-    auto upgrade_version() {
+    constexpr auto upgrade_version() {
         auto field_itr = fields.find(FIELD::Upgrade);
         if (field_itr != fields.end()) {
             if (field_itr->second == "h2c") {
@@ -86,6 +68,7 @@ public:
 
 }; // class request_header
 
+class response;
 class request : public request_header {
     friend class http_request_parser;
     std::string_view body { };
@@ -93,9 +76,11 @@ class request : public request_header {
 public:
     request(const std::string_view &);
 
-    const auto &GetBody() const { return body; }
+    constexpr const auto &GetBody() const { return body; }
 
     void parse(const char *&, size_t &);
+
+    response CreateErrorResponse(CODE code, const std::string &errortext);
 
     std::string to_string();
 }; // class request
@@ -103,8 +88,8 @@ public:
 class response_header : public header {
 protected:
     CODE code { };
-    response_header() { }
-    response_header(VERSION version) : header { version } { }
+    constexpr response_header() { }
+    constexpr response_header(VERSION version) : header { version } { }
 
     void parse_code(const char *&, size_t &);
     void parse_response_line(const char *&, size_t &);
@@ -113,16 +98,27 @@ public:
 };
 
 class response : public response_header {
+    friend class request;
     std::string_view body { };
 
 public:
+    constexpr response() { }
     response(const std::string_view &);
 
-    const auto &GetBody() const { return body; }
+    constexpr void UpdateContentLength() {
+        if (!body.empty()) {
+            fields[FIELD::Content_Length] = std::to_string(body.size());
+        }
+    }
+
+    static response CreateBasicResponse(CODE code);
+    static response CreateErrorResponse(CODE code, const std::string &errortext);
+
+    constexpr const auto &GetBody() const { return body; }
 
     void parse(const char *&, size_t &);
 
-    std::string to_string();
+    std::string to_string() const;
 }; // response
 
 } // namespace MMS::http

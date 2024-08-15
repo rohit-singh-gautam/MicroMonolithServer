@@ -73,6 +73,15 @@ TEST(HttpResponseParserTest, ResponseTest) {
         "  </body>\r\n"
         "</html>"
     }));
+
+    EXPECT_TRUE(http_response_parse({
+        "HTTP/1.1 206 Partial content\r\n"
+        "Date: Wed, 15 Nov 1995 06:25:24 GMT\r\n"
+        "Last-Modified: Wed, 15 Nov 1995 04:58:08 GMT\r\n"
+        "Content-Range: bytes 21010-47021/47022\r\n"
+        "Content-Length: 26012\r\n"
+        "Content-Type: image/gif\r\n\r\n"
+    }));
 }
 
 int main(int argc, char *argv[]) {

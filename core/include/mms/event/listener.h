@@ -79,11 +79,20 @@ protected:
 public:
     virtual ~writer_t() = default;
 
-    template <bool CopyBuffer, typename buffertype>
+    template <bool CopyBuffer = true, typename buffertype>
     inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {
         if constexpr (CopyBuffer) WriteWithCopy(buffer, bytesize, byteoffset);
         else WriteNoCopy(buffer, bytesize, byteoffset);
     }
+
+    inline void Write(const std::string &buffer) {
+        WriteWithCopy(reinterpret_cast<const uint8_t*>(buffer.c_str()), buffer.size(), 0);
+    }
+
+    inline void Write(const std::string_view &buffer) {
+        WriteWithCopy(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), 0);
+    }
+
 
     template <typecheck::write_entry_const... buffertype>
     inline void Write(const buffertype&... buffer) {

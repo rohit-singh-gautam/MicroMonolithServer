@@ -51,7 +51,7 @@ std::string request::to_string() {
     return ret;
 }
 
-std::string response::to_string() {
+std::string response::to_string() const {
     std::string ret = std::format(
         "{} {} {}\r\n",
         to_string_view(version),
@@ -226,6 +226,55 @@ request::request(const std::string_view &text) {
     parse(requesttext, size);
 }
 
+response request::CreateErrorResponse(CODE code, const std::string &errortext) {
+    response res = response::CreateBasicResponse(code);
+    res.fields.emplace(FIELD::Connection, std::string_view { "Close" });
+
+    auto accepttype = GetField(FIELD::Accept);
+    // "application/json"
+    // "text/html"
+    // "application/xml" "text/xml"
+    bool accepthtml = accepttype.find("text/html") != std::string_view::npos;
+    if (!accepthtml) {
+        if (accepttype.find("application/json") != std::string_view::npos) {
+            res.body = std::format(
+                "{{\"error\": \"{}\", \"details\": \"{}\"}}",
+                to_string_view(code), errortext
+            );
+        } else accepthtml = true;
+    }
+
+    if (accepthtml) {
+        res.body = std::format(
+            "<html>"
+            "<head>{0}</head>"
+            "<h1>Micro Monolith Server</h1>"
+            "<h2>{0}</h2>"
+            "<pre>{1}</pre>"
+            "</html>", 
+            to_string_view(code), errortext
+        );
+    }
+    res.UpdateContentLength();
+    return res;
+}
+
+response response::CreateErrorResponse(CODE code, const std::string &errortext) {
+    auto res = CreateBasicResponse(code);
+    res.fields.emplace(FIELD::Connection, std::string_view { "Close" });
+    res.body = std::format(
+        "<html>"
+        "<head>{0}</head>"
+        "<h1>Micro Monolith Server</h1>"
+        "<h2>{0}</h2>"
+        "<pre>{1}</pre>"
+        "</html>", 
+        to_string_view(code), errortext
+    );
+    res.UpdateContentLength();
+    return res;
+}
+
 void response_header::parse_code(const char *&requesttext, size_t &size) {
     auto codetext = parse_till_space(requesttext, size);
     code = to_code_map(codetext);
@@ -252,6 +301,21 @@ response::response(const std::string_view &text) {
     const char *responsetext = text.data();
     size_t size = text.size();
     parse(responsetext, size);
+}
+
+response response::CreateBasicResponse(CODE code) {
+    constexpr uint64_t max_date_string_size = 92;
+    std::time_t now_time = std::time(0);   // get time now
+    std::tm* now_tm = std::gmtime(&now_time);
+    char date_str[max_date_string_size];
+    strftime(date_str, max_date_string_size, "%a, %d %b %Y %H:%M:%S %Z", now_tm);
+    
+    response res { };
+    res.code = code;
+    res.fields.emplace(FIELD::Date, std::string_view { date_str });
+    res.fields.emplace(FIELD::Server, std::string_view { "MicroMonolithServer 1.0" });
+
+    return res;
 }
 
 } // namespace MMS::http
