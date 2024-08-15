@@ -15,30 +15,14 @@
 #endif
 
 namespace MMS::http {
-/*
-    GET /hello.txt HTTP/1.1
-    Host: www.example.com
-    User-Agent: curl/7.16.3 libcurl/7.16.3 OpenSSL/0.9.7l zlib/1.2.3
-    Accept-Language: en, mi
-
-
-    https://www.rfc-editor.org/rfc/rfc2616
-    HTTP/1.1 206 Partial content
-    Date: Wed, 15 Nov 1995 06:25:24 GMT
-    Last-Modified: Wed, 15 Nov 1995 04:58:08 GMT
-    Content-Range: bytes 21010-47021/47022
-    Content-Length: 26012
-    Content-Type: image/gif
-
-
-*/
-
 #define HTTP_VERSION_LIST \
+    HTTP_VERSION_ENTRY(VER_UNKNOWN, "Unknown Version") \
     HTTP_VERSION_ENTRY(VER_1_1, "HTTP/1.1") \
     HTTP_VERSION_ENTRY(VER_2, "HTTP/2.0") \
     LIST_DEFINITION_END
 
 #define HTTP_FIELD_LIST \
+    HTTP_FIELD_ENTRY(FIELD_UNKNOWN, "Unknown") \
     /* HTTP2 Pseudo Header */ \
     HTTP_FIELD_ENTRY(Authority, "Authority") \
     HTTP_FIELD_ENTRY(Method, "Method") \
@@ -272,7 +256,7 @@ namespace MMS::http {
     HTTP_FIELD_ENTRY(Refresh, "Refresh") \
     /* Do not use */ \
     HTTP_FIELD_ENTRY(IGNORE_THIS, "IGNORE THIS") \
-    LIST_DEFINITION_END
+    LIST_DEFINITION_END // HTTP_FIELD_LIST
 
 #define HTTP_METHOD_LIST \
     HTTP_METHOD_ENTRY(IGNORE_THIS) \
@@ -285,9 +269,10 @@ namespace MMS::http {
     HTTP_METHOD_ENTRY(TRACE) \
     HTTP_METHOD_ENTRY(CONNECT) \
     HTTP_METHOD_ENTRY(PRI) \
-    LIST_DEFINITION_END
+    LIST_DEFINITION_END // HTTP_METHOD_LIST
 
 #define HTTP_CODE_LIST \
+    HTTP_CODE_ENTRY(0, "Unknown") \
     /* Informational 1xx */ \
     HTTP_CODE_ENTRY(100, "Continue") \
     HTTP_CODE_ENTRY(101, "Switching Protocols") \
@@ -339,141 +324,105 @@ namespace MMS::http {
     HTTP_CODE_ENTRY(503, "Service Unavailable") \
     HTTP_CODE_ENTRY(504, "Gateway Timeout") \
     HTTP_CODE_ENTRY(505, "HTTP Version Not Supported") \
-    LIST_DEFINITION_END
+    LIST_DEFINITION_END // HTTP_CODE_LIST
 
-class header {
-protected:
-    const std::string_view empty { };
-
-public:
-    enum class VERSION {
+enum class VERSION {
 #define HTTP_VERSION_ENTRY(x, y) x,
     HTTP_VERSION_LIST
 #undef HTTP_VERSION_ENTRY
-    };
+};
 
-    enum class FIELD {
+enum class FIELD {
 #define HTTP_FIELD_ENTRY(x, y) x,
     HTTP_FIELD_LIST
 #undef HTTP_FIELD_ENTRY
-    };
+};
 
-    enum class CODE {
+enum class CODE {
 #define HTTP_CODE_ENTRY(x, y) _##x = x,
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
-    };
+};
 
-    typedef std::unordered_map<FIELD, std::string_view> fields_t;
-
-    static const std::unordered_map<std::string_view, FIELD> field_map;
-
-    VERSION version { };
-
-    constexpr header() {}
-    constexpr header(VERSION version) : version { version } { }
-
-private:
-    static const char *strVERSION[];
-    static const char *strFIELD[];
-
-public:
-
-    static constexpr std::string_view to_string_view(const VERSION version) {
-        switch(version) {
-        default:
-#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) };
-        HTTP_VERSION_LIST
-#undef HTTP_VERSION_ENTRY
-        }
-    }
-
-    static constexpr std::string_view to_string_view(const FIELD field) {
-        switch(field) {
-        default:
-#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) };
-        HTTP_FIELD_LIST
-#undef HTTP_FIELD_ENTRY
-        }
-    }
-
-    static constexpr const char *get_code_string(CODE code);
-    static constexpr size_t get_code_string_size(CODE code);
-}; // class header
-
-class request_header : public header {
-public:
-    enum class METHOD {
+enum class METHOD {
 #define HTTP_METHOD_ENTRY(x) x,
     HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
-    };
+};
 
-    using header::VERSION;
-    using header::FIELD;
+static constexpr std::string_view to_string_view(const VERSION version) {
+    switch(version) {
+    default:
+#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) };
+    HTTP_VERSION_LIST
+#undef HTTP_VERSION_ENTRY
+    }
+}
 
-    static const std::unordered_map<std::string_view, METHOD> method_map;
+static constexpr std::string_view to_string_view(const FIELD field) {
+    switch(field) {
+    default:
+#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) };
+    HTTP_FIELD_LIST
+#undef HTTP_FIELD_ENTRY
+    }
+}
 
-protected:
+static constexpr std::string_view to_string_view(const CODE code) {
+    switch(code) {
+    default:
+#define HTTP_CODE_ENTRY(x, y) case CODE::_##x: return { y, sizeof(y) };
+    HTTP_CODE_LIST
+#undef HTTP_CODE_ENTRY
+    }
+}
 
-    friend class http_parser;
-
-    static constexpr std::string_view to_string_view(const METHOD method) {
-        switch(method) {
-        default:
-#define HTTP_METHOD_ENTRY(x) case METHOD::x: return {#x, sizeof(#x)};
-        HTTP_METHOD_LIST
+static constexpr std::string_view to_string_view(const METHOD method) {
+    switch(method) {
+    default:
+#define HTTP_METHOD_ENTRY(x) case METHOD::x: return { #x, sizeof(#x) };
+    HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
-        }
     }
+}
 
-public:
+typedef std::unordered_map<FIELD, std::string_view> fields_t;
 
-    inline request_header() {}
-    inline request_header(VERSION version) : header(version) {}
+extern const std::unordered_map<std::string_view, FIELD> field_map;
+extern const std::unordered_map<std::string_view, METHOD> method_map;
 
-    METHOD method { };
-    std::string_view path { };
-    fields_t fields { };
+// This is raw code may does not map to actual string bug atoi
+// "100" will map to CODE::_100
+extern const std::unordered_map<std::string_view, CODE> code_map_raw;
 
-    bool match_etag(const char *etag, size_t etag_size);
-
-    auto GetMethod() const { return method; }
-    const auto &GetPath() const { return path; }
-    const auto  &GetField(FIELD field) const {
-        const auto field_itr = fields.find(field);
-        if (field_itr != fields.end()) {
-            return field_itr->second;
-        }
-        return empty;
+constexpr auto to_field(const std::string_view &fieldname) {
+    auto fielditr = field_map.find(fieldname);;
+    if (fielditr == std::end(field_map)) {
+        return FIELD::FIELD_UNKNOWN;
     }
+    return fielditr->second;
+}
 
-    VERSION upgrade_version() {
-        auto field_itr = fields.find(FIELD::Upgrade);
-        if (field_itr != fields.end()) {
-            if (field_itr->second == "h2c") {
-                return VERSION::VER_2;
-            }
-        }
-
-        return VERSION::VER_1_1;
+constexpr auto to_method(const std::string_view &methodname) {
+    auto methoditr = method_map.find(methodname);;
+    if (methoditr == std::end(method_map)) {
+        return METHOD::IGNORE_THIS;
     }
+    return methoditr->second;
+}
 
-private:
-    static const char *strMETHOD[];
-}; // class request_header
+constexpr auto to_version(const std::string_view &versiontext) {
+    if (versiontext.compare("HTTP/1.1") == 0) return VERSION::VER_1_1;
+    else if (versiontext.compare("HTTP/2.0") == 0) return VERSION::VER_2;
+    else return VERSION::VER_UNKNOWN;
+}
 
-class request : public request_header {
-    friend class http_parser;
-    std::string_view body { };
-
-public:
-    request(const std::string_view &);
-
-    const auto &GetBody() const { return body; }
-
-    std::string to_string();
-}; // class request
-
+constexpr auto to_code_map(const std::string_view &codetext) {
+    auto codeitr = code_map_raw.find(codetext);;
+    if (codeitr == std::end(code_map_raw)) {
+        return CODE::_0;
+    }
+    return codeitr->second;
+}
 
 } // namespace MMS::http

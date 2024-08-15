@@ -5,34 +5,64 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <http/httpdef.h>
+#include <http/httpparser.h>
+#include <format>
 
 namespace MMS::http {
 
-const std::unordered_map<std::string_view, header::FIELD> header::field_map = {
-#define HTTP_FIELD_ENTRY(x, y) {y, header::FIELD::x},
+const std::unordered_map<std::string_view, FIELD> field_map = {
+#define HTTP_FIELD_ENTRY(x, y) {y, FIELD::x},
     HTTP_FIELD_LIST
 #undef HTTP_FIELD_ENTRY
 };
 
-const std::unordered_map<std::string_view, request_header::METHOD> request_header::method_map = {
-#define HTTP_METHOD_ENTRY(x) {#x, request_header::METHOD::x},
+const std::unordered_map<std::string_view, METHOD> method_map = {
+#define HTTP_METHOD_ENTRY(x) {#x, METHOD::x},
     HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
 };
 
+const std::unordered_map<std::string_view, CODE> code_map_raw = {
+#define HTTP_CODE_ENTRY(x, y) {#x, CODE::_##x},
+    HTTP_CODE_LIST
+#undef HTTP_CODE_ENTRY
+};
+
 std::string request::to_string() {
-        std::string ret {};
+    std::string ret {};
     ret += to_string_view(method);
     ret += " ";
     ret += path;
     ret += " ";
-    ret += header::to_string_view(version);
+    ret += to_string_view(version);
     ret += "\r\n";
     for(auto fieldentry: fields) {
         auto field = fieldentry.first;
         auto value = fieldentry.second;
-        ret += header::to_string_view(field);
+        ret += to_string_view(field);
+        ret += ": ";
+        ret += value;
+        ret += "\r\n";
+    }
+    if ( !body.empty() ) {
+        ret += "\r\n";
+        ret += body;
+    }
+    return ret;
+}
+
+std::string response::to_string() {
+    std::string ret = std::format(
+        "{} {} {}\r\n",
+        to_string_view(version),
+        static_cast<int>(code),
+        to_string_view(code)
+    );
+
+    for(auto fieldentry: fields) {
+        auto field = fieldentry.first;
+        auto value = fieldentry.second;
+        ret += to_string_view(field);
         ret += ": ";
         ret += value;
         ret += "\r\n";
@@ -143,84 +173,85 @@ bool parse_check_CRLF(const char *&requesttext, size_t &size) {
     return false;
 }
 
-class http_parser {
-    request &req;
-    const char *requesttext;
-    size_t size;
+template <bool crlf_end>
+void header::parse_version(const char *&requesttext, size_t &size) {
+    const auto versiontext = crlf_end ? parse_till_CRLF(requesttext, size) : parse_till_space(requesttext, size);
+    version = to_version(versiontext);
+    if (version == VERSION::VER_UNKNOWN) throw MMS::http_parser_failed_t(requesttext, size);
+}
 
-public:
-    http_parser(request &req, const std::string_view &text) : req { req }, requesttext { text.data() }, size { text.size() } { }
-
-    void parse_method() {
-        auto methodtext = parse_till_space(requesttext, size);
-
-        auto itr = req.method_map.find(methodtext);
-        if (itr == std::end(req.method_map)) {
-            throw MMS::http_parser_failed_t(requesttext, size);
-        }
-
-        req.method = itr->second;
+void header::parse_fields(const char *&requesttext, size_t &size) {
+    while(true) {
+        auto fieldtext = parse_till_colon(requesttext, size);
+        auto value = parse_till_CRLF(requesttext, size);
+        auto field = to_field(fieldtext);
+        // When field is not present in enumeration it will be ignored.
+        if (field != FIELD::FIELD_UNKNOWN) fields[field] = std::move(value);
+        if (!size || parse_check_CRLF(requesttext, size)) break;
     }
+}
 
-    void parse_request_uri() {
-        auto requesturi = parse_till_space(requesttext, size);
-        req.path = requesturi;
+void request_header::parse_method(const char *&requesttext, size_t &size) {
+    auto methodtext = parse_till_space(requesttext, size);
+    method = to_method(methodtext);
+    if (method == METHOD::IGNORE_THIS) throw MMS::http_parser_failed_t(requesttext, size);
+}
+
+void request_header::parse_request_uri(const char *&requesttext, size_t &size) {
+    auto requesturi = parse_till_space(requesttext, size);
+    path = requesturi;
+}
+
+// Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
+// We will allow CR
+void request_header::parse_request_line(const char *&requesttext, size_t &size) {
+    parse_method(requesttext, size);
+    parse_skip_one(requesttext, size);
+    parse_request_uri(requesttext, size);
+    parse_skip_one(requesttext, size);
+    parse_version<true>(requesttext, size);
+}
+
+void request::parse(const char *&requesttext, size_t &size) {
+    parse_request_line(requesttext, size);
+    if (size) {
+        parse_fields(requesttext, size);
+        if (size) body = std::string_view { requesttext, size };
     }
-
-    template <bool crlf_end>
-    void parse_version() {
-        const auto versiontext = crlf_end ? parse_till_CRLF(requesttext, size) : parse_till_space(requesttext, size);
-
-        if (versiontext.compare("HTTP/1.1") == 0) req.version = header::VERSION::VER_1_1;
-        else if (versiontext.compare("HTTP/2.0") == 0) req.version = header::VERSION::VER_1_1;
-        else throw MMS::http_parser_failed_t(requesttext, size);
-    }
-
-    // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-    // We will allow CR
-    void parse_request_line() {
-        parse_method();
-        parse_skip_one(requesttext, size);
-        parse_request_uri();
-        parse_skip_one(requesttext, size);
-        parse_version<true>();
-    }
-
-    void parse_request_fields() {
-        while(true) {
-            auto field = parse_till_colon(requesttext, size);
-            auto value = parse_till_CRLF(requesttext, size);
-            auto itr = header::field_map.find(field);
-            if (itr != std::end(header::field_map)) {
-                // When field is not present in enumeration it will be ignored.
-                req.fields[itr->second] = std::move(value);
-            }
-            if (!size || parse_check_CRLF(requesttext, size)) break;
-        }
-    }
-
-    size_t parse_request_header() {
-        auto start = requesttext;
-        parse_request_line();
-        if (size) {
-            parse_request_fields();
-        }
-        return static_cast<size_t>(requesttext - start);
-    }
-
-    void parse_request() {
-        parse_request_line();
-        if (size) parse_request_fields();
-
-        // We do not care about content lenght here hence
-        // will return entire text in body
-        if (size) req.body = std::string_view { requesttext, size };
-    }
-}; // class http_parser
+}
 
 request::request(const std::string_view &text) {
-    http_parser parser {*this, text };
-    parser.parse_request();
+    const char *requesttext = text.data();
+    size_t size = text.size();
+    parse(requesttext, size);
+}
+
+void response_header::parse_code(const char *&requesttext, size_t &size) {
+    auto codetext = parse_till_space(requesttext, size);
+    code = to_code_map(codetext);
+    if (code == CODE::_0) throw MMS::http_parser_failed_t(requesttext, size);
+}
+
+void response_header::parse_response_line(const char *&requesttext, size_t &size) {
+    parse_version<false>(requesttext, size);
+    parse_skip_one(requesttext, size);
+    parse_code(requesttext, size);
+    parse_skip_one(requesttext, size);
+    parse_till_CRLF(requesttext, size);
+}
+
+void response::parse(const char *&requesttext, size_t &size) {
+    parse_response_line(requesttext, size);
+    if (size) {
+        parse_fields(requesttext, size);
+        if (size) body = std::string_view { requesttext, size };
+    }
+}
+
+response::response(const std::string_view &text) {
+    const char *responsetext = text.data();
+    size_t size = text.size();
+    parse(responsetext, size);
 }
 
 } // namespace MMS::http
