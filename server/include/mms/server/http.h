@@ -7,6 +7,7 @@
 
 #pragma once
 #include <mms/net/tcpserverevent.h>
+#include <mms/ds/prefixmap.h>
 #include <http/httpparser.h>
 #include <unordered_map>
 
@@ -26,20 +27,20 @@ public:
 };
 
 class http_t : public MMS::event::protocol_implementation_t {
-    std::unordered_map<std::string_view, std::unique_ptr<httphandler_t>> &handlerlist;
+    prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap;
 
 public:
-    http_t(std::unordered_map<std::string_view, std::unique_ptr<httphandler_t>> &handlerlist) : handlerlist { handlerlist } { }
+    http_t(prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap) : handlermap { handlermap } { }
     void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) override;
+
+    
 };
 
 class httpcreator_t : public MMS::event::protocol_implementation_creator_t {
-    std::unordered_map<std::string_view, std::unique_ptr<httphandler_t>> handlerlist {};
+    prefixmap<std::string_view, std::unique_ptr<httphandler_t>> handlermap { };
 public:
 
-    MMS::event::protocol_implementation_t *create_protocol_implementation() override {
-        return new http_t { handlerlist };
-    }
+    MMS::event::protocol_implementation_t *create_protocol_implementation() override { return new http_t { handlermap }; }
 };
 
 } // namespace MMS::server

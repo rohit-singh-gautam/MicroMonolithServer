@@ -14,16 +14,14 @@ namespace MMS::server {
 void http_t::ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) {
     try {
         http::request request { {reinterpret_cast<const char *>(buffer), size}};
-        auto handler_itr = handlerlist.find(request.GetPath());
-        if (handler_itr == std::end(handlerlist)) {
-            auto handler_itr = handlerlist.find({"default"});
-            if (handler_itr == std::end(handlerlist)) {
-                auto response = request.CreateErrorResponse(http::CODE::_404, std::format("Path {} not found", request.GetPath()));
-                writer.Write(response.to_string());
-            }
+        auto &handler = handlermap.search(request.GetPath());
+        if (handler == nullptr) {
+            auto response = request.CreateErrorResponse(http::CODE::_404, std::format("Path {} not found", request.GetPath()));
+            writer.Write(response.to_string());
         }
-
-        if (handler_itr != std::end(handlerlist)) handler_itr->second->ProcessRead(request);
+        else {
+            handler->ProcessRead(request);
+        }
     }
     catch(http_parser_failed_t &parser_failed) {
         auto response = http::response::CreateErrorResponse(http::CODE::_400, parser_failed.to_string(reinterpret_cast<const char *>(buffer)));
