@@ -353,7 +353,7 @@ enum class METHOD {
 static constexpr std::string_view to_string_view(const VERSION version) {
     switch(version) {
     default:
-#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) };
+#define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) - 1};
     HTTP_VERSION_LIST
 #undef HTTP_VERSION_ENTRY
     }
@@ -362,7 +362,7 @@ static constexpr std::string_view to_string_view(const VERSION version) {
 static constexpr std::string_view to_string_view(const FIELD field) {
     switch(field) {
     default:
-#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) };
+#define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) - 1};
     HTTP_FIELD_LIST
 #undef HTTP_FIELD_ENTRY
     }
@@ -371,7 +371,7 @@ static constexpr std::string_view to_string_view(const FIELD field) {
 static constexpr std::string_view to_string_view(const CODE code) {
     switch(code) {
     default:
-#define HTTP_CODE_ENTRY(x, y) case CODE::_##x: return { y, sizeof(y) };
+#define HTTP_CODE_ENTRY(x, y) case CODE::_##x: return { y, sizeof(y) -1 };
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
     }
@@ -380,13 +380,13 @@ static constexpr std::string_view to_string_view(const CODE code) {
 static constexpr std::string_view to_string_view(const METHOD method) {
     switch(method) {
     default:
-#define HTTP_METHOD_ENTRY(x) case METHOD::x: return { #x, sizeof(#x) };
+#define HTTP_METHOD_ENTRY(x) case METHOD::x: return { #x, sizeof(#x) -1 };
     HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
     }
 }
 
-typedef std::unordered_map<FIELD, std::string_view> fields_t;
+typedef std::unordered_map<FIELD, std::string> fields_t;
 
 extern const std::unordered_map<std::string_view, FIELD> field_map;
 extern const std::unordered_map<std::string_view, METHOD> method_map;

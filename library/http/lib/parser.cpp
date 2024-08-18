@@ -44,8 +44,8 @@ std::string request::to_string() {
         ret += value;
         ret += "\r\n";
     }
+    ret += "\r\n";
     if ( !body.empty() ) {
-        ret += "\r\n";
         ret += body;
     }
     return ret;
@@ -67,8 +67,8 @@ std::string response::to_string() const {
         ret += value;
         ret += "\r\n";
     }
+    ret += "\r\n";
     if ( !body.empty() ) {
-        ret += "\r\n";
         ret += body;
     }
     return ret;
@@ -226,9 +226,9 @@ request::request(const std::string_view &text) {
     parse(requesttext, size);
 }
 
-response request::CreateErrorResponse(CODE code, const std::string &errortext) {
+response request::CreateErrorResponse(CODE code, const std::string &errortext) const {
     response res = response::CreateBasicResponse(code);
-    res.fields.emplace(FIELD::Connection, std::string_view { "Close" });
+    res.fields.emplace(FIELD::Connection, std::string { "Close" });
 
     auto accepttype = GetField(FIELD::Accept);
     // "application/json"
@@ -261,7 +261,7 @@ response request::CreateErrorResponse(CODE code, const std::string &errortext) {
 
 response response::CreateErrorResponse(CODE code, const std::string &errortext) {
     auto res = CreateBasicResponse(code);
-    res.fields.emplace(FIELD::Connection, std::string_view { "Close" });
+    res.fields.emplace(FIELD::Connection, std::string { "Close" });
     res.body = std::format(
         "<html>"
         "<head>{0}</head>"
@@ -311,9 +311,10 @@ response response::CreateBasicResponse(CODE code) {
     strftime(date_str, max_date_string_size, "%a, %d %b %Y %H:%M:%S %Z", now_tm);
     
     response res { };
+    res.version = VERSION::VER_1_1;
     res.code = code;
-    res.fields.emplace(FIELD::Date, std::string_view { date_str });
-    res.fields.emplace(FIELD::Server, std::string_view { "MicroMonolithServer 1.0" });
+    res.fields.emplace(FIELD::Date, std::string { date_str });
+    res.fields.emplace(FIELD::Server, std::string { "MicroMonolithServer 1.0" });
 
     return res;
 }

@@ -23,7 +23,7 @@ public:
 class httphandler_t {
 public:
     virtual ~httphandler_t() = default;
-    virtual err_t ProcessRead(const http::request &request) = 0;
+    virtual void ProcessRead(const http::request &request, MMS::event::writer_t &writer) = 0;
 };
 
 class http_t : public MMS::event::protocol_implementation_t {
@@ -39,8 +39,11 @@ public:
 class httpcreator_t : public MMS::event::protocol_implementation_creator_t {
     prefixmap<std::string_view, std::unique_ptr<httphandler_t>> handlermap { };
 public:
-
     MMS::event::protocol_implementation_t *create_protocol_implementation() override { return new http_t { handlermap }; }
+
+    void AddHandler(const std::string_view &path, std::unique_ptr<httphandler_t> &&handler) {
+        handlermap.insert(path, std::move(handler));
+    }
 };
 
 } // namespace MMS::server

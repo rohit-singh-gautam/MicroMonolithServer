@@ -20,20 +20,20 @@ using namespace std::chrono_literals;
 
 struct write_entry_const {
     const uint8_t *buffer;
-    size_t offset;
     size_t size;
+    size_t offset;
     template <typename buffertype>
-    constexpr write_entry_const(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
+    constexpr write_entry_const(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer) }, size { bytesize }, offset { byteoffset } { }
 };
 
 struct write_entry {
 private:
     uint8_t *buffer;
-    size_t offset;
     size_t size;
+    size_t offset;
 public:
     template <typename buffertype>
-    constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, offset { byteoffset }, size { bytesize } { }
+    constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, size { bytesize }, offset { byteoffset } { }
     ~write_entry() {
         // No check is require before free as
         // Empty write_entry is not allowed.

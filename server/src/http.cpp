@@ -20,7 +20,7 @@ void http_t::ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::w
             writer.Write(response.to_string());
         }
         else {
-            handler->ProcessRead(request);
+            handler->ProcessRead(request, writer);
         }
     }
     catch(http_parser_failed_t &parser_failed) {
