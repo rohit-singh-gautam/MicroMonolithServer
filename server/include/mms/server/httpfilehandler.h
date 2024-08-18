@@ -85,15 +85,32 @@ public:
 class httpfilehandler : public httphandler_t {
     filecache &cache;
     const std::filesystem::path rootpath;
+    const std::vector<std::string> &defaultlist;
 
 public:
-    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath) : cache { cache }, rootpath { rootpath } { }
+    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const std::vector<std::string> &defaultlist)
+        : cache { cache }, rootpath { rootpath }, defaultlist { defaultlist } { }
+
+    auto GetFromfileCahce(const std::filesystem::path &fullpath) {
+        if (std::filesystem::is_directory(fullpath)) {
+            for(const auto &defaultfile: defaultlist) {
+                auto newpath = fullpath;
+                newpath /= defaultfile;
+                auto [buffer, size] = cache.GetCache(newpath);
+                if (buffer) return std::make_pair(buffer, size);
+            }
+            return std::pair<const char *, size_t>(nullptr, 0);
+        } else {
+            return cache.GetCache(fullpath);
+        }
+    }
 
     void ProcessRead(const http::request &request, MMS::event::writer_t &writer) override {
         auto path = request.GetPath();
         std::filesystem::path fullpath = rootpath;
         fullpath += path;
-        const auto [bodybuffer, bodysize] = cache.GetCache(fullpath);
+        auto [bodybuffer, bodysize] = GetFromfileCahce(fullpath);
+
         if (bodybuffer == nullptr) {
             std::string errortext { "File: "};
             errortext += path;

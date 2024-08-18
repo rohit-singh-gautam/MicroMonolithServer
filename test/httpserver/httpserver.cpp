@@ -16,7 +16,8 @@ int main(int, char *[]) {
     MMS::server::httpcreator_t httpcretor { };
     MMS::server::filecache filecache { };
     std::string_view rootpath { "./www" };
-    std::unique_ptr<MMS::server::httphandler_t> handlerptr { new MMS::server::httpfilehandler { filecache, rootpath } };
+    std::vector<std::string> defaultlist {"index.html", "default.html"};
+    std::unique_ptr<MMS::server::httphandler_t> handlerptr { new MMS::server::httpfilehandler { filecache, rootpath, defaultlist } };
     httpcretor.AddHandler({"/" }, std::move(handlerptr));
 
     MMS::event::listener_t locallistener { 4,  filename };
