@@ -35,7 +35,7 @@ public:
 
 class server_t : public listener::processor_t {
     static constexpr int socket_backlog { 5 };
-    protocol_creator_t &protocol_implementation_creator;
+    protocol_creator_t &protocol_creator;
     listener::listener_t *listener;
 
     static int CreateServerSocket(int port);
@@ -43,7 +43,7 @@ class server_t : public listener::processor_t {
 public:
     server_t(const int port, protocol_creator_t &protocol_creator, listener::listener_t *listener)
         : listener::processor_t { CreateServerSocket(port) }, 
-            protocol_implementation_creator { protocol_creator }, listener { listener } { }
+            protocol_creator { protocol_creator }, listener { listener } { }
     server_t(const server_t &) = default;
     server_t &operator=(const server_t &) = default;
     err_t ProcessRead() override;
