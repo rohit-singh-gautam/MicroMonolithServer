@@ -285,5 +285,29 @@ public:
     constexpr listener_terminate_thread_t() : exception_t { err_t::LISTENER_TERMINATE_THREAD } { }
 };
 
+class socket_fail_t : public exception_t {
+public:
+    using exception_t::exception_t;
+};
+
+class setsockopt_fail_t : public socket_fail_t {
+public:
+    constexpr setsockopt_fail_t(const err_t err) : socket_fail_t { err } { }
+};
+
+class accept_fail_t : public socket_fail_t {
+public:
+    constexpr accept_fail_t() : socket_fail_t { err_t::ACCEPT_FAILURE } { }
+};
+
+class bind_fail_t : public socket_fail_t {
+public:
+    constexpr bind_fail_t() : socket_fail_t { err_t::BIND_FAILURE } { }
+};
+
+class listen_fail_t : public socket_fail_t {
+public:
+    constexpr listen_fail_t() : socket_fail_t { err_t::LISTEN_FAILURE } { }
+};
 
 } // namespace MMS

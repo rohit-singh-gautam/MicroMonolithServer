@@ -115,37 +115,43 @@ public:
 class listener_t;
 
 class processor_t : public writer_t {
+    int fd;
 protected:
     friend class listener_t;
-    virtual ~processor_t() = default;
-public:
 
-    virtual int GetFD() const = 0;
+    processor_t(int fd) : fd { fd } { }
+    virtual ~processor_t() {
+        if (fd) {
+            close(fd);
+            fd = 0;
+        }
+    }
+public:
+    int GetFD() const { return fd; }
     
     /*! To close this processor ProcessRead must return err_t::INITIATE_CLOSE */
     virtual err_t ProcessRead() = 0;
 
     /*! Write is optional in some cases */
     virtual err_t ProcessWrite() { return err_t::SUCCESS; }
+
+    void Close() {
+        ::close(fd);
+        fd = 0;
+    }
 };
 
 class terminate_t : public processor_t {
     listener_t &listener;
-
-    int signal_fd { };
-
 public:
     terminate_t(listener_t &listener);
-    int GetFD() const override { return signal_fd; }
     err_t ProcessRead() override;
-};
+}; // terminate_t
 
 class thread_stopper_t : public processor_t {
-    int evtfd { };
     volatile bool running;
 public:
     thread_stopper_t();
-    int GetFD() const override { return evtfd; }
     err_t ProcessRead() override;
 
     auto GetRunning() const { return running; }

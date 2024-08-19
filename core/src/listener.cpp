@@ -13,7 +13,7 @@
 
 namespace MMS::listener {
 
-terminate_t::terminate_t(listener_t &listener) : listener { listener } {
+static int CreateSignalFD() {
     sigset_t sigmaskignore { };
     sigemptyset(&sigmaskignore);
     sigaddset(&sigmaskignore, SIGTERM);
@@ -28,18 +28,23 @@ terminate_t::terminate_t(listener_t &listener) : listener { listener } {
     sigaddset(&sigmask, SIGTERM);
 
     // This is a blocking fd
-    signal_fd = signalfd(-1, &sigmask, SFD_CLOEXEC);
+    auto signal_fd = signalfd(-1, &sigmask, SFD_CLOEXEC);
     if (signal_fd == -1) {
         log<log_t::SIGNAL_FD_FAILED>(errno);
         throw signal_polling_failed_t();
     }
+    return signal_fd;
+}
+
+terminate_t::terminate_t(listener_t &listener) : processor_t { CreateSignalFD() }, listener { listener } {
+
 }
 
 err_t terminate_t::ProcessRead() {
     listener.remove(this);
 
     signalfd_siginfo siginfo { };
-    read(signal_fd, &siginfo, sizeof(siginfo));
+    read(GetFD(), &siginfo, sizeof(siginfo));
     
     thread_stopper_t stopper { };
 
@@ -63,7 +68,7 @@ err_t terminate_t::ProcessRead() {
     throw listener_terminate_thread_t();
 }
 
-thread_stopper_t::thread_stopper_t() : evtfd(eventfd(1, EFD_NONBLOCK | EFD_CLOEXEC)), running { true } {}
+thread_stopper_t::thread_stopper_t() : processor_t { eventfd(1, EFD_NONBLOCK | EFD_CLOEXEC)  }, running { true } {}
 
 err_t thread_stopper_t::ProcessRead() {
     running = false;

@@ -14,11 +14,26 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <string>
-#include <cstring>
-#include <filesystem>
 
 namespace MMS {
+
+inline const ipv6_socket_addr_t get_peer_ipv6_addr(const int socket_id) {
+    sockaddr_in6 addr;
+    socklen_t len = sizeof(addr);
+    getpeername(socket_id, reinterpret_cast<struct sockaddr *>(&addr), &len);
+
+    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
+    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
+}
+
+inline const ipv6_socket_addr_t get_local_ipv6_addr(const int socket_id) {
+    sockaddr_in6 addr;
+    socklen_t len = sizeof(addr);
+    getsockname(socket_id, (struct sockaddr *)&addr, &len);
+
+    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
+    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
+}
 
 constexpr ipv6_socket_addr_t::operator sockaddr_in6() const {
     sockaddr_in6 sockaddr = {};
@@ -202,55 +217,6 @@ public:
     constexpr auto GetFD() const { return socket_id; }
 
     inline bool is_closed() const { return socket_id == 0; }
-};
-
-inline std::ostream& operator<<(std::ostream& os, const tcp_socket_t &client_id) {
-    return os << client_id.get_local_ipv6_addr();
-}
-
-class tcp_server_socket_t : public tcp_socket_t {
-public:
-    static constexpr int socket_backlog { 5 };
-public:
-    inline tcp_server_socket_t(const int port) : tcp_socket_t { true } {
-        int enable = 1;
-        if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
-            close(); 
-            throw exception_t(error_helper_t::sockopt_ret());
-        }
-
-        struct sockaddr_in6 addr;
-        memset(&addr, 0, sizeof(addr));
-        addr.sin6_family = AF_INET6;
-        addr.sin6_port = htons(port);
-        addr.sin6_addr = in6addr_any;
-
-        if (bind(socket_id, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-            close();
-            throw exception_t(err_t::BIND_FAILURE);
-        }
-        log<log_t::TCP_SOCKET_BIND_SUCCESS>(socket_id, port);
-
-        if (listen(socket_id, socket_backlog) < 0) {
-            close();
-            throw exception_t(err_t::LISTEN_FAILURE);
-        }
-        log<log_t::TCP_SOCKET_LISTEN_SUCCESS>(socket_id, port);
-    }
-
-    inline tcp_socket_t accept() {
-        auto client_id = ::accept4(socket_id, NULL, NULL, SOCK_NONBLOCK | SOCK_CLOEXEC);
-        if (client_id == -1) {
-            if (errno == EAGAIN) {
-                return 0;
-            }
-            throw exception_t(err_t::ACCEPT_FAILURE);
-        }
-
-        log<log_t::TCP_SOCKET_ACCEPT_SUCCESS>(socket_id, client_id);
-        return client_id;
-    }
-
 };
 
 class tcp_client_socket_t : public tcp_socket_t {
