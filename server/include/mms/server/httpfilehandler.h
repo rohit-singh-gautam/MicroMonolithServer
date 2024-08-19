@@ -105,7 +105,7 @@ public:
         }
     }
 
-    void ProcessRead(const http::request &request, MMS::event::writer_t &writer) override {
+    void ProcessRead(const http::request &request, listener::writer_t &writer) override {
         auto path = request.GetPath();
         std::filesystem::path fullpath = rootpath;
         fullpath += path;
@@ -125,8 +125,8 @@ public:
             response.add_field(http::FIELD::Content_Length, contentlength );
             auto headerstring = response.to_string();
             writer.Write(
-                event::write_entry_const {headerstring.c_str(), headerstring.size(), 0}, 
-                event::write_entry_const {bodybuffer, bodysize, 0});
+                listener::write_entry_const {headerstring.c_str(), headerstring.size(), 0}, 
+                listener::write_entry_const {bodybuffer, bodysize, 0});
         }
 
     }

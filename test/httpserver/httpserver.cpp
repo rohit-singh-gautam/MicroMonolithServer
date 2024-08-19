@@ -20,8 +20,8 @@ int main(int, char *[]) {
     std::unique_ptr<MMS::server::httphandler_t> handlerptr { new MMS::server::httpfilehandler { filecache, rootpath, defaultlist } };
     httpcretor.AddHandler({"/" }, std::move(handlerptr));
 
-    MMS::event::listener_t locallistener { 4,  filename };
-    locallistener.add(new MMS::event::tcp::tcp_server_t { 4833, httpcretor, &locallistener });
+    MMS::listener::listener_t locallistener { 4,  filename };
+    locallistener.add(new MMS::net::tcp::server_t { 4833, httpcretor, &locallistener });
     locallistener.multithread_loop();
     locallistener.wait();
 

@@ -5,13 +5,13 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <mms/event/listener.h>
+#include <mms/listener.h>
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <sys/eventfd.h>
 
 
-namespace MMS::event {
+namespace MMS::listener {
 
 terminate_t::terminate_t(listener_t &listener) : listener { listener } {
     sigset_t sigmaskignore { };
@@ -155,7 +155,7 @@ void listener_t::loop() {
 
             for(decltype(ret) index = 0; index < ret; ++index) {
                 epoll_event &event = events[index];
-                auto processor = reinterpret_cast<event::processor_t *>(event.data.ptr);
+                auto processor = reinterpret_cast<listener::processor_t *>(event.data.ptr);
 
                 log<log_t::LISTENER_EVENT_RECEIVED>(processor->GetFD(), event.events);
                 if ((event.events & EPOLLRDHUP)) {
@@ -202,4 +202,4 @@ void listener_t::loop() {
     }
 }
 
-} // namespace MMS::event
+} // namespace MMS::listener

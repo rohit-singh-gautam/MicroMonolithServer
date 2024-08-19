@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <typeinfo>
 
-namespace MMS::event {
+namespace MMS::listener {
 using namespace std::chrono_literals;
 
 struct write_entry_const {
@@ -68,13 +68,20 @@ public:
 
 namespace typecheck {
 template <typename T>
-concept write_entry_const = std::is_same_v<T, MMS::event::write_entry_const>;
+concept write_entry_const = std::is_same_v<T, MMS::listener::write_entry_const>;
 } // namespace typecheck
 
 class writer_t {
 protected:
+    // Buffer will be deleted once it is used.
+    // All buffer must be created using malloc
     virtual void WriteNoCopy(uint8_t*, size_t, size_t) { };
-    virtual void WriteWithCopy(const uint8_t*, size_t, size_t) { };
+    
+    inline void WriteWithCopy(const uint8_t* buffer, size_t, size_t bytesize) {
+        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
+        std::copy(buffer, buffer + bytesize, newbuffer);
+        WriteNoCopy(newbuffer, bytesize, 0);
+    }
 
 public:
     virtual ~writer_t() = default;
@@ -255,4 +262,4 @@ public:
     }
 };
 
-} // namespace MMS::event
+} // namespace MMS::listener

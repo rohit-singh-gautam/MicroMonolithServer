@@ -9,7 +9,8 @@ add_library(corelib
     src/error.cpp
     src/configparser.cpp
     src/log.cpp
-    src/tcpserverevent.cpp
+    src/tcpserver.cpp
+    src/tcpsslserver.cpp
 )
 
 include_directories(${GLOBAL_INCLUDE})

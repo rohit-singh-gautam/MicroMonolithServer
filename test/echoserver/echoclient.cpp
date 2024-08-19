@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
-#include <mms/event/listener.h>
-#include <mms/net/tcpserverevent.h>
+#include <mms/listener.h>
+#include <mms/net/tcpserver.h>
 
 
 int main(int , char *[]) {

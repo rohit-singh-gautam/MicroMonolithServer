@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <mms/net/tcpserverevent.h>
+#include <mms/net/tcpserver.h>
 #include <mms/ds/prefixmap.h>
 #include <http/httpparser.h>
 #include <unordered_map>
@@ -14,32 +14,32 @@
 namespace MMS::server {
 
 class httpwriter_t {
-    MMS::event::writer_t &connectionwriter;
+    listener::writer_t &connectionwriter;
 public:
-    httpwriter_t(MMS::event::writer_t &connectionwriter) : connectionwriter { connectionwriter } { }
+    httpwriter_t(listener::writer_t &connectionwriter) : connectionwriter { connectionwriter } { }
     void Write(const http::response &response);
 };
 
 class httphandler_t {
 public:
     virtual ~httphandler_t() = default;
-    virtual void ProcessRead(const http::request &request, MMS::event::writer_t &writer) = 0;
+    virtual void ProcessRead(const http::request &request, listener::writer_t &writer) = 0;
 };
 
-class http_t : public MMS::event::protocol_implementation_t {
+class http_t : public net::protocol_t {
     prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap;
 
 public:
     http_t(prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap) : handlermap { handlermap } { }
-    void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) override;
+    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override;
 
     
 };
 
-class httpcreator_t : public MMS::event::protocol_implementation_creator_t {
+class httpcreator_t : public net::protocol_creator_t {
     prefixmap<std::string_view, std::unique_ptr<httphandler_t>> handlermap { };
 public:
-    MMS::event::protocol_implementation_t *create_protocol_implementation() override { return new http_t { handlermap }; }
+    net::protocol_t *create_protocol() override { return new http_t { handlermap }; }
 
     void AddHandler(const std::string_view &path, std::unique_ptr<httphandler_t> &&handler) {
         handlermap.insert(path, std::move(handler));

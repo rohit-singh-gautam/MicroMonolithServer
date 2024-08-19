@@ -11,7 +11,7 @@
 
 namespace MMS::server {
 
-void http_t::ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) {
+void http_t::ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) {
     try {
         http::request request { {reinterpret_cast<const char *>(buffer), size}};
         auto &handler = handlermap.search(request.GetPath());

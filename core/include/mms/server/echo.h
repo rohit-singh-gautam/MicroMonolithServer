@@ -6,22 +6,22 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <mms/net/tcpserverevent.h>
+#include <mms/net/tcpserver.h>
 
 namespace MMS::server {
 
-class echo_t : public MMS::event::protocol_implementation_t {
+class echo_t : public net::protocol_t {
 public:
-    void ProcessRead(const uint8_t *buffer, const size_t size, MMS::event::writer_t &writer) override {
-        writer.Write(event::write_entry_const {buffer, size});
+    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override {
+        writer.Write(listener::write_entry_const {buffer, size});
     }
 };
 
-class echocreator_t : public MMS::event::protocol_implementation_creator_t {
+class echocreator_t : public net::protocol_creator_t {
 
 public:
 
-    MMS::event::protocol_implementation_t *create_protocol_implementation() override {
+    net::protocol_t *create_protocol() override {
         return new echo_t();
     }
 
