@@ -15,6 +15,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <openssl/err.h>
 
 namespace MMS {
 
@@ -271,6 +272,15 @@ void epoll_event_to_string_helper(char *&pStr, const uint8_t *&data_args) {
     *pStr++ = ')';   
 }
 
+void to_string_ssl_error_helper(char *&pStr, const uint8_t *&data_args) {
+    auto &value = *reinterpret_cast<const std::int32_t *>(data_args);
+    data_args += sizeof(std::int32_t);
+    const auto errstr = ERR_error_string(value, nullptr);
+    auto count = strlen(errstr);
+    std::copy(errstr, errstr + count, pStr);
+    pStr += count;
+}
+
 void add_time_to_string_helper(
     char *&pStr,
     const int64_t nanotime)
@@ -506,6 +516,7 @@ void createLogsString(logger_logs_entry_read &logEntry, char *pStr) {
                 case 'g': guid_t_to_string_helper(pStr, data_args); break;
                 case 'G': guid_t_to_string_helper<number_case_t::upper>(pStr, data_args); break;
                 case 'v': epoll_event_to_string_helper(pStr, data_args); break;
+                case 'c': to_string_ssl_error_helper(pStr, data_args); break;
                 case 'm': module_t_to_string_helper(pStr, data_args); break;
                 case 'l': logger_level_to_string_helper(pStr, data_args); break;
                 default: write_string(pStr, "Unknown message, client may required to be upgraded"); break;

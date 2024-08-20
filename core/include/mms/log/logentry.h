@@ -35,6 +35,7 @@ namespace MMS {
     //      %vg: GUID lower case
     //      %vG: GUID upper case
     //      %vv: Epoll event
+    //      %vc: SSL error
     //      %vm: Module name
     //      %vl: Log level
     // %% - %
@@ -87,6 +88,9 @@ namespace MMS {
     LOGGER_ENTRY(SIGNAL_POLLING_MASK_FAILED, ALERT, SYSTEM, "Failed to set mask for SIGTERM and SIGINT with error %ve") \
     LOGGER_ENTRY(SIGNAL_FD_FAILED, ALERT, SYSTEM, "Failed to get signalfd %ve") \
     \
+    LOGGER_ENTRY(SOCKET_SSL_INITIALIZE, INFO, SOCKET, "Socket initialize SSL") \
+    LOGGER_ENTRY(SOCKET_SSL_CERT_LOAD_FAILED_FILE_NOT_FOUND, ERROR, SOCKET, "Unable to load SSL certificate as file not found, exiting") \
+    \
     LOGGER_ENTRY(LISTENER_CREATE_FAILED, ERROR, LISTENER, "Listener creation failed with error %ve, terminating application") \
     LOGGER_ENTRY(LISTENER_ALREADY_CREATED_FAILED, ERROR, LISTENER, "Listener can have only one instance. Second instance to create listener will fail") \
     LOGGER_ENTRY(LISTENER_TERMINATION_HANDLER, ERROR, LISTENER, "Listener termination handler added successfully") \
@@ -115,6 +119,10 @@ namespace MMS {
     \
     LOGGER_ENTRY(TCP_CONNECTION_EMPTY_READ, DEBUG, TCP_SERVER, "FD %i: TCP empty read") \
     LOGGER_ENTRY(TCP_CONNECTION_READ, DEBUG, TCP_SERVER, "FD %i: TCP read %lu bytes") \
+    \
+    LOGGER_ENTRY(TCP_SSL_CREATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server is unable to create SSL for peer %i") \
+    LOGGER_ENTRY(TCP_SSL_INITIALIZATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to initialize peer %i, failed with error %vc") \
+    LOGGER_ENTRY(TCP_SSL_ACCEPT_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to accept peer %i, failed with error %vc") \
     \
     LOGGER_ENTRY(TEST_GUID_LOG, INFO, TEST, "IOT Error '%vg' caps '%vG'") \
     LOGGER_ENTRY(TEST_FLOAT_LOGS, INFO, TEST, "Test float %%%hf, double %f") \

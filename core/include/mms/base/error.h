@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <cstdint>
 #include <fcntl.h>
 #include <cstring>
 
@@ -57,6 +58,8 @@ namespace MMS {
     ERROR_T_ENTRY(SOCKET_CONNECT_TIMEOUT, "Unable to connect as it timeout") \
     ERROR_T_ENTRY(SOCKET_WRITE_ZERO, "Socket write written zero byte") \
     ERROR_T_ENTRY(SOCKET_RETRY, "Socket retry last operation") \
+    \
+    ERROR_T_ENTRY(SOCKET_SSL_CERTIFICATE_FILE_NOT_FOUND, "Failed to load SSL certificate, file not found") \
     \
     ERROR_T_ENTRY(SOCKOPT_FAILURE, "Unable to set socket option") \
     ERROR_T_ENTRY(SOCKOPT_BAD_ID, "Unable to set socket option, bad socket ID") \

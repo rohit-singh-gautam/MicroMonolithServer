@@ -6,8 +6,28 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+#include <cstdint>
+#include <netinet/in.h>
 
 namespace MMS::net {
+
+inline const ipv6_socket_addr_t get_peer_ipv6_addr(const int socket_id) {
+    sockaddr_in6 addr;
+    socklen_t len = sizeof(addr);
+    getpeername(socket_id, reinterpret_cast<struct sockaddr *>(&addr), &len);
+
+    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
+    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
+}
+
+inline const ipv6_socket_addr_t get_local_ipv6_addr(const int socket_id) {
+    sockaddr_in6 addr;
+    socklen_t len = sizeof(addr);
+    getsockname(socket_id, (struct sockaddr *)&addr, &len);
+
+    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
+    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
+}
 
 struct buffer_t {
 public:
@@ -38,6 +58,9 @@ public:
     auto GetBuffer() { return reinterpret_cast<type>(buffer); }
     auto GetBuffer(const size_t offset) {
         auto bufferoffset = reinterpret_cast<uint8_t *>(buffer) + offset;
+        if (offset + initial_size > size) {
+            increase_buffer(size + initial_size);
+        }
         auto newsize = size - offset;
         return std::make_pair(reinterpret_cast<void *>(bufferoffset), newsize);
     }

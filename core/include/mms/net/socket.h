@@ -17,35 +17,6 @@
 
 namespace MMS {
 
-inline const ipv6_socket_addr_t get_peer_ipv6_addr(const int socket_id) {
-    sockaddr_in6 addr;
-    socklen_t len = sizeof(addr);
-    getpeername(socket_id, reinterpret_cast<struct sockaddr *>(&addr), &len);
-
-    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
-    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
-}
-
-inline const ipv6_socket_addr_t get_local_ipv6_addr(const int socket_id) {
-    sockaddr_in6 addr;
-    socklen_t len = sizeof(addr);
-    getsockname(socket_id, (struct sockaddr *)&addr, &len);
-
-    ipv6_port_t &port = *reinterpret_cast<ipv6_port_t *>(&addr.sin6_port);
-    return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
-}
-
-constexpr ipv6_socket_addr_t::operator sockaddr_in6() const {
-    sockaddr_in6 sockaddr = {};
-    sockaddr.sin6_family = AF_INET6;
-    sockaddr.sin6_addr.__in6_u.__u6_addr32[0] = addr.addr_32[0];
-    sockaddr.sin6_addr.__in6_u.__u6_addr32[1] = addr.addr_32[1];
-    sockaddr.sin6_addr.__in6_u.__u6_addr32[2] = addr.addr_32[2];
-    sockaddr.sin6_addr.__in6_u.__u6_addr32[3] = addr.addr_32[3];
-    sockaddr.sin6_port = port.get_network_port();
-    return sockaddr;
-}
-
 class tcp_socket_t {
 protected:
     int socket_id;

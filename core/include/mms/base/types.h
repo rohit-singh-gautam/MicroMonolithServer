@@ -86,7 +86,7 @@ public:
     constexpr ipv6_socket_addr_t(const void *addr, const ipv6_port_t port) : addr(*(ipv6_addr_t *)addr), port(port) { }
     constexpr ipv6_socket_addr_t(const char *addrstr, const ipv6_port_t port);
     
-    constexpr operator sockaddr_in6() const;
+    operator sockaddr_in6() const;
 }  __attribute__((packed));
 
 class guid_t {

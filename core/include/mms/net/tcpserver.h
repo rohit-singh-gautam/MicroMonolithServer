@@ -30,7 +30,7 @@ public:
     err_t ProcessWrite() override;
     void WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) override;
 
-    auto get_peer_ipv6_addr() const { return MMS::get_peer_ipv6_addr(GetFD()); }
+    auto get_peer_ipv6_addr() const { return MMS::net::get_peer_ipv6_addr(GetFD()); }
 }; // connection_t
 
 class server_t : public listener::processor_t {

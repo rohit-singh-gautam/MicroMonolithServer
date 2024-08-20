@@ -109,6 +109,7 @@ constexpr size_t formatstring_count(const char (&fmtstr)[size]) {
             case 'g':
             case 'G':
             case 'v':
+            case 'c':
             case 'm':
             case 'l':
                 ++count;
@@ -310,6 +311,10 @@ template <const size_t COUNT> struct formatstring_type_list {
                 case 'v':
                     type_list[index++] = type_identifier::uint32_t;
                     length += type_length<type_identifier::uint32_t>::value;
+                    break;
+                case 'c':
+                    type_list[index++] = type_identifier::int32_t;
+                    length += type_length<type_identifier::int32_t>::value;
                     break;
                 case 'm':
                     type_list[index++] = type_identifier::module_t;
