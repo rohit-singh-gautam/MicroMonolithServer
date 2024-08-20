@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <mms/net/tcpserver.h>
+#include <mms/net/base.h>
 #include <mms/ds/prefixmap.h>
 #include <http/httpparser.h>
 #include <unordered_map>
