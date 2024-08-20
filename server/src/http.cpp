@@ -9,14 +9,14 @@
 #include <http/httpparser.h>
 #include <format>
 
-namespace MMS::server {
+namespace MMS::server::http {
 
-void http_t::ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) {
+void protocol_t::ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) {
     try {
-        http::request request { {reinterpret_cast<const char *>(buffer), size}};
-        auto &handler = handlermap.search(request.GetPath());
+        MMS::http::request request { {reinterpret_cast<const char *>(buffer), size}};
+        auto &handler = configuration.handlermap.search(request.GetPath());
         if (handler == nullptr) {
-            auto response = request.CreateErrorResponse(http::CODE::_404, std::format("Path {} not found", request.GetPath()));
+            auto response = request.CreateErrorResponse(MMS::http::CODE::_404, std::format("Path {} not found", request.GetPath()));
             writer.Write(response.to_string());
         }
         else {
@@ -24,9 +24,9 @@ void http_t::ProcessRead(const uint8_t *buffer, const size_t size, listener::wri
         }
     }
     catch(http_parser_failed_t &parser_failed) {
-        auto response = http::response::CreateErrorResponse(http::CODE::_400, parser_failed.to_string(reinterpret_cast<const char *>(buffer)));
+        auto response = MMS::http::response::CreateErrorResponse(MMS::http::CODE::_400, parser_failed.to_string(reinterpret_cast<const char *>(buffer)));
         writer.Write(response.to_string());        
     }
 }
 
-} // namespace MMS::server
+} // namespace MMS::server::http

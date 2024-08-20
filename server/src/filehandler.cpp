@@ -7,3 +7,39 @@
 
 #include <mms/server/httpfilehandler.h>
 
+namespace MMS::server {
+void httpfilehandler::ProcessRead(const MMS::http::request &request, listener::writer_t &writer) {
+    auto path = request.GetPath();
+    std::filesystem::path fullpath = rootpath;
+    fullpath += path;
+    auto [bodybuffer, bodysize, newpath] = GetFromfileCahce(fullpath);
+
+    if (bodybuffer == nullptr) {
+        std::string errortext { "File: "};
+        errortext += path;
+        errortext += " not found";
+        auto response = request.CreateErrorResponse(MMS::http::CODE::_404, errortext);
+        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
+        writer.Write(response.to_string());
+    } else {
+        auto response = MMS::http::response::CreateBasicResponse(MMS::http::CODE::_200);
+        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
+        response.add_field(MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" });
+        const auto extension = newpath.extension().string();
+        auto contenttype = conf.mimemap.find(extension);
+        if (contenttype == std::end(conf.mimemap)) {
+            log<log_t::HTTP_UNKNOWN_EXTENSION>();
+            response.add_field(MMS::http::FIELD::Content_Type, { "text/plain" });    
+        } else {
+            response.add_field(MMS::http::FIELD::Content_Type, contenttype->second);
+        }
+        std::string_view contentlength { std::to_string(bodysize) };
+        response.add_field(MMS::http::FIELD::Content_Length, contentlength );
+        auto headerstring = response.to_string();
+        writer.Write(
+            listener::write_entry_const {headerstring.c_str(), headerstring.size(), 0}, 
+            listener::write_entry_const {bodybuffer, bodysize, 0});
+    }
+}
+
+} // namespace MMS::server

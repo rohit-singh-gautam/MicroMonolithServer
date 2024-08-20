@@ -123,6 +123,9 @@ namespace MMS {
     LOGGER_ENTRY(TCP_SSL_CREATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server is unable to create SSL for peer %i") \
     LOGGER_ENTRY(TCP_SSL_INITIALIZATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to initialize peer %i, failed with error %vc") \
     LOGGER_ENTRY(TCP_SSL_ACCEPT_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to accept peer %i, failed with error %vc") \
+    LOGGER_ENTRY(TCP_SSL_ACCEPT_FAILED_NON_SSL, ERROR, TCP_SERVER, "FD %i: SSL TCP Server peer %i, failed as non SSL protocol used. Protocol like https must be used, http will not connect to SSL server.") \
+    \
+    LOGGER_ENTRY(HTTP_UNKNOWN_EXTENSION, DEBUG, TCP_SERVER, "Unknown HTTP content type using text/plain") \
     \
     LOGGER_ENTRY(TEST_GUID_LOG, INFO, TEST, "IOT Error '%vg' caps '%vG'") \
     LOGGER_ENTRY(TEST_FLOAT_LOGS, INFO, TEST, "Test float %%%hf, double %f") \

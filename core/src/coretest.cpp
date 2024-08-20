@@ -10,13 +10,13 @@
 #include <gtest/gtest.h>
 
 bool InsertAndFind() {
-    std::vector<std::pair<std::string_view, std::string_view>> allinserttest {
+    std::vector<std::pair<std::string, std::string>> allinserttest {
         { "http://example.com/test/value", "Testvalue" },
         { "http://example.com/test", "Test" },
         { "http://example.com/values", "values" }
     };
 
-    std::vector<std::pair<std::string_view, std::string_view>> allsearchtest {
+    std::vector<std::pair<std::string, std::string>> allsearchtest {
         {"http://example.com/test/key", "Test"},
         {"http://example.com/test/value", "Testvalue"},
         {"http://example.com/test", "Test"},
@@ -27,7 +27,7 @@ bool InsertAndFind() {
         {"http://example.com/", ""}
     };
 
-    MMS::prefixmap<std::string_view, std::string_view> match { };
+    MMS::prefixmap<std::string, std::string> match { };
 
     for(auto &test: allinserttest) {
         match.insert(test.first, test.second);

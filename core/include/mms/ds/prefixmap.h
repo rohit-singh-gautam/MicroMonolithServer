@@ -19,6 +19,8 @@ class prefixmap {
         StoreType value { };
         stringtype match { };
         std::unordered_map<char, std::unique_ptr<prefixentry>> children { };
+        prefixentry() { }
+        prefixentry(prefixentry &&pe) : value { std::move(pe.value) }, match { std::move(pe.match) }, children { std::move(children) } { }
     };
 
     StoreType emptyvalue { };
@@ -40,6 +42,8 @@ class prefixmap {
     }
 
 public:
+    prefixmap() { }
+    prefixmap(prefixmap &&pm) : root { std::move(pm.root) } { }
 
     void insert(const stringtype &key, const StoreType &value) {
         auto copyvalue = value;
@@ -87,10 +91,10 @@ public:
     }
 
     /*! Search will return value for largest prefix match */
-    auto &search(const stringtype &key) {
+    auto &search(const stringtype &key) const {
         size_t index { 0 };
-        prefixentry *current = &root;
-        prefixentry *prev = nullptr;
+        auto current = &root;
+        decltype(current) prev = nullptr;
         for(;;) {
             auto &match = current->match;
             size_t matchindex { 0 };
@@ -103,9 +107,10 @@ public:
                 if (prev) return prev->value;
                 break;
             }
-            if (index == key.size() || !current->children.contains(key[index])) return current->value;
+            auto childitr = current->children.find(key[index]);
+            if (index == key.size() || childitr == std::end(current->children)) return current->value;
             prev = current;
-            current = current->children[key[index]].get();
+            current = childitr->second.get();
             ++index;
         }
         return emptyvalue;

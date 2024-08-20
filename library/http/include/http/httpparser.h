@@ -56,7 +56,7 @@ protected:
     constexpr request_header(VERSION version) : header(version) {}
 
     METHOD method { };
-    std::string_view path { };
+    std::string path { };
 
     void parse_request_uri(const char *&, size_t &);
     void parse_method(const char *&, size_t &);

@@ -82,54 +82,32 @@ public:
 
 };
 
-class httpfilehandler : public httphandler_t {
+
+class httpfilehandler : public http::handler_t {
     filecache &cache;
     const std::filesystem::path rootpath;
-    const std::vector<std::string> &defaultlist;
+    const http::configuration_t &conf;
 
 public:
-    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const std::vector<std::string> &defaultlist)
-        : cache { cache }, rootpath { rootpath }, defaultlist { defaultlist } { }
+    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const http::configuration_t &conf)
+        : cache { cache }, rootpath { rootpath }, conf { conf } { }
 
     auto GetFromfileCahce(const std::filesystem::path &fullpath) {
         if (std::filesystem::is_directory(fullpath)) {
-            for(const auto &defaultfile: defaultlist) {
+            for(const auto &defaultfile: conf.defaultlist) {
                 auto newpath = fullpath;
                 newpath /= defaultfile;
                 auto [buffer, size] = cache.GetCache(newpath);
-                if (buffer) return std::make_pair(buffer, size);
+                if (buffer) return std::make_tuple(buffer, size, newpath);
             }
-            return std::pair<const char *, size_t>(nullptr, 0);
+            return std::tuple<const char *, size_t, std::filesystem::path>(nullptr, 0, {});
         } else {
-            return cache.GetCache(fullpath);
+            auto [buffer, size] = cache.GetCache(fullpath);
+            return std::make_tuple(buffer, size, fullpath);
         }
     }
 
-    void ProcessRead(const http::request &request, listener::writer_t &writer) override {
-        auto path = request.GetPath();
-        std::filesystem::path fullpath = rootpath;
-        fullpath += path;
-        auto [bodybuffer, bodysize] = GetFromfileCahce(fullpath);
-
-        if (bodybuffer == nullptr) {
-            std::string errortext { "File: "};
-            errortext += path;
-            errortext += " not found";
-            auto response = request.CreateErrorResponse(http::CODE::_404, errortext);
-            writer.Write(response.to_string());
-        } else {
-            auto response = http::response::CreateBasicResponse(http::CODE::_200);
-            response.add_field(http::FIELD::Cache_Control, { "private, max-age=2592000" });
-            response.add_field(http::FIELD::Content_Type, { "text/html" });
-            std::string_view contentlength { std::to_string(bodysize) };
-            response.add_field(http::FIELD::Content_Length, contentlength );
-            auto headerstring = response.to_string();
-            writer.Write(
-                listener::write_entry_const {headerstring.c_str(), headerstring.size(), 0}, 
-                listener::write_entry_const {bodybuffer, bodysize, 0});
-        }
-
-    }
+    void ProcessRead(const MMS::http::request &request, listener::writer_t &writer) override;
 };
 
 } // namespace MMS::server

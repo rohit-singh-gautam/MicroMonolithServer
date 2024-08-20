@@ -11,39 +11,55 @@
 #include <http/httpparser.h>
 #include <unordered_map>
 
-namespace MMS::server {
+namespace MMS::server::http {
 
-class httpwriter_t {
+class writer_t {
     listener::writer_t &connectionwriter;
 public:
-    httpwriter_t(listener::writer_t &connectionwriter) : connectionwriter { connectionwriter } { }
-    void Write(const http::response &response);
+    writer_t(listener::writer_t &connectionwriter) : connectionwriter { connectionwriter } { }
+    void Write(const MMS::http::response &response);
 };
 
-class httphandler_t {
+class configuration_t;
+
+class handler_t {
 public:
-    virtual ~httphandler_t() = default;
-    virtual void ProcessRead(const http::request &request, listener::writer_t &writer) = 0;
+    virtual ~handler_t() = default;
+    virtual void ProcessRead(const MMS::http::request &request, listener::writer_t &writer) = 0;
 };
 
-class http_t : public net::protocol_t {
-    prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap;
+struct configuration_t {
+    std::string ServerName;
+    prefixmap<std::string, std::unique_ptr<handler_t>> handlermap { };
+    std::unordered_map<std::string, std::string> mimemap { };
+    std::vector<std::string> defaultlist { };
+    configuration_t(const std::string &ServerName) : ServerName { ServerName } { }
+    configuration_t(configuration_t &&configuration) 
+        : ServerName { std::move(configuration.ServerName) }, handlermap { std::move(configuration.handlermap) }, 
+            mimemap { std::move(configuration.mimemap) }, defaultlist { std::move(defaultlist) } { }
 
-public:
-    http_t(prefixmap<std::string_view, std::unique_ptr<httphandler_t>> &handlermap) : handlermap { handlermap } { }
-    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override;
-
-    
-};
-
-class httpcreator_t : public net::protocol_creator_t {
-    prefixmap<std::string_view, std::unique_ptr<httphandler_t>> handlermap { };
-public:
-    net::protocol_t *create_protocol() override { return new http_t { handlermap }; }
-
-    void AddHandler(const std::string_view &path, std::unique_ptr<httphandler_t> &&handler) {
+    void AddHandler(const std::string &path, std::unique_ptr<handler_t> &&handler) {
         handlermap.insert(path, std::move(handler));
     }
 };
 
-} // namespace MMS::server
+class creator_t;
+class protocol_t : public net::protocol_t {
+    const configuration_t &configuration;
+
+    friend class creator_t;
+    protocol_t(const configuration_t &configuration) : configuration { configuration } { }
+
+public:
+    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override;
+};
+
+class creator_t : public net::protocol_creator_t {
+    const configuration_t &configuration;
+
+public:
+    creator_t(configuration_t &configuration) : configuration { configuration } { }
+    net::protocol_t *create_protocol() override { return new protocol_t { configuration }; }
+};
+
+} // namespace MMS::server::http

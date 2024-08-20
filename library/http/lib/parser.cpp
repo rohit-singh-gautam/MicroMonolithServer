@@ -314,7 +314,6 @@ response response::CreateBasicResponse(CODE code) {
     res.version = VERSION::VER_1_1;
     res.code = code;
     res.fields.emplace(FIELD::Date, std::string { date_str });
-    res.fields.emplace(FIELD::Server, std::string { "MicroMonolithServer 1.0" });
 
     return res;
 }

@@ -133,6 +133,12 @@ err_t server_t::ProcessRead() {
         case SSL_ERROR_WANT_WRITE:
             break;
 
+        case SSL_ERROR_SSL:
+            log<log_t::TCP_SSL_ACCEPT_FAILED_NON_SSL>(GetFD(), peer_id);
+            SSL_free(ssl);
+            close(peer_id);
+            return err_t::SUCCESS;
+
         default:
             log<log_t::TCP_SSL_ACCEPT_FAILED>(GetFD(), peer_id, ssl_error);
             SSL_free(ssl);
