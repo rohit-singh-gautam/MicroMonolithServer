@@ -8,8 +8,11 @@
 #pragma once
 #include <cstdint>
 #include <netinet/in.h>
+#include <mms/listener.h>
 
 namespace MMS::net {
+constexpr int socket_backlog { 5 };
+int CreateServerSocket(int port);
 
 inline const ipv6_socket_addr_t get_peer_ipv6_addr(const int socket_id) {
     sockaddr_in6 addr;

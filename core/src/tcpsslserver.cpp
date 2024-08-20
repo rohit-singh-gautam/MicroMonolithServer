@@ -8,6 +8,9 @@
 #include <mms/net/tcpsslserver.h>
 
 namespace MMS::net::tcp::ssl {
+
+thread_local buffer_t connection_t::tempbuffer { };
+
 connection_t::~connection_t() {
     SSL_free(ssl);
 }
@@ -91,6 +94,10 @@ EXIT_LOOP:
     return err_t::SUCCESS;
 }
 
+void connection_t::WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) {
+    pending_wirte.emplace(buffer, bytesize, byteoffset);
+}
+
 err_t server_t::ProcessRead() {
     log<log_t::TCP_SERVER_RECEIVED_EVENT>(GetFD());
 
@@ -121,10 +128,17 @@ err_t server_t::ProcessRead() {
     ssl_ret = SSL_accept(ssl);
     if (ssl_ret < 0) {
         auto ssl_error = SSL_get_error(ssl, ssl_ret);
-        log<log_t::TCP_SSL_ACCEPT_FAILED>(GetFD(), peer_id, ssl_error);
-        SSL_free(ssl);
-        close(peer_id);
-        return err_t::SUCCESS;
+        switch(ssl_error) {
+        case SSL_ERROR_WANT_READ:
+        case SSL_ERROR_WANT_WRITE:
+            break;
+
+        default:
+            log<log_t::TCP_SSL_ACCEPT_FAILED>(GetFD(), peer_id, ssl_error);
+            SSL_free(ssl);
+            close(peer_id);
+            return err_t::SUCCESS;
+        }
     }
 
     auto protocol = protocol_creator.create_protocol();

@@ -105,35 +105,6 @@ void connection_t::WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffs
     pending_wirte.emplace(buffer, bytesize, byteoffset);
 }
 
-int server_t::CreateServerSocket(int port) {
-    const int socket_id = socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, IPPROTO_TCP);
-    int enable = 1;
-    if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
-        ::close(socket_id); 
-        throw setsockopt_fail_t(error_helper_t::sockopt_ret());
-    }
-
-    struct sockaddr_in6 addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(port);
-    addr.sin6_addr = in6addr_any;
-
-    if (bind(socket_id, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        ::close(socket_id);
-        throw bind_fail_t { };
-    }
-    log<log_t::TCP_SOCKET_BIND_SUCCESS>(socket_id, port);
-
-    if (listen(socket_id, socket_backlog) < 0) {
-        ::close(socket_id);
-        throw listen_fail_t { };
-    }
-    log<log_t::TCP_SOCKET_LISTEN_SUCCESS>(socket_id, port);
-
-    return socket_id;
-}
-
 err_t server_t::ProcessRead() {
     log<log_t::TCP_SERVER_RECEIVED_EVENT>(GetFD());
     try {

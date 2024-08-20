@@ -44,8 +44,6 @@ class server_t : public listener::processor_t {
     protocol_creator_t &protocol_creator;
     listener::listener_t *listener;
 
-    static int CreateServerSocket(int port);
-
     std::shared_ptr<MMS::net::ssl::common> ssl_common;
 
 

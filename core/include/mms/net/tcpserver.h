@@ -34,11 +34,8 @@ public:
 }; // connection_t
 
 class server_t : public listener::processor_t {
-    static constexpr int socket_backlog { 5 };
     protocol_creator_t &protocol_creator;
     listener::listener_t *listener;
-
-    static int CreateServerSocket(int port);
 
 public:
     server_t(const int port, protocol_creator_t &protocol_creator, listener::listener_t *listener)
