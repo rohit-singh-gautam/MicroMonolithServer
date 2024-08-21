@@ -90,7 +90,7 @@ class httpfilehandler : public http::handler_t {
 
 public:
     httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const http::configuration_t &conf)
-        : cache { cache }, rootpath { rootpath }, conf { conf } { }
+        : cache { cache }, rootpath { std::filesystem::canonical(rootpath) }, conf { conf } { }
 
     auto GetFromfileCahce(const std::filesystem::path &fullpath) {
         if (std::filesystem::is_directory(fullpath)) {

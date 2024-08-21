@@ -11,6 +11,20 @@ namespace MMS::server {
 void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) {
     std::filesystem::path fullpath = rootpath;
     fullpath /= relative_path;
+    auto absolutepath = std::filesystem::canonical(fullpath);
+
+    auto is_subfolder = std::mismatch(std::begin(rootpath), std::end(rootpath), std::begin(absolutepath), std::end(absolutepath)).first == std::end(rootpath);
+    
+    if (!is_subfolder) {
+        std::string errortext { "File: "};
+        errortext += request.GetPath();
+        errortext += " not allowed.";
+        auto response = request.CreateErrorResponse(MMS::http::CODE::_403, errortext);
+        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
+        writer.Write(response.to_string());
+        return;
+    }
+
     auto [bodybuffer, bodysize, newpath] = GetFromfileCahce(fullpath);
 
     if (bodybuffer == nullptr) {

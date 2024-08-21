@@ -228,7 +228,8 @@ request::request(const std::string &text) {
 
 response request::CreateErrorResponse(CODE code, const std::string &errortext) const {
     response res = response::CreateBasicResponse(code);
-    res.fields.emplace(FIELD::Connection, std::string { "Close" });
+    res.fields.emplace(FIELD::Connection, std::string { "close" });
+    res.fields.emplace(FIELD::Content_Type, std::string { "text/html" });
 
     auto accepttype = GetField(FIELD::Accept);
     // "application/json"

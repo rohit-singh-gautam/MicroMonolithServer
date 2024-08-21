@@ -77,10 +77,10 @@ protected:
     // All buffer must be created using malloc
     virtual void WriteNoCopy(uint8_t*, size_t, size_t) { };
     
-    inline void WriteWithCopy(const uint8_t* buffer, size_t, size_t bytesize) {
+    inline void WriteWithCopy(const uint8_t* buffer, size_t bytesize, size_t byteoffset = 0) {
         auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
         std::copy(buffer, buffer + bytesize, newbuffer);
-        WriteNoCopy(newbuffer, bytesize, 0);
+        WriteNoCopy(newbuffer, bytesize, byteoffset);
     }
 
 public:
