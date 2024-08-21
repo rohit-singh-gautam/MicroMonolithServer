@@ -14,8 +14,12 @@ namespace MMS::net::ssl {
 bool common::initialized { false };
 common::common(const char *cert, const char *private_key) {
     if (!std::filesystem::exists(cert)) {
-        log<log_t::SOCKET_SSL_CERT_LOAD_FAILED_FILE_NOT_FOUND>();
+        log<log_t::SOCKET_SSL_CERTIFICATE_FILE_NOT_FOUND>();
         throw exception_t(err_t::SOCKET_SSL_CERTIFICATE_FILE_NOT_FOUND);
+    }
+    if (!std::filesystem::exists(cert)) {
+        log<log_t::SOCKET_SSL_PRIKEY_FILE_NOT_FOUND>();
+        throw exception_t(err_t::SOCKET_SSL_PRIKEY_FILE_NOT_FOUND);
     }
     if (!initialized) SSL_library_init();
     ctx = SSL_CTX_new(TLS_server_method());

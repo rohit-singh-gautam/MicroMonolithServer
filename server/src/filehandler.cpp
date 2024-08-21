@@ -33,7 +33,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, listener::w
         } else {
             response.add_field(MMS::http::FIELD::Content_Type, contenttype->second);
         }
-        std::string_view contentlength { std::to_string(bodysize) };
+        auto contentlength { std::to_string(bodysize) };
         response.add_field(MMS::http::FIELD::Content_Length, contentlength );
         auto headerstring = response.to_string();
         writer.Write(

@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <string_view>
+#include <string>
 #include <unordered_map>
 #include <mms/base/error.h>
 
@@ -350,7 +350,7 @@ enum class METHOD {
 #undef HTTP_METHOD_ENTRY
 };
 
-static constexpr std::string_view to_string_view(const VERSION version) {
+static constexpr std::string to_string(const VERSION version) {
     switch(version) {
     default:
 #define HTTP_VERSION_ENTRY(x, y) case VERSION::x: return { y, sizeof(y) - 1};
@@ -359,7 +359,7 @@ static constexpr std::string_view to_string_view(const VERSION version) {
     }
 }
 
-static constexpr std::string_view to_string_view(const FIELD field) {
+static constexpr std::string to_string(const FIELD field) {
     switch(field) {
     default:
 #define HTTP_FIELD_ENTRY(x, y) case FIELD::x: return { y, sizeof(y) - 1};
@@ -368,7 +368,7 @@ static constexpr std::string_view to_string_view(const FIELD field) {
     }
 }
 
-static constexpr std::string_view to_string_view(const CODE code) {
+static constexpr std::string to_string(const CODE code) {
     switch(code) {
     default:
 #define HTTP_CODE_ENTRY(x, y) case CODE::_##x: return { y, sizeof(y) -1 };
@@ -377,7 +377,7 @@ static constexpr std::string_view to_string_view(const CODE code) {
     }
 }
 
-static constexpr std::string_view to_string_view(const METHOD method) {
+static constexpr std::string to_string(const METHOD method) {
     switch(method) {
     default:
 #define HTTP_METHOD_ENTRY(x) case METHOD::x: return { #x, sizeof(#x) -1 };
@@ -388,14 +388,14 @@ static constexpr std::string_view to_string_view(const METHOD method) {
 
 typedef std::unordered_map<FIELD, std::string> fields_t;
 
-extern const std::unordered_map<std::string_view, FIELD> field_map;
-extern const std::unordered_map<std::string_view, METHOD> method_map;
+extern const std::unordered_map<std::string, FIELD> field_map;
+extern const std::unordered_map<std::string, METHOD> method_map;
 
 // This is raw code may does not map to actual string bug atoi
 // "100" will map to CODE::_100
-extern const std::unordered_map<std::string_view, CODE> code_map_raw;
+extern const std::unordered_map<std::string, CODE> code_map_raw;
 
-constexpr auto to_field(const std::string_view &fieldname) {
+constexpr auto to_field(const std::string &fieldname) {
     auto fielditr = field_map.find(fieldname);;
     if (fielditr == std::end(field_map)) {
         return FIELD::FIELD_UNKNOWN;
@@ -403,7 +403,7 @@ constexpr auto to_field(const std::string_view &fieldname) {
     return fielditr->second;
 }
 
-constexpr auto to_method(const std::string_view &methodname) {
+constexpr auto to_method(const std::string &methodname) {
     auto methoditr = method_map.find(methodname);;
     if (methoditr == std::end(method_map)) {
         return METHOD::IGNORE_THIS;
@@ -411,13 +411,13 @@ constexpr auto to_method(const std::string_view &methodname) {
     return methoditr->second;
 }
 
-constexpr auto to_version(const std::string_view &versiontext) {
+constexpr auto to_version(const std::string &versiontext) {
     if (versiontext.compare("HTTP/1.1") == 0) return VERSION::VER_1_1;
     else if (versiontext.compare("HTTP/2.0") == 0) return VERSION::VER_2;
     else return VERSION::VER_UNKNOWN;
 }
 
-constexpr auto to_code_map(const std::string_view &codetext) {
+constexpr auto to_code_map(const std::string &codetext) {
     auto codeitr = code_map_raw.find(codetext);;
     if (codeitr == std::end(code_map_raw)) {
         return CODE::_0;

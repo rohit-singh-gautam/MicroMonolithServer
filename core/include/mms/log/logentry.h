@@ -89,7 +89,8 @@ namespace MMS {
     LOGGER_ENTRY(SIGNAL_FD_FAILED, ALERT, SYSTEM, "Failed to get signalfd %ve") \
     \
     LOGGER_ENTRY(SOCKET_SSL_INITIALIZE, INFO, SOCKET, "Socket initialize SSL") \
-    LOGGER_ENTRY(SOCKET_SSL_CERT_LOAD_FAILED_FILE_NOT_FOUND, ERROR, SOCKET, "Unable to load SSL certificate as file not found, exiting") \
+    LOGGER_ENTRY(SOCKET_SSL_CERTIFICATE_FILE_NOT_FOUND, ERROR, SOCKET, "Unable to load SSL certificate as file not found, exiting") \
+    LOGGER_ENTRY(SOCKET_SSL_PRIKEY_FILE_NOT_FOUND, ERROR, SOCKET, "Unable to load SSL private key as file not found, exiting") \
     \
     LOGGER_ENTRY(LISTENER_CREATE_FAILED, ERROR, LISTENER, "Listener creation failed with error %ve, terminating application") \
     LOGGER_ENTRY(LISTENER_ALREADY_CREATED_FAILED, ERROR, LISTENER, "Listener can have only one instance. Second instance to create listener will fail") \

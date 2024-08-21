@@ -8,7 +8,7 @@
 #include <http/httpparser.h>
 #include <gtest/gtest.h>
 
-bool http_request_parse(const std::string_view &text) {
+bool http_request_parse(const std::string &text) {
     try {
         MMS::http::request req { text };
     } catch(MMS::http_parser_failed_t &e) {
@@ -17,7 +17,7 @@ bool http_request_parse(const std::string_view &text) {
     return true;
 }
 
-bool http_response_parse(const std::string_view &text) {
+bool http_response_parse(const std::string &text) {
     try {
         MMS::http::response response { text };
     } catch(MMS::http_parser_failed_t &e) {

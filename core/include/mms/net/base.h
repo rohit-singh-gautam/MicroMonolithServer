@@ -41,7 +41,7 @@ private:
     size_t size;
 
 public:
-    buffer_t(const size_t size = 512UL) : buffer { malloc(initial_size)}, size { size } { }
+    buffer_t(const size_t size = initial_size) : buffer { malloc(size)}, size { size } { }
     
     buffer_t(const buffer_t &) = delete;
     buffer_t &operator=(const buffer_t &) = delete;
@@ -59,12 +59,13 @@ public:
 
     template <typename type>
     auto GetBuffer() { return reinterpret_cast<type>(buffer); }
+
     auto GetBuffer(const size_t offset) {
-        auto bufferoffset = reinterpret_cast<uint8_t *>(buffer) + offset;
         if (offset + initial_size > size) {
             increase_buffer(size + initial_size);
         }
         auto newsize = size - offset;
+        auto bufferoffset = reinterpret_cast<uint8_t *>(buffer) + offset;
         return std::make_pair(reinterpret_cast<void *>(bufferoffset), newsize);
     }
 

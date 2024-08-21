@@ -10,19 +10,19 @@
 
 namespace MMS::http {
 
-const std::unordered_map<std::string_view, FIELD> field_map = {
+const std::unordered_map<std::string, FIELD> field_map = {
 #define HTTP_FIELD_ENTRY(x, y) {y, FIELD::x},
     HTTP_FIELD_LIST
 #undef HTTP_FIELD_ENTRY
 };
 
-const std::unordered_map<std::string_view, METHOD> method_map = {
+const std::unordered_map<std::string, METHOD> method_map = {
 #define HTTP_METHOD_ENTRY(x) {#x, METHOD::x},
     HTTP_METHOD_LIST
 #undef HTTP_METHOD_ENTRY
 };
 
-const std::unordered_map<std::string_view, CODE> code_map_raw = {
+const std::unordered_map<std::string, CODE> code_map_raw = {
 #define HTTP_CODE_ENTRY(x, y) {#x, CODE::_##x},
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
@@ -30,16 +30,16 @@ const std::unordered_map<std::string_view, CODE> code_map_raw = {
 
 std::string request::to_string() {
     std::string ret {};
-    ret += to_string_view(method);
+    ret += MMS::http::to_string(method);
     ret += " ";
     ret += path;
     ret += " ";
-    ret += to_string_view(version);
+    ret += MMS::http::to_string(version);
     ret += "\r\n";
     for(auto fieldentry: fields) {
         auto field = fieldentry.first;
         auto value = fieldentry.second;
-        ret += to_string_view(field);
+        ret += MMS::http::to_string(field);
         ret += ": ";
         ret += value;
         ret += "\r\n";
@@ -54,15 +54,15 @@ std::string request::to_string() {
 std::string response::to_string() const {
     std::string ret = std::format(
         "{} {} {}\r\n",
-        to_string_view(version),
+        MMS::http::to_string(version),
         static_cast<int>(code),
-        to_string_view(code)
+        MMS::http::to_string(code)
     );
 
     for(auto fieldentry: fields) {
         auto field = fieldentry.first;
         auto value = fieldentry.second;
-        ret += to_string_view(field);
+        ret += MMS::http::to_string(field);
         ret += ": ";
         ret += value;
         ret += "\r\n";
@@ -74,7 +74,7 @@ std::string response::to_string() const {
     return ret;
 }
 
-std::string_view parse_till_space(const char *&requesttext, size_t &size) {
+std::string parse_till_space(const char *&requesttext, size_t &size) {
     auto start = requesttext;
     while(*requesttext != ' ' && size) {
         ++requesttext;
@@ -88,7 +88,7 @@ std::string_view parse_till_space(const char *&requesttext, size_t &size) {
     return { start, static_cast<size_t>(requesttext - start) };
 }
 
-std::string_view parse_till_colon(const char *&requesttext, size_t &size) {
+std::string parse_till_colon(const char *&requesttext, size_t &size) {
     while(*requesttext == ' ' && size) {
         ++requesttext;
         --size;
@@ -101,7 +101,7 @@ std::string_view parse_till_colon(const char *&requesttext, size_t &size) {
     if (start == requesttext) {
         throw MMS::http_parser_failed_t(requesttext, size);
     }
-    std::string_view ret = { start, static_cast<size_t>(requesttext - start) };
+    std::string ret = { start, static_cast<size_t>(requesttext - start) };
 
     while(*requesttext != ':' && size) {
         ++requesttext;
@@ -117,7 +117,7 @@ std::string_view parse_till_colon(const char *&requesttext, size_t &size) {
     return ret;
 }
 
-std::string_view parse_till_CRLF(const char *&requesttext, size_t &size) {
+std::string parse_till_CRLF(const char *&requesttext, size_t &size) {
     while(*requesttext == ' ' && size) {
         ++requesttext;
         --size;
@@ -132,7 +132,7 @@ std::string_view parse_till_CRLF(const char *&requesttext, size_t &size) {
     }
     if (*(requesttext - 1) != ' ') end = requesttext;
 
-    std::string_view ret = { start, static_cast<size_t>(end - start) };
+    std::string ret = { start, static_cast<size_t>(end - start) };
     
     if (size) {
         if (*requesttext == '\r') {
@@ -216,11 +216,11 @@ void request::parse(const char *&requesttext, size_t &size) {
     parse_request_line(requesttext, size);
     if (size) {
         parse_fields(requesttext, size);
-        if (size) body = std::string_view { requesttext, size };
+        if (size) body = std::string { requesttext, size };
     }
 }
 
-request::request(const std::string_view &text) {
+request::request(const std::string &text) {
     const char *requesttext = text.data();
     size_t size = text.size();
     parse(requesttext, size);
@@ -234,12 +234,12 @@ response request::CreateErrorResponse(CODE code, const std::string &errortext) c
     // "application/json"
     // "text/html"
     // "application/xml" "text/xml"
-    bool accepthtml = accepttype.find("text/html") != std::string_view::npos;
+    bool accepthtml = accepttype.find("text/html") != std::string::npos;
     if (!accepthtml) {
-        if (accepttype.find("application/json") != std::string_view::npos) {
+        if (accepttype.find("application/json") != std::string::npos) {
             res.body = std::format(
                 "{{\"error\": \"{}\", \"details\": \"{}\"}}",
-                to_string_view(code), errortext
+                MMS::http::to_string(code), errortext
             );
         } else accepthtml = true;
     }
@@ -252,7 +252,7 @@ response request::CreateErrorResponse(CODE code, const std::string &errortext) c
             "<h2>{0}</h2>"
             "<pre>{1}</pre>"
             "</html>", 
-            to_string_view(code), errortext
+            MMS::http::to_string(code), errortext
         );
     }
     res.UpdateContentLength();
@@ -269,7 +269,7 @@ response response::CreateErrorResponse(CODE code, const std::string &errortext) 
         "<h2>{0}</h2>"
         "<pre>{1}</pre>"
         "</html>", 
-        to_string_view(code), errortext
+        MMS::http::to_string(code), errortext
     );
     res.UpdateContentLength();
     return res;
@@ -293,11 +293,11 @@ void response::parse(const char *&requesttext, size_t &size) {
     parse_response_line(requesttext, size);
     if (size) {
         parse_fields(requesttext, size);
-        if (size) body = std::string_view { requesttext, size };
+        if (size) body = std::string { requesttext, size };
     }
 }
 
-response::response(const std::string_view &text) {
+response::response(const std::string &text) {
     const char *responsetext = text.data();
     size_t size = text.size();
     parse(responsetext, size);

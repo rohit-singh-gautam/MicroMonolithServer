@@ -39,11 +39,11 @@ public:
         return empty;
     }
 
-    void add_field(const FIELD field, const std::string_view &value) {
+    void add_field(const FIELD field, const std::string &value) {
         fields.emplace(field, value);
     }
 
-    void add_field(const FIELD field, std::string_view &&value) {
+    void add_field(const FIELD field, std::string &&value) {
         fields.emplace(field, std::move(value));
     }
 
@@ -81,10 +81,10 @@ public:
 class response;
 class request : public request_header {
     friend class http_request_parser;
-    std::string_view body { };
+    std::string body { };
 
 public:
-    request(const std::string_view &);
+    request(const std::string &);
 
     constexpr const auto &GetBody() const { return body; }
 
@@ -109,11 +109,11 @@ public:
 
 class response : public response_header {
     friend class request;
-    std::string_view body { };
+    std::string body { };
 
 public:
     constexpr response() { }
-    response(const std::string_view &);
+    response(const std::string &);
 
     constexpr void UpdateContentLength() {
         if (!body.empty()) {
@@ -126,8 +126,8 @@ public:
 
     constexpr const auto &GetBody() const { return body; }
 
-    auto SetBody(const std::string_view &value) { body = value; }
-    auto SetBody(std::string_view &&value) { body = std::move(value); }
+    auto SetBody(const std::string &value) { body = value; }
+    auto SetBody(std::string &&value) { body = std::move(value); }
 
     void parse(const char *&, size_t &);
 
