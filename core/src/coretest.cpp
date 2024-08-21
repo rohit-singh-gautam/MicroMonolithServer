@@ -34,7 +34,8 @@ bool InsertAndFind() {
     }
 
     for(auto &test: allsearchtest) {
-        auto value = match.search(test.first);
+        std::string newpath { };
+        const auto &value = match.search(test.first, newpath);
         if (value != test.second) {
             std::cout << "Mismatch key: " << test.first << ", expected: " << test.second << ", got: " << value << std::endl;
             return false;

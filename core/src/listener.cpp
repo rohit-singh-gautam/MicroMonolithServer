@@ -44,7 +44,11 @@ err_t terminate_t::ProcessRead() {
     listener.remove(this);
 
     signalfd_siginfo siginfo { };
-    read(GetFD(), &siginfo, sizeof(siginfo));
+    auto ret = read(GetFD(), &siginfo, sizeof(siginfo));
+    if (ret == -1) {
+        log<log_t::SIGNAL_READ_FAILED>(errno);
+        throw signal_read_failed_t();
+    }
     
     thread_stopper_t stopper { };
 

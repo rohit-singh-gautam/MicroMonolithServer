@@ -86,6 +86,7 @@ namespace MMS {
     LOGGER_ENTRY(SETTING_LOG_LEVEL_ALL, ALERT, SYSTEM, "Setting Log level %vl for all modules") \
     \
     LOGGER_ENTRY(SIGNAL_POLLING_MASK_FAILED, ALERT, SYSTEM, "Failed to set mask for SIGTERM and SIGINT with error %ve") \
+    LOGGER_ENTRY(SIGNAL_READ_FAILED, ALERT, SYSTEM, "Failed to read signal for SIGTERM and SIGINT with error %ve") \
     LOGGER_ENTRY(SIGNAL_FD_FAILED, ALERT, SYSTEM, "Failed to get signalfd %ve") \
     \
     LOGGER_ENTRY(SOCKET_SSL_INITIALIZE, INFO, SOCKET, "Socket initialize SSL") \

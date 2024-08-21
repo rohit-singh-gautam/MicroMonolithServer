@@ -25,7 +25,7 @@ class configuration_t;
 class handler_t {
 public:
     virtual ~handler_t() = default;
-    virtual void ProcessRead(const MMS::http::request &request, listener::writer_t &writer) = 0;
+    virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) = 0;
 };
 
 struct configuration_t {

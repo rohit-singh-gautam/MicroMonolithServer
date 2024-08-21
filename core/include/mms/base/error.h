@@ -38,6 +38,7 @@ namespace MMS {
     ERROR_T_ENTRY(BAD_FILE_DESCRIPTOR, "Bad file descriptor") \
     \
     ERROR_T_ENTRY(SIGNAL_POLLING_FAILED, "Signal polling failed") \
+    ERROR_T_ENTRY(SIGNAL_READ_FAILED, "Signal read failed") \
     \
     ERROR_T_ENTRY(SOCKET_FAILURE, "Unable to create socket") \
     ERROR_T_ENTRY(SOCKET_PERMISSION_FAILURE, "Insufficient permission to create socket") \
@@ -282,6 +283,11 @@ public:
 class signal_polling_failed_t : public exception_t {
 public:
     constexpr signal_polling_failed_t() : exception_t { err_t::SIGNAL_POLLING_FAILED } { }
+};
+
+class signal_read_failed_t : public exception_t {
+public:
+    constexpr signal_read_failed_t() : exception_t { err_t::SIGNAL_READ_FAILED } { }
 };
 
 class listener_terminate_thread_t : public exception_t {

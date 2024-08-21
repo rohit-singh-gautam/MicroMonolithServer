@@ -7,4 +7,5 @@ include_directories(${GLOBAL_INCLUDE} ${CMAKE_SOURCE_DIR}/server/include ${CMAKE
 target_link_libraries(httpserver PUBLIC corelib httpserverlib)
 
 file(COPY www DESTINATION .)
+file(COPY www1 DESTINATION .)
 file(COPY cert DESTINATION .)

@@ -83,19 +83,11 @@ void logger::flush(const int fd) {
     auto current_write = next_write; 
     size_t write_size = current_write - next_read;
 
-#ifdef DEBUG
-    auto ret = 
-#endif
-    ::write(
-        fd,
-        next_read,
-        write_size);
-#ifdef DEBUG
+    auto ret = ::write(fd, next_read, write_size);
     if (ret < 0) {
-        // Log to console
+        // Log to console as logging write failed we can inform this on console.
         std::cerr << "Failed to write log with error: " << errno << "\n";
     }
-#endif
 
     next_read = current_write;
 }

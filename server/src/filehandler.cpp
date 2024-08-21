@@ -8,15 +8,14 @@
 #include <mms/server/httpfilehandler.h>
 
 namespace MMS::server {
-void httpfilehandler::ProcessRead(const MMS::http::request &request, listener::writer_t &writer) {
-    auto path = request.GetPath();
+void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) {
     std::filesystem::path fullpath = rootpath;
-    fullpath += path;
+    fullpath /= relative_path;
     auto [bodybuffer, bodysize, newpath] = GetFromfileCahce(fullpath);
 
     if (bodybuffer == nullptr) {
         std::string errortext { "File: "};
-        errortext += path;
+        errortext += request.GetPath();
         errortext += " not found";
         auto response = request.CreateErrorResponse(MMS::http::CODE::_404, errortext);
         response.add_field(MMS::http::FIELD::Server, conf.ServerName);

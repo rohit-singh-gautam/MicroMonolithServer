@@ -91,10 +91,11 @@ public:
     }
 
     /*! Search will return value for largest prefix match */
-    auto &search(const stringtype &key) const {
+    auto &search(const stringtype &key, stringtype &newkey) const {
         size_t index { 0 };
         auto current = &root;
         decltype(current) prev = nullptr;
+        size_t previndex { 0 };
         for(;;) {
             auto &match = current->match;
             size_t matchindex { 0 };
@@ -104,12 +105,20 @@ public:
             }
 
             if (matchindex < match.size()) {
-                if (prev) return prev->value;
+                if (prev) {
+                    newkey = key.substr(previndex, key.size() - previndex);
+                    return prev->value;
+                }
                 break;
             }
             auto childitr = current->children.find(key[index]);
-            if (index == key.size() || childitr == std::end(current->children)) return current->value;
+            if (index == key.size()) return current->value;
+            if (childitr == std::end(current->children)) {
+                newkey = key.substr(index, key.size() - index);
+                return current->value;
+            }
             prev = current;
+            previndex = index;
             current = childitr->second.get();
             ++index;
         }

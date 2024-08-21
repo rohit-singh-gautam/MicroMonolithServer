@@ -66,7 +66,7 @@ err_t connection_t::ProcessWrite() {
             auto [buffer, size] = currentbuffer.GetBuffer<void *>();
             size_t actualwritten { };
             auto ret = SSL_write_ex(ssl, buffer, size, &actualwritten);
-            if (ret <= -1) {
+            if (!ret) {
                 auto ssl_error = SSL_get_error(ssl, ret);
                 switch(ssl_error) {
                 case SSL_ERROR_ZERO_RETURN:
@@ -84,8 +84,8 @@ err_t connection_t::ProcessWrite() {
                     return err_t::BAD_FILE_DESCRIPTOR;
                 }
             }
-            currentbuffer.AddOffset(static_cast<size_t>(ret));
-            if (static_cast<size_t>(ret) < size) return err_t::SOCKET_RETRY;
+            currentbuffer.AddOffset(static_cast<size_t>(actualwritten));
+            if (static_cast<size_t>(actualwritten) < size)  return err_t::SOCKET_RETRY;
         }
 EXIT_LOOP:
         if (!currentbuffer.Completed()) break;

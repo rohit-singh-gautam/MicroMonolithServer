@@ -25,14 +25,23 @@ int main(int, char *[]) {
     auto ssl_common = std::make_shared<MMS::net::ssl::common>(cert, private_key);
 
     std::string_view rootpath { "./www" };
+    std::string_view rootpath1 { "./www1" };
     MMS::server::filecache filecache { };
 
     MMS::server::http::configuration_t configuration { "MicroMonolithServer" };
     std::unique_ptr<MMS::server::http::handler_t> handlerptr { new MMS::server::httpfilehandler { filecache, rootpath, configuration } };
+    std::unique_ptr<MMS::server::http::handler_t> handlerptr1 { new MMS::server::httpfilehandler { filecache, rootpath1, configuration } };
 
-    configuration.AddHandler({"/" }, std::move(handlerptr));
+    configuration.AddHandler({"/simple" }, std::move(handlerptr));
+    configuration.AddHandler({"/" }, std::move(handlerptr1));
     configuration.mimemap.emplace(".html", "text/html");
     configuration.mimemap.emplace(".json", "application/json");
+    configuration.mimemap.emplace(".jpeg", "image/jpeg");
+    configuration.mimemap.emplace(".jpg", "image/jpeg");
+    configuration.mimemap.emplace(".gif", "image/gif");
+    configuration.mimemap.emplace(".ico", "image/x-icon");
+    configuration.mimemap.emplace(".png", "image/png");
+
     configuration.defaultlist.emplace_back("index.html");
     configuration.defaultlist.emplace_back("default.html");
 
