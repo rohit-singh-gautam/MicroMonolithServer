@@ -1,4 +1,7 @@
 {
+    "System": {
+        "Thread Count" : 4,
+    },
     "Servers" : {
         "TCP HTTP" : {
             "Transport": "TCP",

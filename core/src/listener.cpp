@@ -92,15 +92,9 @@ void listener_t::close() {
 
 bool listener_t::created { false };
 
-listener_t::listener_t(const size_t threadcount, const std::filesystem::path &filename, const size_t max_event_epoll_return) 
-    :  threadcount { threadcount }, max_event_epoll_return { max_event_epoll_return }, terminatehandler { *this }
+listener_t::listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return) 
+    :  threadcount { static_cast<size_t>(sysconf(_SC_NPROCESSORS_ONLN)) }, max_event_epoll_return { max_event_epoll_return }, terminatehandler { *this }
 {
-    size_t cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
-    if (!threadcount) this->threadcount = cpu_count;
-    if (this->threadcount > cpu_count) {
-        log<log_t::LISTENER_TOO_MANY_THREAD>();
-    }
-
     if (created) {
         log<log_t::LISTENER_ALREADY_CREATED_FAILED>();
         throw listener_already_created_t { };
@@ -147,6 +141,12 @@ void listener_t::log_thread_function() {
     }
 
     MMS::logger::all.flush();
+}
+
+size_t listener_t::SetThreadCount(size_t threadcount) {
+    if (threadcount > this->threadcount) log<log_t::LISTENER_TOO_MANY_THREAD>(threadcount, this->threadcount);
+    else this->threadcount = threadcount;
+    return this->threadcount;
 }
 
 void listener_t::loop() {

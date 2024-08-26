@@ -196,7 +196,7 @@ private:
     }
 
 public:
-    listener_t(const size_t threadcount, const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
+    listener_t(const std::filesystem::path &filename, const size_t max_event_epoll_return = max_event_epoll_return_default);
     ~listener_t();
 
     err_t add(processor_t *processor) {
@@ -247,6 +247,8 @@ public:
         }
     }
 
+    size_t SetThreadCount(size_t threadcount);
+
     auto GetThreadCount() const { return threadcount; }
 
     void close();
@@ -254,7 +256,6 @@ public:
     void loop();
 
     void multithread_loop() {
-
         log<log_t::LISTENER_CREATING_THREAD>(threadcount);
         for(size_t index { 0 }; index < threadcount; ++index) {
             threadlist.emplace_back(&listener_t::loop, this);

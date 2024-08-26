@@ -170,47 +170,47 @@ bool Container::ReadSSLConfiguration() {
 
 bool Container::ReadServerConfiguration() {
     try {
-    auto &json = ref["Servers"];
-    if (!json.IsObject() || json.empty()) {
-        std::cerr << "Atleast one server configuration is expected\n";
-        return false;
-    }
-
-    for(auto &memberjson: json) {
-        auto &server_name = memberjson.GetKey();
-        auto &serverjson = memberjson.GetValue();
-        auto &protocol_name = serverjson["Protocol"].GetString();
-        
-        auto protoitr = protocols.find(protocol_name);
-        if (protoitr == std::end(protocols)) {
-            std::cerr << "Unable to find protocol with name " << protocol_name << std::endl;
+        auto &json = ref["Servers"];
+        if (!json.IsObject() || json.empty()) {
+            std::cerr << "Atleast one server configuration is expected\n";
             return false;
         }
 
-        auto &proto = *protoitr->second;
-
-        auto &port = serverjson["Port"].GetInt();
-        auto &transport_name = serverjson["Transport"].GetString();
-
-        listener::processor_t *server { nullptr };
-
-        if (transport_name == "TCPSSL") {
-            auto &ssl_conf_name = serverjson["SSL"].GetString();
-            auto ssl_conf_itr = SSLConfigurations.find(ssl_conf_name);
-            if (ssl_conf_itr == std::end(SSLConfigurations)) {
-                std::cerr << "SSL Configuration must be present\n";
+        for(auto &memberjson: json) {
+            auto &server_name = memberjson.GetKey();
+            auto &serverjson = memberjson.GetValue();
+            auto &protocol_name = serverjson["Protocol"].GetString();
+            
+            auto protoitr = protocols.find(protocol_name);
+            if (protoitr == std::end(protocols)) {
+                std::cerr << "Unable to find protocol with name " << protocol_name << std::endl;
                 return false;
             }
-            auto &sslconf = *ssl_conf_itr->second;
-            server = new net::tcp::ssl::server_t { port, sslconf, proto, listner };
-        } else if (transport_name == "TCP") {
-            server = new net::tcp::server_t { port, proto, listner };
-        } else {
-            std::cerr << "Unknown transport name " << transport_name << std::endl;
-        }
 
-        Servers.emplace(server_name, server);
-    }
+            auto &proto = *protoitr->second;
+
+            auto &port = serverjson["Port"].GetInt();
+            auto &transport_name = serverjson["Transport"].GetString();
+
+            listener::processor_t *server { nullptr };
+
+            if (transport_name == "TCPSSL") {
+                auto &ssl_conf_name = serverjson["SSL"].GetString();
+                auto ssl_conf_itr = SSLConfigurations.find(ssl_conf_name);
+                if (ssl_conf_itr == std::end(SSLConfigurations)) {
+                    std::cerr << "SSL Configuration must be present\n";
+                    return false;
+                }
+                auto &sslconf = *ssl_conf_itr->second;
+                server = new net::tcp::ssl::server_t { port, sslconf, proto, listener };
+            } else if (transport_name == "TCP") {
+                server = new net::tcp::server_t { port, proto, listener };
+            } else {
+                std::cerr << "Unknown transport name " << transport_name << std::endl;
+            }
+
+            Servers.emplace(server_name, server);
+        }
     } catch(rohit::json::Exception &e) {
         std::cerr << "Json error: " << e.what() << std::endl;
         return false;
@@ -219,7 +219,26 @@ bool Container::ReadServerConfiguration() {
     return true;
 }
 
+bool Container::ReadSystemConfiguration() {
+    try {
+        auto &json = ref["System"];
+        auto &threadcountjson = json["Thread Count"];
+        if (threadcountjson.IsError()) return true;
+        auto threadcount = static_cast<size_t>(threadcountjson.GetInt());
+        listener->SetThreadCount(threadcount);
+    } catch(rohit::json::Exception &e) {
+        std::cerr << "Json error: " << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
 bool Container::ReadConfigurations() {
+    if (!ReadSystemConfiguration()) {
+        std::cerr << "Unable to read System Configuration\n";
+        return false;
+    }
+
     if (!ReadSSLConfiguration()) {
         std::cerr << "Unable to read SSL configurations\n";
         return false;
@@ -245,7 +264,7 @@ bool Container::ReadConfigurations() {
 
 void Container::AddServerToListener() {
     for(auto &server: Servers) {
-        listner->add(server.second.get());
+        listener->add(server.second.get());
     }
 }
 

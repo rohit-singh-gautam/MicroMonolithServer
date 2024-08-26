@@ -100,7 +100,7 @@ namespace MMS {
     LOGGER_ENTRY(LISTENER_EXITING_THREAD, INFO, LISTENER, "Listener exiting thread") \
     LOGGER_ENTRY(LISTENER_LOOP_CREATED, DEBUG, LISTENER, "Listener thread loop created") \
     LOGGER_ENTRY(LISTENER_LOOP_WAIT_INTERRUPTED, WARNING, LISTENER, "Listener loop interrupted with error %ve,  waiting for a second and retry") \
-    LOGGER_ENTRY(LISTENER_TOO_MANY_THREAD, WARNING, LISTENER, "Listener created with threads more than CPUs") \
+    LOGGER_ENTRY(LISTENER_TOO_MANY_THREAD, WARNING, LISTENER, "Listener created with threads more than CPUs, thread requestd %llu and number of CPU thread %llu") \
     LOGGER_ENTRY(LISTENER_EXIT_THREAD_JOIN_SUCCESS, VERBOSE, LISTENER, "Listener join thread success") \
     LOGGER_ENTRY(LISTENER_CREATE_SUCCESS, INFO, LISTENER, "Listener creation succeeded") \
     LOGGER_ENTRY(LISTENER_EVENT_RECEIVED, DEBUG, LISTENER, "Listener FD %i event %vv receive") \

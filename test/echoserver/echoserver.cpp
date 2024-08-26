@@ -21,7 +21,7 @@ int main(int, char *[]) {
     const char *private_key = "cert/testcert.pem";
     MMS::net::ssl::common ssl_common { cert, private_key };
 
-    MMS::listener::listener_t locallistener { 4,  filename };
+    MMS::listener::listener_t locallistener { filename };
     locallistener.add(new MMS::net::tcp::server_t { 4833, echoservercreator, &locallistener });
     locallistener.add(new MMS::net::tcp::ssl::server_t { 4834, ssl_common, echoservercreator, &locallistener });
     locallistener.multithread_loop();

@@ -10,5 +10,4 @@ include_directories(${GLOBAL_INCLUDE}
 
 target_link_libraries(mms PUBLIC corelib httpserverlib repositorylib)
 
-
 file(COPY conf DESTINATION .)

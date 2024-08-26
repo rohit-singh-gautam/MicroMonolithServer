@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
         path = argv[1];
     }
 
-    MMS::listener::listener_t locallistener { 4,  filename };
+    MMS::listener::listener_t locallistener { filename };
 
     MMS::repository::Container repo {&locallistener, path};
     if (!repo.ReadConfigurations()) {
