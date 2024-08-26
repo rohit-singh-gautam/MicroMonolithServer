@@ -110,7 +110,7 @@ err_t server_t::ProcessRead() {
     }
     log<log_t::TCP_SOCKET_ACCEPT_SUCCESS>(GetFD(), peer_id);
 
-    SSL *ssl = SSL_new(ssl_common->GetContext());
+    SSL *ssl = SSL_new(ssl_common.GetContext());
     if (ssl == nullptr) {
         log<log_t::TCP_SSL_CREATION_FAILED>(GetFD(), peer_id);
         close(peer_id);

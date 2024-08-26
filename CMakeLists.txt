@@ -12,6 +12,7 @@ enable_testing()
 set(GLOBAL_INCLUDE ${PROJECT_SOURCE_DIR}/core/include/)
 
 add_subdirectory(core)
-add_subdirectory(server)
 add_subdirectory(library)
 add_subdirectory(test)
+add_subdirectory(app)
+

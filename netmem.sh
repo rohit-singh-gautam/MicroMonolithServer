@@ -19,3 +19,18 @@ if [ -f ./out/build/Debug/deviceserver/DeviceServer ]; then
 echo Settng Cap on Debug DeviceServer
 setcap 'cap_net_bind_service=+eip' ./out/build/Debug/test/httpserver/httpserver
 fi
+
+if [ -f ./build/deviceserver/DeviceServer ]; then
+echo Settng Cap on DeviceServer
+setcap 'cap_net_bind_service=+eip' ./build/app/mms
+fi
+
+if [ -f ./out/build/Release/deviceserver/DeviceServer ]; then
+echo Settng Cap on Release DeviceServer
+setcap 'cap_net_bind_service=+eip' ./out/build/Release/app/mms
+fi
+
+if [ -f ./out/build/Debug/deviceserver/DeviceServer ]; then
+echo Settng Cap on Debug DeviceServer
+setcap 'cap_net_bind_service=+eip' ./out/build/Debug/app/mms
+fi

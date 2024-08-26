@@ -21,6 +21,10 @@ namespace MMS {
 #define LIST_DEFINITION_END
 #endif
 
+#ifdef ERROR_T_LIST
+    #undef ERROR_T_LIST
+#endif
+
 #define ERROR_T_LIST \
     ERROR_T_ENTRY(SUCCESS, "SUCCESS") \
     ERROR_T_ENTRY(SUCCESS_NONBLOCKING, "Call is non blocking") \

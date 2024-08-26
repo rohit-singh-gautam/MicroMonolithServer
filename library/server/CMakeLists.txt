@@ -5,4 +5,4 @@ find_package(GTest CONFIG REQUIRED)
 add_library(httpserverlib src/http.cpp src/filehandler.cpp)
 target_link_libraries(httpserverlib PUBLIC corelib httpparserlib)
 
-include_directories(${GLOBAL_INCLUDE} ${CMAKE_SOURCE_DIR}/server/include ${CMAKE_SOURCE_DIR}/library/http/include)
+include_directories(${GLOBAL_INCLUDE} ${CMAKE_SOURCE_DIR}/library/server/include ${CMAKE_SOURCE_DIR}/library/http/include)

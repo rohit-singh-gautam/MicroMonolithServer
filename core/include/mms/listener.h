@@ -120,13 +120,14 @@ protected:
     friend class listener_t;
 
     processor_t(int fd) : fd { fd } { }
+
+public:
     virtual ~processor_t() {
         if (fd) {
             close(fd);
             fd = 0;
         }
     }
-public:
     int GetFD() const { return fd; }
     
     /*! To close this processor ProcessRead must return err_t::INITIATE_CLOSE */
@@ -207,7 +208,7 @@ public:
             log<log_t::LISTNER_EVENT_ADD_FAILED>(fd, errno);
             return err_t::LISTNER_EVENT_ADD_FAILED;
         } else {
-#ifdef MMS_LISTENER_CLOSE_AT_EXIT
+#ifdef MMS_LISTENER_CLOSE_AT_EXIT // Enabling MMS_LISTENER_CLOSE_AT_EXIT will cause double free in repository for server types
             active_processors.insert(processor);
 #endif
             log<log_t::LISTNER_EVENT_ADD_SUCCESS>(fd);

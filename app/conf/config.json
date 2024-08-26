@@ -1,0 +1,82 @@
+{
+    "Servers" : {
+        "TCP HTTP" : {
+            "Transport": "TCP",
+            "Protocol": "HTTPv1",
+            "Port": 80,
+        },
+        "TCP HTTP SSL" : {
+            "Transport": "TCPSSL",
+            "SSL": "Default",
+            "Protocol": "HTTPv1",
+            "Port": 443,
+        },
+        "TCP ECHO" : {
+            "Transport": "TCP",
+            "Protocol": "echo",
+            "Port": 8882,
+        },
+        "TCP ECHO SSL" : {
+            "Transport": "TCPSSL",
+            "SSL": "Default",
+            "Protocol": "echo",
+            "Port": 8883,
+        }
+    },
+    "Protocols": {
+        "HTTPv1": {
+            "Type": "HTTPv1",
+            "Configuration": "Default",
+        },
+        "echo": {
+            "Type": "ECHO"
+        }
+    },
+    "Configurations" : {
+        "SSL": {
+            "Default" : {
+                "Certificate": "conf/testcert.pem",
+                "Private Key": "conf/testcert.pem"
+            }
+        },
+        "HTTP" : {
+            "Default" : {
+                "Server Name": "Micro Monolith Server 1.0",
+                "Handlers" : {
+                    "/": { "Type": "File Handler", "File Path": "conf/www1" },
+                    "/1": { "Type": "File Handler", "File Path": "conf/www" },
+                },
+                "Default File": [
+                    "index.html",
+                    "default.html"
+                ],
+                "MIMEMAP" : {
+                    ".txt": "text/plain",
+                    ".html": "text/html",
+                    ".htm": "text/html",
+                    ".css": "text/css",
+                    ".js": "text/javascript",
+                    ".json": "application/json",
+                    ".xml": "application/xml",
+                    ".pdf": "application/pdf",
+                    ".zip": "application/zip",
+                    ".jpeg": "image/jpeg",
+                    ".jpg": "image/jpeg",
+                    ".gif": "image/gif",
+                    ".png": "image/png",
+                    ".mp3": "audio/mpeg",
+                    ".mp4": "video/mp4",
+                    ".tiff": "image/tiff",
+                    ".tif": "image/tiff",
+                    ".ico": "image/x-icon",
+                    ".ttf": "font/ttf",
+                    ".bin": "application/octet-stream",
+                    ".xls": "application/vnd.ms-excel",
+                    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:",
+                    ".doc": "application/msword",
+                    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                }
+            }
+        }
+    }
+}

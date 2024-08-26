@@ -22,7 +22,7 @@ int main(int, char *[]) {
         return 0;
     }
 
-    auto ssl_common = std::make_shared<MMS::net::ssl::common>(cert, private_key);
+    MMS::net::ssl::common ssl_common { cert, private_key };
 
     std::string_view rootpath { "./www" };
     std::string_view rootpath1 { "./www1" };

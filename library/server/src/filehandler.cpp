@@ -11,9 +11,8 @@ namespace MMS::server {
 void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) {
     std::filesystem::path fullpath = rootpath;
     fullpath /= relative_path;
-    auto absolutepath = std::filesystem::canonical(fullpath);
 
-    auto is_subfolder = std::mismatch(std::begin(rootpath), std::end(rootpath), std::begin(absolutepath), std::end(absolutepath)).first == std::end(rootpath);
+    auto is_subfolder = std::mismatch(std::begin(rootpath), std::end(rootpath), std::begin(fullpath), std::end(fullpath)).first == std::end(rootpath);
     
     if (!is_subfolder) {
         std::string errortext { "File: "};

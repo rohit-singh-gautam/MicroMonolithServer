@@ -5,25 +5,31 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <iostream>
-#include <mms/server/echo.h>
-#include <mms/net/tcpserver.h>
-#include <mms/net/tcpsslserver.h>
+#include <repository.h>
 
-int main(int, char *[]) {
-    MMS::log<MMS::log_t::APPLICATION_STARTING>();
-
+int main(int argc, char *argv[]) {
     const std::filesystem::path filename("/tmp/iotcloud/log/deviceserver.log");
+    if (argc != 1 && argc !=2) {
+        std::cout << "Usage: " << argv[0] << " [configuration name]\n";
+        return 0;
+    }
 
-    MMS::server::echocreator_t echoservercreator { };
-
-    const char *cert = "cert/testcert.pem";
-    const char *private_key = "cert/testcert.pem";
-    MMS::net::ssl::common ssl_common { cert, private_key };
+    std::filesystem::path path { };
+    if (argc == 1) {
+        path = "conf/config.json";
+    } else {
+        path = argv[1];
+    }
 
     MMS::listener::listener_t locallistener { 4,  filename };
-    locallistener.add(new MMS::net::tcp::server_t { 4833, echoservercreator, &locallistener });
-    locallistener.add(new MMS::net::tcp::ssl::server_t { 4834, ssl_common, echoservercreator, &locallistener });
+
+    MMS::repository::Container repo {&locallistener, path};
+    if (!repo.ReadConfigurations()) {
+        std::cerr << "Unable to read configuration\n";
+        return 0;
+    }
+    repo.AddServerToListener();
+    
     locallistener.multithread_loop();
     locallistener.wait();
 
