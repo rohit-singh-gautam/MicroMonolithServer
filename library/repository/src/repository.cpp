@@ -222,6 +222,7 @@ bool Container::ReadServerConfiguration() {
 bool Container::ReadSystemConfiguration() {
     try {
         auto &json = ref["System"];
+        if (json.IsError()) return true;
         auto &threadcountjson = json["Thread Count"];
         if (threadcountjson.IsError()) return true;
         auto threadcount = static_cast<size_t>(threadcountjson.GetInt());
