@@ -12,8 +12,10 @@ namespace MMS::server {
 
 class echo_t : public net::protocol_t {
 public:
-    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override {
-        writer.Write(listener::write_entry_const {buffer, size});
+    using net::protocol_t::protocol_t;
+
+    void ProcessRead(const uint8_t *buffer, const size_t size) override {
+        Write(listener::write_entry_const {buffer, size});
     }
 };
 

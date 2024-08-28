@@ -25,7 +25,7 @@ class configuration_t;
 class handler_t {
 public:
     virtual ~handler_t() = default;
-    virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) = 0;
+    virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::processor_t *writer) = 0;
 };
 
 struct configuration_t {
@@ -51,7 +51,7 @@ class protocol_t : public net::protocol_t {
     protocol_t(const configuration_t &configuration) : configuration { configuration } { }
 
 public:
-    void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) override;
+    void ProcessRead(const uint8_t *buffer, const size_t size) override;
 };
 
 class creator_t : public net::protocol_creator_t {

@@ -9,6 +9,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <mms/base/error.h>
+#include <mms/log/log.h>
 #include <http/httpdef.h>
 
 #ifndef LIST_DEFINITION_END

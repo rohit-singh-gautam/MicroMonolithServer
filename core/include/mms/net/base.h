@@ -73,9 +73,38 @@ public:
 }; // buffer_t
 
 class protocol_t {
+protected:
+    listener::processor_t *processor;
+
 public:
+    protocol_t() : processor { nullptr } { }
+    protocol_t(listener::processor_t *processor) : processor { processor } { }
+    protocol_t(const protocol_t &) = delete;
+    protocol_t &operator=(const protocol_t &) = delete;
     virtual ~protocol_t() = default;
-    virtual void ProcessRead(const uint8_t *buffer, const size_t size, listener::writer_t &writer) = 0;
+
+    void SetProcessor(listener::processor_t *processor) { this->processor = processor; }
+
+    virtual void ProcessRead(const uint8_t *buffer, const size_t size) = 0;
+
+    template <bool CopyBuffer = true, typename buffertype>
+    inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {
+        processor->Write<CopyBuffer, buffertype>(buffer, bytesize, byteoffset);
+    }
+
+    inline void Write(const std::string &buffer) {
+        processor->Write(buffer);
+    }
+
+    inline void Write(const std::string_view &buffer) {
+        processor->Write(buffer);
+    }
+
+
+    template <listener::typecheck::write_entry_const... buffertype>
+    inline void Write(const buffertype&... buffer) {
+        processor->Write<buffertype...>(buffer...);
+    }
 }; // protocol_t
 
 class protocol_creator_t {

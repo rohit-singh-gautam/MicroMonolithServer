@@ -107,7 +107,7 @@ public:
         }
     }
 
-    void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::writer_t &writer) override;
+    void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::processor_t *writer) override;
 };
 
 } // namespace MMS::server

@@ -15,7 +15,7 @@ int main(int , char *[]) {
         std::cout << "Usage: echoclient <address> <port> <message>" << std::endl;
         return 0;
     } */
-    auto port = MMS::to_ipv6_port_t("4833");
+    auto port = MMS::to_ipv6_port_t("8882");
     auto addr = MMS::to_ipv6_addr_t("::1");
     MMS::ipv6_socket_addr_t socketaddr { addr, port };
     MMS::tcp_client_socket_t clientsocket { socketaddr, false };

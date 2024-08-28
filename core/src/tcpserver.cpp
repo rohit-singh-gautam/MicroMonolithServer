@@ -52,7 +52,7 @@ err_t connection_t::ProcessRead() {
 
 EXIT_LOOP:
     if (offset) {
-        protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset, *this);
+        protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset);
         log<log_t::TCP_CONNECTION_READ>(GetFD(), offset);
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
@@ -119,6 +119,7 @@ err_t server_t::ProcessRead() {
 
         auto protocol = protocol_creator.create_protocol();
         auto connection = new connection_t(peer_id, protocol);
+        protocol->SetProcessor(connection);
         auto ret = listener->add(connection);
         if (ret == err_t::SUCCESS) {
             log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
