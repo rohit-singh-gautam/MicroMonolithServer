@@ -8,7 +8,7 @@
 #include <mms/server/httpfilehandler.h>
 
 namespace MMS::server {
-void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::processor_t *writer) {
+void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) {
     std::filesystem::path fullpath = rootpath;
     fullpath /= relative_path;
 
@@ -20,7 +20,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         errortext += " not allowed.";
         auto response = request.CreateErrorResponse(MMS::http::CODE::_403, errortext);
         response.add_field(MMS::http::FIELD::Server, conf.ServerName);
-        writer->Write(response.to_string());
+        writer->Write(response);
         return;
     }
 
@@ -32,7 +32,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         errortext += " not found";
         auto response = request.CreateErrorResponse(MMS::http::CODE::_404, errortext);
         response.add_field(MMS::http::FIELD::Server, conf.ServerName);
-        writer->Write(response.to_string());
+        writer->Write(response);
     } else {
         auto response = MMS::http::response::CreateBasicResponse(MMS::http::CODE::_200);
         response.add_field(MMS::http::FIELD::Server, conf.ServerName);
@@ -40,7 +40,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         const auto extension = newpath.extension().string();
         auto contenttype = conf.mimemap.find(extension);
         if (contenttype == std::end(conf.mimemap)) {
-            log<log_t::HTTP_UNKNOWN_EXTENSION>();
+            log<log_t::HTTP_UNKNOWN_EXTENSION>(writer->GetFD());
             response.add_field(MMS::http::FIELD::Content_Type, { "text/plain" });    
         } else {
             response.add_field(MMS::http::FIELD::Content_Type, contenttype->second);
@@ -48,9 +48,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         auto contentlength { std::to_string(bodysize) };
         response.add_field(MMS::http::FIELD::Content_Length, contentlength );
         auto headerstring = response.to_string();
-        writer->Write(
-            listener::write_entry_const {headerstring.c_str(), headerstring.size(), 0}, 
-            listener::write_entry_const {bodybuffer, bodysize, 0});
+        writer->Write(response, bodybuffer, bodysize);
     }
 }
 

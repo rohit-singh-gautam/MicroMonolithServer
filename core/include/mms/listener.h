@@ -24,6 +24,8 @@ struct write_entry_const {
     size_t offset;
     template <typename buffertype>
     constexpr write_entry_const(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer) }, size { bytesize }, offset { byteoffset } { }
+    constexpr write_entry_const(const std::string &buffer, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer.c_str()) }, size { buffer.size() }, offset { byteoffset } { }
+    constexpr write_entry_const(const std::string_view &buffer, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer.data()) }, size { buffer.size() }, offset { byteoffset } { }
 };
 
 struct write_entry {

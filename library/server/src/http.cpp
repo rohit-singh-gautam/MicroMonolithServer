@@ -6,7 +6,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mms/server/http.h>
-#include <http/httpparser.h>
 #include <format>
 
 namespace MMS::server::http {
@@ -21,12 +20,12 @@ void protocol_t::ProcessRead(const uint8_t *buffer, const size_t size) {
             Write(response.to_string());
         }
         else {
-            handler->ProcessRead(request, newpath, processor);
+            handler->ProcessRead(request, newpath, this);
         }
     }
     catch(http_parser_failed_t &parser_failed) {
         auto response = MMS::http::response::CreateErrorResponse(MMS::http::CODE::_400, parser_failed.to_string(reinterpret_cast<const char *>(buffer)));
-        processor->Write(response.to_string());        
+        Write(response.to_string());        
     }
 }
 

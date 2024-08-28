@@ -105,6 +105,8 @@ public:
     inline void Write(const buffertype&... buffer) {
         processor->Write<buffertype...>(buffer...);
     }
+
+    constexpr inline auto GetFD() const { return processor->GetFD(); }
 }; // protocol_t
 
 class protocol_creator_t {

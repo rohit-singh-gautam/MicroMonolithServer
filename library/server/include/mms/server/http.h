@@ -21,11 +21,12 @@ public:
 };
 
 class configuration_t;
+class protocol_t;
 
 class handler_t {
 public:
     virtual ~handler_t() = default;
-    virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, listener::processor_t *writer) = 0;
+    virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, protocol_t *writer) = 0;
 };
 
 struct configuration_t {
@@ -52,6 +53,26 @@ class protocol_t : public net::protocol_t {
 
 public:
     void ProcessRead(const uint8_t *buffer, const size_t size) override;
+
+    using net::protocol_t::Write;
+
+    inline  void Write(const MMS::http::response &response) {
+        Write(response.to_string());
+    }
+
+    inline void Write(const MMS::http::response &response, const std::string &body) {
+        Write(
+            listener::write_entry_const { response.to_string()},
+            listener::write_entry_const { body });
+    }
+
+    inline void Write(const MMS::http::response &response, const char *bodybuffer, size_t buffersize) {
+        Write(
+            listener::write_entry_const { response.to_string()},
+            listener::write_entry_const { bodybuffer, buffersize });
+    }
+
+
 };
 
 class creator_t : public net::protocol_creator_t {

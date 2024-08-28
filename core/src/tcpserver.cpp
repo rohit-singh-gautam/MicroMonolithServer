@@ -120,6 +120,7 @@ err_t server_t::ProcessRead() {
         auto protocol = protocol_creator.create_protocol();
         auto connection = new connection_t(peer_id, protocol);
         protocol->SetProcessor(connection);
+        log<log_t::HTTP_CREATED_PROTOCOL>(peer_id);
         auto ret = listener->add(connection);
         if (ret == err_t::SUCCESS) {
             log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
