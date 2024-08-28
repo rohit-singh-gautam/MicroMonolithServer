@@ -60,7 +60,7 @@ constexpr const ipv6_addr_t to_ipv6_addr_t(const char *ipv6str, size_t *len = nu
         if constexpr (bracesEnd) if (current == ']') break;
         switch(current) {
         case ':':
-            addr.addr_16[pos] = changeEndian(hexval);
+            addr.addr_16[pos] = changeEndian<std::endian::native, std::endian::big>(hexval);
             if (pos == compacted_pos_start) {
                 pos += compacted_pos_skip;
             } else {
@@ -75,7 +75,7 @@ constexpr const ipv6_addr_t to_ipv6_addr_t(const char *ipv6str, size_t *len = nu
         }
     };
     assert(pos == 7);
-    addr.addr_16[pos] = changeEndian(hexval);
+    addr.addr_16[pos] = changeEndian<std::endian::native, std::endian::big>(hexval);
 
     if (len != nullptr) *len = (size_t)(ipv6iter - ipv6str);
 
@@ -109,7 +109,7 @@ constexpr size_t to_string(const ipv6_addr_t &val, char *dest) {
 
             index += compact_size;
         } else {
-            auto addr_segment = changeEndian(val.addr_16[index]);
+            auto addr_segment = changeEndian<std::endian::big, std::endian::native>(val.addr_16[index]);
             size_t str_size = to_string<uint16_t, radix, number_case, false>(addr_segment, pstr);
             pstr += str_size;
             if (index != 7) {

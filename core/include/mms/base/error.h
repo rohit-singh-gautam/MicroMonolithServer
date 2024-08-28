@@ -83,6 +83,9 @@ namespace MMS {
     ERROR_T_ENTRY(LISTNER_EVENT_REMOVE_FAILED, "Event remove failed") \
     ERROR_T_ENTRY(LISTENER_TERMINATE_THREAD, "Listener will stop loop hence terminate the thread. All allocation must be RAII for this to be successful.") \
     \
+    ERROR_T_ENTRY(HTTP2_HPACK_TABLE_ERROR, "HTTP 2 HPACK internal error") \
+    ERROR_T_ENTRY(HTTP2_INITIATE_GOAWAY, "HTTP 2 goaway initiated") \
+    \
     ERROR_T_ENTRY(SSL_CONNECT_FAILED, "Failed to create SSL session") \
     ERROR_T_ENTRY(SSL_SESSION_NULL, "SSL session in NULL") \
     ERROR_T_ENTRY(CRYPTO_MEMORY_BAD_ASSIGNMENT, "Assigning to non null memory, make sure to free it first") \

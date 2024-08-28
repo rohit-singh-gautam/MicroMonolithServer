@@ -26,21 +26,10 @@ template <typename BYTE_TYPE>
 concept byte = std::is_same_v<BYTE_TYPE, char> || std::is_same_v<BYTE_TYPE, uint8_t>;
 } // namespace typecheck
 
-template <typename T>
-constexpr T changeEndian(const T &val) {
-    static_assert(
-        sizeof(T) == sizeof(uint16_t) || sizeof(T) == sizeof(uint32_t) || sizeof(T) == sizeof(uint64_t),
-        "Only type of size 16, 32 and 64 supported by change Endian");
-    if constexpr (std::endian::native == std::endian::little) {
-        if constexpr (sizeof(T) == sizeof(uint16_t)) return __bswap_16 (val);
-        if constexpr (sizeof(T) == sizeof(uint32_t)) return __bswap_32 (val);
-        if constexpr (sizeof(T) == sizeof(uint64_t)) return __bswap_64 (val);
-    } else if constexpr (std::endian::native == std::endian::big) {
-        // static_assert(std::endian::native == std::endian::big, "Code must reach here only for big endian");
-        return val;
-    } else {
-        return val;
-    }
+template <std::endian source, std::endian destination>
+constexpr auto changeEndian(const auto &val) {
+    if constexpr (source == destination) return val;
+    else return std::byteswap(val);
 }
 
 template <typename T> struct is_int8_t { static constexpr bool const value = false; };
@@ -65,9 +54,9 @@ private:
     uint16_t value;
 public:
     constexpr ipv6_port_t() : value(0) {}
-    constexpr ipv6_port_t(const uint16_t value) : value(changeEndian(value)) {}
+    constexpr ipv6_port_t(const uint16_t value) : value(changeEndian<std::endian::native, std::endian::big>(value)) {}
     constexpr ipv6_port_t(const ipv6_port_t &rhs) : value(rhs.value) {}
-    constexpr operator uint16_t() const { return changeEndian(value); }
+    constexpr operator uint16_t() const { return changeEndian<std::endian::native, std::endian::big>(value); }
     constexpr uint16_t get_network_port() const { return value; }
 
     constexpr bool operator==(const ipv6_port_t &rhs) { return value == rhs.value; }

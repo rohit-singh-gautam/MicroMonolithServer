@@ -44,6 +44,10 @@ public:
         fields.emplace(field, value);
     }
 
+    void add_field(const std::pair<FIELD, std::string> &entry) {
+        fields.insert(entry);
+    }
+
     void add_field(const FIELD field, std::string &&value) {
         fields.emplace(field, std::move(value));
     }

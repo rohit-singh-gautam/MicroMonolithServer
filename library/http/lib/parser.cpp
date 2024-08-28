@@ -186,7 +186,7 @@ void header::parse_fields(const char *&requesttext, size_t &size) {
         auto value = parse_till_CRLF(requesttext, size);
         auto field = to_field(fieldtext);
         // When field is not present in enumeration it will be ignored.
-        if (field != FIELD::FIELD_UNKNOWN) fields[field] = std::move(value);
+        if (field != FIELD::IGNORE_THIS) fields[field] = std::move(value);
         if (!size || parse_check_CRLF(requesttext, size)) break;
     }
 }

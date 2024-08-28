@@ -22,7 +22,6 @@ namespace MMS::http {
     LIST_DEFINITION_END
 
 #define HTTP_FIELD_LIST \
-    HTTP_FIELD_ENTRY(FIELD_UNKNOWN, "Unknown") \
     /* HTTP2 Pseudo Header */ \
     HTTP_FIELD_ENTRY(Authority, "Authority") \
     HTTP_FIELD_ENTRY(Method, "Method") \
@@ -398,7 +397,7 @@ extern const std::unordered_map<std::string, CODE> code_map_raw;
 constexpr auto to_field(const std::string &fieldname) {
     auto fielditr = field_map.find(fieldname);;
     if (fielditr == std::end(field_map)) {
-        return FIELD::FIELD_UNKNOWN;
+        return FIELD::IGNORE_THIS;
     }
     return fielditr->second;
 }
