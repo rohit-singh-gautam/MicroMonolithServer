@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
     MMS::repository::Container repo {&locallistener, path};
     if (!repo.ReadConfigurations()) {
         std::cerr << "Unable to read configuration\n";
+        locallistener.ForceTerminateLogThread();
         return 0;
     }
     repo.AddServerToListener();

@@ -165,6 +165,7 @@ public:
 class listener_t {
 public:
     static constexpr size_t max_event_epoll_return_default { 8 };
+
 private:
     friend class terminate_t;
     size_t threadcount;
@@ -268,6 +269,8 @@ public:
             log<log_t::LISTENER_EXIT_THREAD_JOIN_SUCCESS>();
         }
     }
+
+    void ForceTerminateLogThread() { IsTerminated = false; }
 };
 
 } // namespace MMS::listener
