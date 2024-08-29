@@ -226,15 +226,12 @@ request::request(const std::string &text) {
     parse(requesttext, size);
 }
 
-response request::CreateErrorResponse(CODE code, const std::string &errortext) const {
+response request::CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) const {
     response res = response::CreateBasicResponse(code);
     res.fields.emplace(FIELD::Connection, std::string { "close" });
-    res.fields.emplace(FIELD::Content_Type, std::string { "text/html" });
-
+    res.add_field(FIELD::Server, servername);
+    
     auto accepttype = GetField(FIELD::Accept);
-    // "application/json"
-    // "text/html"
-    // "application/xml" "text/xml"
     bool accepthtml = accepttype.find("text/html") != std::string::npos;
     if (!accepthtml) {
         if (accepttype.find("application/json") != std::string::npos) {
@@ -242,30 +239,34 @@ response request::CreateErrorResponse(CODE code, const std::string &errortext) c
                 "{{\"error\": \"{}\", \"details\": \"{}\"}}",
                 MMS::http::to_string(code), errortext
             );
+            res.add_field(FIELD::Content_Type, std::string { "application/json" });
         } else accepthtml = true;
     }
 
     if (accepthtml) {
         res.body = std::format(
             "<html>"
-            "<head>{0}</head>"
-            "<h1>Micro Monolith Server</h1>"
+            "<head><title>{0}</title></head>"
+            "<h1>{2}</h1>"
             "<h2>{0}</h2>"
             "<pre>{1}</pre>"
             "</html>", 
-            MMS::http::to_string(code), errortext
+            MMS::http::to_string(code), errortext, servername
         );
+        res.add_field(FIELD::Content_Type, std::string { "text/html" });
     }
     res.UpdateContentLength();
     return res;
 }
 
-response response::CreateErrorResponse(CODE code, const std::string &errortext) {
+response response::CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) {
     auto res = CreateBasicResponse(code);
-    res.fields.emplace(FIELD::Connection, std::string { "Close" });
+    res.add_field(FIELD::Connection, std::string { "Close" });
+    res.add_field(FIELD::Server, servername);
+    res.add_field(FIELD::Content_Type, std::string { "text/html" });
     res.body = std::format(
         "<html>"
-        "<head>{0}</head>"
+        "<head><title>{0}</title></head>"
         "<h1>Micro Monolith Server</h1>"
         "<h2>{0}</h2>"
         "<pre>{1}</pre>"

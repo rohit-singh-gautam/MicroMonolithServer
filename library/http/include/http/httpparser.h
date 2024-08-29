@@ -52,6 +52,10 @@ public:
         fields.emplace(field, std::move(value));
     }
 
+    void add_field(const FIELD field, const size_t value) {
+        fields.emplace(field, std::to_string(value));
+    }
+
 
 }; // class header
 
@@ -95,7 +99,7 @@ public:
 
     void parse(const char *&, size_t &);
 
-    response CreateErrorResponse(CODE code, const std::string &errortext) const;
+    response CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) const;
 
     std::string to_string();
 }; // class request
@@ -127,7 +131,7 @@ public:
     }
 
     static response CreateBasicResponse(CODE code);
-    static response CreateErrorResponse(CODE code, const std::string &errortext);
+    static response CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername);
 
     constexpr const auto &GetBody() const { return body; }
 

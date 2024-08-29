@@ -45,7 +45,7 @@ int main(int, char *[]) {
     configuration.defaultlist.emplace_back("index.html");
     configuration.defaultlist.emplace_back("default.html");
 
-    MMS::server::http::creator_t httpcretor { configuration };
+    MMS::server::http::creator_t httpcretor { &configuration };
     
     MMS::listener::listener_t locallistener { filename };
     locallistener.add(new MMS::net::tcp::server_t { 80, httpcretor, &locallistener });

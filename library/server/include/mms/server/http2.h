@@ -11,17 +11,7 @@
 #include <http/httpparser.h>
 #include <unordered_map>
 
-namespace MMS::server::http {
-using MMS::http::CODE;
-using MMS::http::FIELD;
-using MMS::http::METHOD;
-using MMS::http::request;
-using MMS::http::response;
-
-namespace typecheck {
-template <typename T>
-concept fieldentrypair = std::is_same_v<T, std::pair<FIELD, std::string>>;
-} // namespace typecheck
+namespace MMS::server::http::v2 {
 
 class configuration_t;
 class protocol_t;
@@ -49,17 +39,12 @@ struct configuration_t {
 
 class creator_t;
 class protocol_t : public net::protocol_t {
-    const configuration_t * const configuration;
+    const configuration_t &configuration;
 
     friend class creator_t;
-    protocol_t(const configuration_t *configuration) : configuration { configuration } { assert(configuration); }
-
-    request *current_request { nullptr };
+    protocol_t(const configuration_t &configuration) : configuration { configuration } { }
 
 public:
-    protocol_t(const protocol_t &) = delete;
-    protocol_t &operator=(const protocol_t &) = delete;
-
     void ProcessRead(const uint8_t *buffer, const size_t size) override;
 
     using net::protocol_t::Write;
@@ -74,50 +59,20 @@ public:
             listener::write_entry_const { body });
     }
 
-    inline void Write(const MMS::http::response &response, const char *bodybuffer, size_t bodysize) {
+    inline void Write(const MMS::http::response &response, const char *bodybuffer, size_t buffersize) {
         Write(
             listener::write_entry_const { response.to_string()},
-            listener::write_entry_const { bodybuffer, bodysize });
-    }
-
-    inline void WriteError(const CODE code, const std::string &errortext) {
-        if (current_request) {
-            auto response = current_request->CreateErrorResponse(code, errortext, configuration->ServerName);
-            Write(response);
-        } else {
-
-        }
-    }
-
-    template <typecheck::fieldentrypair... fieldlist>
-    inline void Write(const CODE code, const char *bodybuffer, size_t bodysize, const fieldlist& ... field) {
-        assert(current_request);
-        auto response = response::CreateBasicResponse(code);
-        (response.add_field(field), ...);
-        response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
-        response.add_field(FIELD::Content_Length, bodysize);
-        Write(response, bodybuffer, bodysize);
+            listener::write_entry_const { bodybuffer, buffersize });
     }
 
 
-    template <typecheck::fieldentrypair... fieldlist>
-    inline void Write(const CODE code, const std::string &body, const fieldlist& ... field) {
-        assert(current_request);
-        auto response = response::CreateBasicResponse(code);
-        (response.add_field(field), ...);
-        response.add_field(FIELD::Content_Length, std::to_string(body.size()));
-        Write(response, body);
-    }
 };
 
 class creator_t : public net::protocol_creator_t {
-    const configuration_t *configuration;
+    const configuration_t &configuration;
 
 public:
-    creator_t(configuration_t *configuration) : configuration { configuration } { }
-    creator_t(const creator_t &) = delete;
-    creator_t &operator=(const creator_t &) = delete;
-
+    creator_t(configuration_t &configuration) : configuration { configuration } { }
     net::protocol_t *create_protocol() override { return new protocol_t { configuration }; }
 };
 

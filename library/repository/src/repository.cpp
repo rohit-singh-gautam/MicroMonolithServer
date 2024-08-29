@@ -47,7 +47,7 @@ bool Container::ReadProtocolConfiguration() {
                 }
 
                 auto &httpconf = httpconfigurations[confname];
-                auto proto = new MMS::server::http::creator_t { *httpconf };
+                auto proto = new MMS::server::http::creator_t { httpconf.get() };
                 protocols.emplace(protoname, proto);                
             } else {
                 std::cerr << "Unknown protocol " << type_name << std::endl;

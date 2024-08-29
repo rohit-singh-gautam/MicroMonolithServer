@@ -15,12 +15,10 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
     auto is_subfolder = std::mismatch(std::begin(rootpath), std::end(rootpath), std::begin(fullpath), std::end(fullpath)).first == std::end(rootpath);
     
     if (!is_subfolder) {
-        std::string errortext { "File: "};
+        std::string errortext { "File/Path: "};
         errortext += request.GetPath();
-        errortext += " not allowed.";
-        auto response = request.CreateErrorResponse(MMS::http::CODE::_403, errortext);
-        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
-        writer->Write(response);
+        errortext += " forbidden.";
+        writer->WriteError(http::CODE::_403, errortext);
         return;
     }
 
@@ -30,25 +28,21 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         std::string errortext { "File: "};
         errortext += request.GetPath();
         errortext += " not found";
-        auto response = request.CreateErrorResponse(MMS::http::CODE::_404, errortext);
-        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
-        writer->Write(response);
+        writer->WriteError(http::CODE::_404, errortext);
     } else {
-        auto response = MMS::http::response::CreateBasicResponse(MMS::http::CODE::_200);
-        response.add_field(MMS::http::FIELD::Server, conf.ServerName);
-        response.add_field(MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" });
         const auto extension = newpath.extension().string();
         auto contenttype = conf.mimemap.find(extension);
         if (contenttype == std::end(conf.mimemap)) {
             log<log_t::HTTP_UNKNOWN_EXTENSION>(writer->GetFD());
-            response.add_field(MMS::http::FIELD::Content_Type, { "text/plain" });    
-        } else {
-            response.add_field(MMS::http::FIELD::Content_Type, contenttype->second);
+            std::string errortext { "File: "};
+            errortext += request.GetPath();
+            errortext += " not found";
+            writer->WriteError(http::CODE::_404, errortext);
+            return;
         }
-        auto contentlength { std::to_string(bodysize) };
-        response.add_field(MMS::http::FIELD::Content_Length, contentlength );
-        auto headerstring = response.to_string();
-        writer->Write(response, bodybuffer, bodysize);
+        writer->Write(http::CODE::_200, bodybuffer, bodysize, 
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second });
     }
 }
 
