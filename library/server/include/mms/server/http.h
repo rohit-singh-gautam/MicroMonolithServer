@@ -82,10 +82,11 @@ public:
 
     inline void WriteError(const CODE code, const std::string &errortext) {
         if (current_request) {
-            auto response = current_request->CreateErrorResponse(code, errortext, configuration->ServerName);
-            Write(response);
+            auto res = current_request->CreateErrorResponse(code, errortext, configuration->ServerName);
+            Write(res);
         } else {
-
+            auto res = response::CreateErrorResponse(code, errortext, configuration->ServerName);
+            Write(res);
         }
     }
 
