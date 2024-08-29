@@ -6,9 +6,15 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mms/server/httpfilehandler.h>
+#include <format>
 
 namespace MMS::server {
 void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) {
+    auto method = request.GetMethod();
+    if (method != http::METHOD::GET) {
+        writer->WriteError(http::CODE::_403, std::format("Method {} not allowed", to_string(method)));
+        return;
+    }
     std::filesystem::path fullpath = rootpath;
     fullpath /= relative_path;
 
