@@ -37,12 +37,12 @@ node *created_huffman_tree() {
     return root;
 }
 
-std::string get_huffman_string(const uint8_t *pstart, const uint8_t *pend) {
+std::string get_huffman_string(const Stream &stream) {
     std::string value;
     const node *curr = huffman_root;
-    while(pstart < pend) {
+    while(!stream.full()) {
         for(uint8_t bit = 128; bit; bit >>= 1) {
-            if ((*pstart & bit) == 0) {
+            if ((*stream & bit) == 0) {
                 curr = curr-> left;
             } else {
                 curr = curr->right;
@@ -56,47 +56,43 @@ std::string get_huffman_string(const uint8_t *pstart, const uint8_t *pend) {
             }
         }
 
-        ++pstart;
+        ++stream;
     }
 
     return value;
 }
 
-uint8_t *add_huffman_string(uint8_t *pstart, const uint8_t *pvalue_start, const uint8_t *const pvalue_end) {
+void add_huffman_string(Stream &stream, const ConstStream &valstream) {
     constexpr uint8_t mask[] = {0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01};
     uint8_t bit_index = 0;
-    *pstart = 0; // Clean all existing value
-    for(;pvalue_start < pvalue_end; ++pvalue_start) {
-        const auto &entry = static_huffman[*pvalue_start];
+    *stream = 0; // Clean all existing value
+    for(;!valstream.full(); ++valstream) {
+        const auto &entry = static_huffman[*valstream];
         auto len_left = entry.code_len;
         auto code = entry.code;
         while (true) {
             if (bit_index + len_left <= 8) {
-                *pstart += (code << (8 - bit_index - len_left)) & mask[bit_index];
+                *stream += (code << (8 - bit_index - len_left)) & mask[bit_index];
                 bit_index += len_left;
                 if (bit_index == 8) {
                     bit_index = 0;
-                    ++pstart;
-                    *pstart = 0;
+                    ++stream;
+                    *stream = 0;
                 }
                 break;
             } else {
                 // This will copy atleast one bit
-                *pstart += (code >> (len_left + bit_index - 8)) & mask[bit_index];
+                *stream++ += (code >> (len_left + bit_index - 8)) & mask[bit_index];
                 len_left -= 8 - bit_index;
                 bit_index = 0;
-                ++pstart;
-                *pstart = 0;
+                *stream = 0;
             }
         }
     }
     
     if (bit_index) {
-        *pstart += mask[bit_index];
-        pstart++;
+        *stream++ += mask[bit_index];
     }
-
-    return pstart;
 }
 
 const static_table_t static_table = {

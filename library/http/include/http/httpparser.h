@@ -6,6 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+#include <mms/base/stream.h>
 #include <string_view>
 #include <unordered_map>
 #include <mms/base/error.h>
@@ -25,8 +26,8 @@ protected:
     fields_t fields { };
 
     template <bool crlf_end>
-    void parse_version(const char *&, size_t &);
-    void parse_fields(const char *&, size_t &);
+    void parse_version(const ConstFullStream &);
+    void parse_fields(const ConstFullStream &);
 
 public:
     constexpr header() { }
@@ -67,9 +68,9 @@ protected:
     METHOD method { };
     std::string path { };
 
-    void parse_request_uri(const char *&, size_t &);
-    void parse_method(const char *&, size_t &);
-    void parse_request_line(const char *&, size_t &);
+    void parse_request_uri(const ConstFullStream &);
+    void parse_method(const ConstFullStream &);
+    void parse_request_line(const ConstFullStream &);
 public: 
     constexpr auto GetMethod() const { return method; }
     constexpr const auto &GetPath() const { return path; }
@@ -93,11 +94,11 @@ class request : public request_header {
     std::string body { };
 
 public:
-    request(const std::string &);
+    request(const ConstFullStream &);
 
     constexpr const auto &GetBody() const { return body; }
 
-    void parse(const char *&, size_t &);
+    void parse(const ConstFullStream &);
 
     response CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) const;
 
@@ -110,8 +111,8 @@ protected:
     constexpr response_header() { }
     constexpr response_header(VERSION version) : header { version } { }
 
-    void parse_code(const char *&, size_t &);
-    void parse_response_line(const char *&, size_t &);
+    void parse_code(const ConstFullStream &);
+    void parse_response_line(const ConstFullStream &);
 public:
     constexpr auto GetCode() const { return code; };
 };
@@ -122,7 +123,7 @@ class response : public response_header {
 
 public:
     constexpr response() { }
-    response(const std::string &);
+    response(const ConstFullStream &);
 
     constexpr void UpdateContentLength() {
         if (!body.empty()) {
@@ -138,7 +139,7 @@ public:
     auto SetBody(const std::string &value) { body = value; }
     auto SetBody(std::string &&value) { body = std::move(value); }
 
-    void parse(const char *&, size_t &);
+    void parse(const ConstFullStream &);
 
     std::string to_string() const;
 }; // response

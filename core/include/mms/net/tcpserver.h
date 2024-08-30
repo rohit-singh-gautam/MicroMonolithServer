@@ -10,27 +10,18 @@
 #include <mms/base/types.h>
 #include <mms/net/socket.h>
 #include <mms/net/base.h>
+#include <mms/net/tcpcommon.h>
 
 namespace MMS::net::tcp {
 
-class connection_t : public listener::processor_t {
-    protocol_t *const protocol_implementation;
-    std::queue<listener::write_entry> pending_wirte { };
-
-    static thread_local buffer_t tempbuffer;
-
+class connection_t : public connection_base_t {
 public:
-    connection_t(int fd, protocol_t * const protocol_implementation)
-        : processor_t { fd }, protocol_implementation { protocol_implementation } { }
-    
+    using connection_base_t::connection_base_t;
     connection_t(const connection_t&) = delete;
     connection_t& operator=(const connection_t&) = delete;
 
     err_t ProcessRead() override;
     err_t ProcessWrite() override;
-    void WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) override;
-
-    auto get_peer_ipv6_addr() const { return MMS::net::get_peer_ipv6_addr(GetFD()); }
 }; // connection_t
 
 class server_t : public listener::processor_t {

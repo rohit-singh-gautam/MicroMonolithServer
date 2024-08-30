@@ -14,8 +14,8 @@ class echo_t : public net::protocol_t {
 public:
     using net::protocol_t::protocol_t;
 
-    void ProcessRead(const uint8_t *buffer, const size_t size) override {
-        Write(listener::write_entry_const {buffer, size});
+    void ProcessRead(const ConstStream &stream) override {
+        Write(listener::write_entry_const {stream.curr(), stream.remaining_buffer()});
     }
 };
 

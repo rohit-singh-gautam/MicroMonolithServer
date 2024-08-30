@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <mms/base/error.h>
+#include <mms/listener.h>
 
 namespace std {
 template<>
@@ -254,42 +255,39 @@ struct huffman_entry {
 };
 
 template <uint32_t N>
-constexpr auto decode_integer(const uint8_t *&pstart, const uint8_t *pend) {
+constexpr auto decode_integer(const ConstStream &stream) {
     constexpr uint32_t mask = (1 << N) - 1;
-    uint32_t value = *pstart++ & mask;
+    uint32_t value = *stream++ & mask;
     if (value < mask) {
         return value;
     }
     value = mask;
-    while(pstart < pend) {
-        if ((*pstart & 0x80) != 0) {
-            value = *pstart++ & 0x7f;
+    while(!stream.full()) {
+        if ((*stream & 0x80) != 0) {
+            value = *stream++ & 0x7f;
         } else {
-            value = *pstart++;
+            value = *stream++;
             break;
         }
     }
     return value;
 }
 
-// Assuming buffer has sufficient data, hence no check
 template <uint32_t N>
-constexpr auto encode_integer(uint8_t *pstart, const uint8_t head, uint32_t value) {
+constexpr void encode_integer(Stream &stream, const uint8_t head, std::unsigned_integral auto value) {
     constexpr uint32_t mask = (1 << N) - 1;
     if (value < mask) {
-        *pstart++ = head + (uint8_t)value;
+        *stream++ = head + static_cast<uint8_t>(value);
     } else {
-        *pstart++ = head + mask;
+        *stream++ = head + mask;
         value -= mask;
         while(value >= 128) {
-            *pstart++ = 0x80 & (value % 128);
+            *stream++ = 0x80 & (value % 128);
             value >>= 7;
         }
-        *pstart++ = value;
+        *stream++ = value;
     }
-    return pstart;
 }
-
 
 constexpr const huffman_entry static_huffman[] = {
     {    0x1ff8, 13}, {  0x7fffd8, 23}, { 0xfffffe2, 28}, { 0xfffffe3, 28}, { 0xfffffe4, 28}, { 0xfffffe5, 28}, { 0xfffffe5, 28}, { 0xfffffe7, 28}, //000-007
@@ -331,51 +329,39 @@ node *created_huffman_tree();
 
 extern const node *huffman_root;
 
-std::string get_huffman_string(const uint8_t *pstart, const uint8_t *pend);
+std::string get_huffman_string(const ConstStream &stream);
 
-inline auto get_header_string(const uint8_t *&pstart) {
-    size_t len = *pstart & 0x7f;
-    if ((*pstart & 0x80) == 0x80) {
-        ++pstart;
-        std::string value = get_huffman_string(pstart, pstart + len);
-        pstart += len;
-        return value;
-    } else {
-        ++pstart;
-        std::string value((char *)pstart, len);
-        pstart += len;
-        return value;
-    }
+inline auto get_header_string(const ConstStream &stream) {
+    size_t len = *stream & 0x7f;
+    ++stream;
+    std::string value = *stream & 0x80 ? get_huffman_string(stream.GetSimpleStream()) : std::string {reinterpret_cast<const char *>(stream.curr()), len };
+    stream += len;
+    return value;
 }
 
-inline size_t huffman_string_size(const uint8_t *pvalue_start, const uint8_t *const pvalue_end) {
+inline size_t huffman_string_size(const ConstStream &stream) {
     size_t size = 7;
-    for(;pvalue_start < pvalue_end; ++pvalue_start) {
-        size += static_huffman[*pvalue_start].code_len;
-    }
+    while(!stream.full()) size += static_huffman[*stream].code_len;
     return size / 8;
 }
 
-uint8_t *add_huffman_string(uint8_t *pstart, const uint8_t *pvalue_start, const uint8_t *const pvalue_end);
+void add_huffman_string(Stream &stream, const ConstStream &valstream);
 
-inline auto add_header_string(uint8_t *pstart, const std::string &value) {
-    const uint8_t *const pvalue_start = (const uint8_t *)value.c_str();
-    const uint8_t *const pvalue_end = pvalue_start + value.size() - !value.back();
-    size_t size = huffman_string_size(pvalue_start, pvalue_end);
+inline auto add_header_string(Stream &stream, const std::string &value) {
+    auto strstream = ConstStream { value };
+    size_t size = huffman_string_size(strstream);
     if (size < value.size()) {
         // Encoded string is smaller hence we are encoded
-        pstart = encode_integer<7>(pstart, (uint8_t)0x80, (uint32_t)size);
-        pstart = add_huffman_string(pstart, pvalue_start, pvalue_end);
+        encode_integer<7>(stream, static_cast<uint8_t>(0x80), size);
+        add_huffman_string(stream, strstream);
     } else {
-        pstart = encode_integer<7>(pstart, (uint8_t)0x80, (uint32_t)value.size());
-        pstart = std::copy(value.begin(), value.end(), pstart);
+        encode_integer<7>(stream, static_cast<uint8_t>(0x80), value.size());
+        stream.curr() = std::copy(value.begin(), value.end(), stream.curr());
     }
-
-    return pstart;
 }
 
-inline auto get_header_field(const uint8_t *&pstart) {
-    auto header_string = get_header_string(pstart);
+inline auto get_header_field(const ConstStream &stream) {
+    auto header_string = get_header_string(stream);
     return to_field(header_string);
 }
 

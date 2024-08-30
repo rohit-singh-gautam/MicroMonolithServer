@@ -12,21 +12,18 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <memory>
+#include <mms/net/tcpcommon.h>
 
 
 namespace MMS::net::tcp::ssl {
 
-class connection_t : public listener::processor_t {
+class connection_t : public connection_base_t {
+protected:
     SSL *ssl;
 
-    protocol_t *const protocol_implementation;
-    std::queue<listener::write_entry> pending_wirte { };
-    
-    static thread_local buffer_t tempbuffer;
-
 public:
-    connection_t(int fd, SSL *ssl, protocol_t * const protocol_implementation)
-        : processor_t { fd }, ssl { ssl }, protocol_implementation { protocol_implementation } { }
+    connection_t(int fd, SSL *ssl, protocol_t *protocol_implementation)
+        : connection_base_t { fd, protocol_implementation }, ssl { ssl } { }
     ~connection_t();
     
     connection_t(const connection_t&) = delete;
@@ -34,9 +31,6 @@ public:
 
     err_t ProcessRead() override;
     err_t ProcessWrite() override;
-    void WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) override;
-
-    auto get_peer_ipv6_addr() const { return MMS::net::get_peer_ipv6_addr(GetFD()); }
 }; // connection_t
 
 class server_t : public listener::processor_t {

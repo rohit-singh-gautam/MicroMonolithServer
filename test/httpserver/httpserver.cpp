@@ -5,6 +5,7 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <mms/server/http1.h>
 #include <mms/server/httpfilehandler.h>
 #include <mms/net/tcpserver.h>
 #include <mms/net/tcpsslserver.h>
@@ -45,7 +46,7 @@ int main(int, char *[]) {
     configuration.defaultlist.emplace_back("index.html");
     configuration.defaultlist.emplace_back("default.html");
 
-    MMS::server::http::creator_t httpcretor { &configuration };
+    MMS::server::http::v1::creator_t httpcretor { &configuration };
     
     MMS::listener::listener_t locallistener { filename };
     locallistener.add(new MMS::net::tcp::server_t { 80, httpcretor, &locallistener });

@@ -9,12 +9,13 @@
 
 namespace MMS::net::tcp {
 
-thread_local buffer_t connection_t::tempbuffer { };
+thread_local FullStreamAutoAlloc connection_base_t::tempbuffer { connection_base_t::initial_buffer_size };
 
 err_t connection_t::ProcessRead() {
-    size_t offset { 0 };
+    tempbuffer.Reset();
     while(true) {
-        auto [buffer, buffer_size] = tempbuffer.GetBuffer(offset);
+        tempbuffer.Reserve(connection_base_t::initial_buffer_size);
+        auto [buffer, buffer_size] = tempbuffer.GetRawCurrentBuffer();
         auto ret = ::recv(GetFD(), buffer, buffer_size, MSG_DONTWAIT);
         switch(ret) {
         case 0:
@@ -45,15 +46,15 @@ err_t connection_t::ProcessRead() {
             break;
 
         default:
-            offset += ret;
+            tempbuffer += ret;
             break;
         }
     }
 
 EXIT_LOOP:
-    if (offset) {
-        protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset);
-        log<log_t::TCP_CONNECTION_READ>(GetFD(), offset);
+    if (tempbuffer.index()) {
+        protocol_implementation->ProcessRead(ConstStream {tempbuffer.begin(), tempbuffer.curr()});
+        log<log_t::TCP_CONNECTION_READ>(GetFD(), tempbuffer.index());
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
 
@@ -101,7 +102,7 @@ err_t connection_t::ProcessWrite() {
     return err_t::SUCCESS;
 }
 
-void connection_t::WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) {
+void connection_base_t::WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) {
     pending_wirte.emplace(buffer, bytesize, byteoffset);
 }
 

@@ -10,6 +10,7 @@
 #include <http/hpack.h>
 #include <mms/base/maths.h>
 #include <iostream>
+#include <mms/listener.h>
 
 namespace MMS::http::v2 {
 
@@ -299,11 +300,9 @@ public:
         return sizeof(frame) + count * 6;
     }
 
-    static inline auto add_ack_frame(uint8_t *buffer) {
-        frame *pframe = reinterpret_cast<frame *>(buffer);
-        buffer += sizeof(frame);
+    static inline auto add_ack_frame(Stream &stream) {
+        frame *pframe = reinterpret_cast<frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
         pframe->init_frame(0x00, frame::type_t::SETTINGS, frame::flags_t::ACK, 0x00);
-        return buffer;
     }
 
     template <typename... ARGS>
@@ -335,8 +334,8 @@ public:
                 SETTINGS_MAX_HEADER_LIST_SIZE(constant::SETTINGS_MAX_HEADER_LIST_SIZE)
     {}
 
-    inline const auto parse_one(const uint8_t *buf) {
-        auto psettings = reinterpret_cast<const settings *>(buf);
+    inline const auto parse_one(const ConstStream &stream) {
+        auto psettings = reinterpret_cast<const settings *>(stream.GetCurrAndIncrease(sizeof(settings)));
         switch(psettings->get_identifier()) {
         case settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE:
             SETTINGS_HEADER_TABLE_SIZE = psettings->get_value();
@@ -360,43 +359,25 @@ public:
             // Ignore this settings
             break;
         }
-
-        return buf + sizeof(settings);
     }
 
-    constexpr auto parse_frame(
-                const frame *pframe,
-                const uint8_t *pstart,
-                const uint8_t *pend) {
-        //
-        const uint32_t frame_length = pframe->get_length();
-        const uint8_t *const pend1 = pstart + frame_length;
-        if (pend1 > pend) {
-            // TODO: exception handling required
-            // This is badly formed settings
-            return pend;
+    constexpr void parse_frame(const ConstStream &stream) {
+        while(stream.remaining_buffer()) {
+            parse_one(stream);
         }
-        const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *pstart++ : 0;
-        const uint8_t *const pend2 = pend1 - padded_bytes;
-        while(pstart < pend2) {
-            pstart = parse_one(pstart);
-        }
-        return pend1;
     }
 
-    // template will allow input to be both const and non const
-    inline auto parse_frame(const uint8_t *pstart, const uint8_t *pend) {
-        auto *pframe = reinterpret_cast<const frame *>(pstart);
-        pstart += sizeof(frame);
-        return parse_frame(pframe, pstart, pend);
-    }
-
-    inline void parse_base64_frame(const uint8_t *buffer, const size_t buffer_size) {
-        const size_t decode_len = base64_decode_len(buffer, buffer_size);
+    inline void parse_base64_frame(const ConstStream &stream) {
+        const size_t decode_len = base64_decode_len(stream.curr(), stream.remaining_buffer());
         auto decoded_buffer = std::make_unique<uint8_t[]>(decode_len);
-        base64_decode(buffer, buffer_size, decoded_buffer.get());
+        base64_decode(stream.curr(), stream.remaining_buffer(), decoded_buffer.get());
 
-        parse_frame(decoded_buffer.get(), decoded_buffer.get() + decode_len);
+        ConstStream decoded_stream { decoded_buffer.get(), decode_len };
+        const frame *pframe = reinterpret_cast<const frame *>(decoded_stream.GetCurrAndIncrease(sizeof(frame)));
+        const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *decoded_stream++ : 0;
+        auto frameStreamBuffer = decoded_stream.GetCurrAndIncrease(pframe->get_length());
+        ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  pframe->get_length() - padded_bytes};
+        parse_frame( frameStream );
     }
 };
 
@@ -408,14 +389,75 @@ inline std::ostream& operator<<(std::ostream& os, const settings &settings) {
     return os << "[" << settings.get_identifier() << "," << settings.get_value() << "]";
 }
 
+inline void copy_http_header_response(
+            dynamic_table_t &dynamic_table,
+            Stream &stream,
+            const std::pair<FIELD, std::string> &header_line,
+            bool add_index) {
+    // 6.1.  Indexed Header Field Representation
+    // Case 1: found entry in static table
+    if (static_table.contains(header_line)) {
+        encode_integer<7>(stream, (uint8_t)0x80, static_table[header_line]);
+        return;
+    }
+
+    // Case 2: found entry in dynamic table
+    if (dynamic_table.contains(header_line)) {
+        encode_integer<7>(stream, (uint8_t)0x80, dynamic_table[header_line]);
+        return;
+    }
+
+    // TODO: Cover never indexed case
+    if (add_index) {
+        // 6.2.1.  Literal Header Field with Incremental Indexing
+        // Result will go in dynamic table
+        // Case 1: Field indexed
+        if (static_table.contains(header_line.first)) {
+            // Subcase 1: Static table
+            encode_integer<6>(stream, (uint8_t)0x40, static_table[header_line.first]);
+            add_header_string(stream, header_line.second);
+        } else
+        if (dynamic_table.contains(header_line.first)) {
+            // Subcase 2: Dynamic table
+            encode_integer<6>(stream, (uint8_t)0x40, dynamic_table[header_line.first]);
+            add_header_string(stream, header_line.second);
+            return;
+        } else {
+            // Case 2: No index
+            *stream++ = 0x40;
+            add_header_string(stream, to_string(header_line.first));
+            add_header_string(stream, header_line.second);
+        }
+
+        dynamic_table.insert(header_line);
+        return;
+    } else {
+        // 6.2.2.  Literal Header Field without Indexing
+        // Case 1: Field indexed
+        if (static_table.contains(header_line.first)) {
+            // Subcase 1: Static table
+            encode_integer<4>(stream, (uint8_t)0x00, static_table[header_line.first]);
+            add_header_string(stream, header_line.second);
+        } else
+        if (dynamic_table.contains(header_line.first)) {
+            // Subcase 2: Dynamic table
+            encode_integer<4>(stream, (uint8_t)0x00, dynamic_table[header_line.first]);
+            add_header_string(stream, header_line.second);
+            return;
+        } else {
+            // Case 2: No index
+            *stream++ = 0x00;
+            add_header_string(stream, to_string(header_line.first));
+            add_header_string(stream, header_line.second);
+        }
+        return;
+    }
+    
+}
+
 struct goaway {
 private:
-    /* Big endian
-    uint32_t        reserved:1;
-    uint32_t        last_stream_id:31;
-    uint32_t        error_code; */
-
-    // Little endian
+    // GCC endianness
     uint32_t        last_stream_id:31;
     uint32_t        reserved:1;
     uint32_t        error_code;
@@ -436,22 +478,20 @@ public:
     }
 
     template <size_t debug_data_size>
-    static constexpr uint8_t *add_frame(
-                uint8_t *buffer,
+    static constexpr void add_frame(
+                Stream &stream,
                 uint32_t max_stream,
                 frame::error_t error_code,
                 const char (&debug_data)[debug_data_size]) {
         const uint32_t length = sizeof(frame) + sizeof(goaway) + debug_data_size;
-        frame *pframe = (frame *)buffer;
-        buffer += sizeof(frame);
+        frame *pframe = reinterpret_cast<frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
         pframe->init_frame(length, frame::type_t::SETTINGS, frame::flags_t::ACK, 0x00);
         
-        const goaway goaway {max_stream, error_code};
-        buffer = std::copy(buffer, buffer + sizeof(goaway), buffer);
-        buffer += sizeof(goaway);
-
-        buffer = std::copy(debug_data, debug_data + debug_data_size, buffer);
-        return buffer;
+        auto goaway_buffer = stream.GetCurrAndIncrease(sizeof(goaway));
+        new (goaway_buffer) goaway {max_stream, error_code};
+        
+        auto debug_data_writer = stream.GetCurrAndIncrease(debug_data_size);
+        std::copy(debug_data, debug_data + debug_data_size, debug_data_writer);
     }
 } __attribute__((packed));
 
@@ -513,56 +553,56 @@ public:
     header_request(const header_request &) = delete;
     header_request &operator=(const header_request &) = delete;
 
-    void parse_header(const uint8_t *pstart, const uint8_t *pend, const uint32_t stream_identifier, dynamic_table_t &dynamic_table) {
+    void parse_header(const ConstStream &stream, const uint32_t stream_identifier, dynamic_table_t &dynamic_table) {
         this->stream_identifier = stream_identifier;
-        while(pstart < pend) {
-            if ((*pstart & 0x80) == 0x80) {
+        while(stream.remaining_buffer()) {
+            if ((*stream & 0x80) == 0x80) {
                 // rfc7541 # 6.1 Indexed Header Field Representation
-                uint32_t index = decode_integer<7>(pstart, pend);
+                uint32_t index = decode_integer<7>(stream);
                 // Dynamic table check is internal
                 auto header = index < 62 ? static_table[index] : dynamic_table[index - 62];
                 add_field(header);
-            } else if (*pstart == 0x40) {
-                ++pstart;
-                auto field = get_header_field(pstart);
-                auto value = get_header_string(pstart);
+            } else if (*stream == 0x40) {
+                ++stream;
+                auto field = get_header_field(stream);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 dynamic_table.insert(header);
                 add_field(header);
-            } else if ((*pstart & 0xc0) == 0x40) {
+            } else if ((*stream & 0xc0) == 0x40) {
                 // rfc7541 # 6.2.1 Literal Header Field with Incremental Indexing
-                uint32_t index = decode_integer<6>(pstart, pend);
+                uint32_t index = decode_integer<6>(stream);
                 auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(pstart);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 dynamic_table.insert(header);
                 add_field(header);
-            } else if (*pstart == 0x00) {
-                ++pstart;
-                auto field = get_header_field(pstart);
-                auto value = get_header_string(pstart);
+            } else if (*stream == 0x00) {
+                ++stream;
+                auto field = get_header_field(stream);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
-            } else if ((*pstart & 0xf0) == 0x00) {
-                uint32_t index = decode_integer<4>(pstart, pend);
+            } else if ((*stream & 0xf0) == 0x00) {
+                uint32_t index = decode_integer<4>(stream);
                 auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(pstart);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
-            } else if (*pstart == 0x10) {
-                ++pstart;
-                auto field = get_header_field(pstart);
-                auto value = get_header_string(pstart);
+            } else if (*stream == 0x10) {
+                ++stream;
+                auto field = get_header_field(stream);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
-            } else if ((*pstart & 0xf0) == 0x10) {
-                uint32_t index = decode_integer<4>(pstart, pend);
+            } else if ((*stream & 0xf0) == 0x10) {
+                uint32_t index = decode_integer<4>(stream);
                 auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(pstart);
+                auto value = get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
-            } else if ((*pstart &0xe0) == 0x20) {
-                uint32_t index = decode_integer<5>(pstart, pend);;
+            } else if ((*stream &0xe0) == 0x20) {
+                uint32_t index = decode_integer<5>(stream);;
                 dynamic_table.update_size(index);
             }
         }
@@ -672,36 +712,34 @@ public:
         header_map.insert(std::make_pair(pheader->stream_identifier, pheader));
     }
 
-    err_t parse(
-                const uint8_t *pstart,
-                const uint8_t *pend,
-                uint8_t *&write_buffer) {
-        while(pstart + sizeof(frame) <= pend) {
-            const frame *pframe = (frame *)pstart;
+    err_t parse(const ConstStream &stream, Stream &writestream) {
+        while(stream.CheckCapacity(sizeof(frame))) {
+            const frame *pframe = reinterpret_cast<const frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
             const auto stream_identifier = pframe->get_stream_identifier();
             if (stream_identifier > max_stream) max_stream = stream_identifier;
-            pstart += sizeof(frame);
-            const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *pstart++ : 0;
+            const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
+
+            auto frameStreamBuffer = stream.GetCurrAndIncrease(pframe->get_length());
+            ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  pframe->get_length() - padded_bytes};
 
             switch(pframe->get_type()) {
             case frame::type_t::HEADERS: {
                 // rfc7540 - 6.2.  HEADERS
-                const uint8_t *pstart_ = pstart;
-                pstart += pframe->get_length();
+                auto frameStream = stream.GetSimpleConstStream();
                 uint32_t stream_dependency;
                 if (pframe->contains(frame::flags_t::PRIORITY)) {
-                    stream_dependency = changeEndian<std::endian::big, std::endian::native>(*(uint32_t *)pstart_);
+                    stream_dependency = changeEndian<std::endian::big, std::endian::native>(*reinterpret_cast<const uint32_t *>(frameStream.curr()));
                     stream_dependency &= 0x7fffffff;
-                    pstart_ += sizeof(uint32_t);
-                    pstart_++;
+                    frameStream += sizeof(uint32_t);
+                    frameStream++;
                 } else {
                     stream_dependency = 0x00;
                 }
 
                 if (stream_identifier == 0x00) {
                     // PROTOCOL_ERROR we will stop parsing
-                    write_buffer = goaway::add_frame(
-                                write_buffer,
+                    goaway::add_frame(
+                                writestream,
                                 max_stream,
                                 frame::error_t::PROTOCOL_ERROR,
                                 "HEADERS frame requires stream ID to be set");
@@ -717,30 +755,23 @@ public:
                     request = header_itr->second;
                 }
 
-                request->parse_header(pstart_, pstart - padded_bytes, stream_identifier, dynamic_table);
+                request->parse_header(frameStream, stream_identifier, dynamic_table);
                 break;
             }
             case frame::type_t::PRIORITY: {
                 // rfc7540 - 6.3.  PRIORITY
                 // We will just ignore this
-                const uint8_t *pstart_ = pstart;
-                pstart += pframe->get_length();
+
                 //uint32_t stream_dependency = changeEndian<std::endian::big, std::endian::native>(*(uint32_t *)pstart_);
                 //stream_dependency &= 0x7fffffff;
-                pstart_ += sizeof(uint32_t);
-                pstart_++;
                 break;
             }
             case frame::type_t::RST_STREAM: {
-                const uint8_t *pstart_ = pstart;
-                pstart += pframe->get_length();
-
-                const uint32_t error_code = *(uint32_t *)pstart_;
-                
+                const uint32_t error_code = *reinterpret_cast<const uint32_t *>(frameStream.curr());
                 if (stream_identifier == 0x00) {
                     // PROTOCOL_ERROR we will stop parsing
-                    write_buffer = goaway::add_frame(
-                                write_buffer,
+                    goaway::add_frame(
+                                writestream,
                                 max_stream,
                                 frame::error_t::PROTOCOL_ERROR,
                                 "RST_STREAM requires stream ID to be set");
@@ -760,20 +791,17 @@ public:
                 break;
             }
             case frame::type_t::SETTINGS: {
-                const uint8_t *pstart_ = pstart;
-                pstart += pframe->get_length();
                 if (!pframe->contains(frame::flags_t::ACK)) {
-                    peer_settings.parse_frame(pframe, pstart_, pend);
+                    peer_settings.parse_frame(frameStream);
                     dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
-                    write_buffer = settings::add_ack_frame(write_buffer);
+                    settings::add_ack_frame(writestream);
                 }
                 break;
             }
             case frame::type_t::PUSH_PROMISE: {
-                pstart += pframe->get_length();
                 // Push promise is not supported we will ignore this
-                write_buffer = goaway::add_frame(
-                                write_buffer,
+                goaway::add_frame(
+                                writestream,
                                 max_stream,
                                 frame::error_t::PROTOCOL_ERROR,
                                 "PUSH PROMISE not supported");
@@ -785,8 +813,8 @@ public:
 
                 if (stream_identifier != 0x00) {
                     // PROTOCOL_ERROR we will stop parsing
-                    write_buffer = goaway::add_frame(
-                                write_buffer,
+                    goaway::add_frame(
+                                writestream,
                                 max_stream,
                                 frame::error_t::PROTOCOL_ERROR,
                                 "PING can have have stream ID zero(0)");
@@ -794,171 +822,83 @@ public:
                 }
                 if (pframe->get_length() != ping_payload_size) {
                     // PROTOCOL_ERROR we will stop parsing
-                    write_buffer = goaway::add_frame(
-                                write_buffer,
+                    goaway::add_frame(
+                                writestream,
                                 max_stream,
                                 frame::error_t::PROTOCOL_ERROR,
                                 "PING frame length can only be 64");
                     return err_t::HTTP2_INITIATE_GOAWAY;
                 }
-                const uint8_t *pstart_ = pstart;
-                pstart += pframe->get_length();
-                frame *response_frame = (frame *)write_buffer;
+                frame *response_frame = reinterpret_cast<frame *>(writestream.GetCurrAndIncrease(sizeof(frame)));
                 response_frame->init_frame(ping_payload_size, frame::type_t::PING, frame::flags_t::ACK, 0x00);
-                write_buffer = std::copy(pstart_, pstart_ + ping_payload_size, write_buffer + sizeof(frame));
+                std::copy(frameStream.curr(), frameStream.curr() + ping_payload_size, writestream.GetCurrAndIncrease(ping_payload_size));
                 break;
             }
             case frame::type_t::GOAWAY: {
-                pstart += pframe->get_length();
                 return err_t::HTTP2_INITIATE_GOAWAY;
             }
             case frame::type_t::WINDOW_UPDATE: {
-                pstart += pframe->get_length();
                 // TODO: Implement Windows Update
                 break;
             }
             case frame::type_t::CONTINUATION: {
-                pstart += pframe->get_length();
                 // TODO: Implement Continuation, this is required only for POST call
                 // We may not choose to support ignoring this call
                 // Best implementation would be RST_STREAM
                 break;
             }
             default:
-                pstart += pframe->get_length();
                 break;
             }
         }
         return err_t::SUCCESS;
     }
 
-    inline uint8_t *copy_http_header_response(
-                uint8_t * buffer,
-                const std::pair<FIELD, std::string> &header_line,
-                bool add_index) {
-        // 6.1.  Indexed Header Field Representation
-        // Case 1: found entry in static table
-        if (static_table.contains(header_line)) {
-            return encode_integer<7>(buffer, (uint8_t)0x80, static_table[header_line]);
-        }
-
-        // Case 2: found entry in dynamic table
-        if (dynamic_table.contains(header_line)) {
-            return encode_integer<7>(buffer, (uint8_t)0x80, dynamic_table[header_line]);
-        }
-
-        // TODO: Cover never indexed case
-        if (add_index) {
-            // 6.2.1.  Literal Header Field with Incremental Indexing
-            // Result will go in dynamic table
-            // Case 1: Field indexed
-            if (static_table.contains(header_line.first)) {
-                // Subcase 1: Static table
-                buffer = encode_integer<6>(buffer, (uint8_t)0x40, static_table[header_line.first]);
-                buffer = add_header_string(buffer, header_line.second);
-            } else
-            if (dynamic_table.contains(header_line.first)) {
-                // Subcase 2: Dynamic table
-                buffer = encode_integer<6>(buffer, (uint8_t)0x40, dynamic_table[header_line.first]);
-                buffer = add_header_string(buffer, header_line.second);
-                return buffer;
-            } else {
-                // Case 2: No index
-                *buffer++ = 0x40;
-                buffer = add_header_string(buffer, to_string(header_line.first));
-                buffer = add_header_string(buffer, header_line.second);
-            }
-
-            dynamic_table.insert(header_line);
-            return buffer;
-        } else {
-            // 6.2.2.  Literal Header Field without Indexing
-            // Case 1: Field indexed
-            if (static_table.contains(header_line.first)) {
-                // Subcase 1: Static table
-                buffer = encode_integer<4>(buffer, (uint8_t)0x00, static_table[header_line.first]);
-                buffer = add_header_string(buffer, header_line.second);
-            } else
-            if (dynamic_table.contains(header_line.first)) {
-                // Subcase 2: Dynamic table
-                buffer = encode_integer<4>(buffer, (uint8_t)0x00, dynamic_table[header_line.first]);
-                buffer = add_header_string(buffer, header_line.second);
-                return buffer;
-            } else {
-                // Case 2: No index
-                *buffer++ = 0x00;
-                buffer = add_header_string(buffer, to_string(header_line.first));
-                buffer = add_header_string(buffer, header_line.second);
-            }
-            return buffer;
-        }
-        
+    inline void copy_http_header_response(Stream &stream, const std::pair<FIELD, std::string> &header_line, bool add_index){
+        MMS::http::v2::copy_http_header_response(dynamic_table, stream, header_line, add_index);
     }
 
-    inline uint8_t *copy_http_header_response(
-                uint8_t * buffer,
-                FIELD field,
-                const std::string &value,
-                bool add_index) {
-        //
-        return copy_http_header_response(
-            buffer,
-            std::make_pair(field, value),
-            add_index
-        );
+    inline void copy_http_header_response(Stream &stream, FIELD field, const std::string &value, bool add_index) {
+        copy_http_header_response(stream, std::make_pair(field, value), add_index);
     }
 
     // N includes null character
-    inline uint8_t *copy_http_header_response(
-                uint8_t * buffer,
-                FIELD field,
-                const uint8_t *value,
-                size_t N,
-                bool add_index) {
-        //
+    inline void copy_http_header_response(Stream &stream, FIELD field, const uint8_t *value, size_t N, bool add_index) {
         std::string _value((char *)value, N);
-        return copy_http_header_response(
-            buffer,
-            std::make_pair(field, _value),
-            add_index
-        );
+        copy_http_header_response(stream, std::make_pair(field, _value), add_index);
     }
 
     // N includes null character
     template <typename CHAR_TYPE, size_t N>
-    inline uint8_t *copy_http_header_response(
-                uint8_t * buffer,
+    inline void copy_http_header_response(
+                Stream &stream,
                 FIELD field,
                 const CHAR_TYPE (&value)[N],
                 bool add_index) {
         //
         std::string _value((char *)value, N);
-        return copy_http_header_response(
-            buffer,
-            std::make_pair(field, _value),
-            add_index
-        );
+        copy_http_header_response(stream, std::make_pair(field, _value), add_index);
     }
 
     template <typename VALUE_TYPE>
-    inline uint8_t *copy_http_header_response(
-                uint8_t * buffer,
+    inline void copy_http_header_response(
+                Stream &stream,
                 FIELD field,
                 const VALUE_TYPE &value,
                 bool add_index) {
         if constexpr (std::is_enum_v<VALUE_TYPE>) {
             auto __value = static_cast<typename std::underlying_type_t<typename std::decay_t<VALUE_TYPE>>>(value);
             const std::string _value = std::to_string(__value);
-            return copy_http_header_response(
-                buffer,
+            copy_http_header_response(
+                stream,
                 std::make_pair(field, _value),
                 add_index
             );
         } else {
             auto __value = static_cast<typename std::decay_t<VALUE_TYPE>>(value);
             const std::string _value = std::to_string(__value);
-            return copy_http_header_response(
-                buffer,
+            copy_http_header_response(
+                stream,
                 std::make_pair(field, _value),
                 add_index
             );
@@ -968,62 +908,18 @@ public:
 
     // Status is always cached
     template <FIELD field, CODE code>
-    uint8_t *copy_http_header_response(
-                uint8_t * buffer) {
-        return copy_http_header_response(buffer, field, code, true);
-    }
+    void copy_http_header_response(Stream &stream) { return copy_http_header_response(stream, field, code, true); }
 
     constexpr header_request *get_first_header() { return first; }
     constexpr const header_request *get_first_header() const { return first; }
 }; // class request
 
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_200>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 8;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_204>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 9;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_206>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 10;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_304>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 11;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_400>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 12;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_404>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 13;
-    return buffer;
-}
-
-template <>
-constexpr uint8_t *request::copy_http_header_response<FIELD::Status, CODE::_500>(
-            uint8_t * buffer) {
-    *buffer++ = 0x80 + 14;
-    return buffer;
-}
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_200>(Stream &stream) { *stream++ = 0x80 + 8; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_204>(Stream &stream) { *stream++ = 0x80 + 9;}
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_206>(Stream &stream) { *stream++ = 0x80 + 10; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_304>(Stream &stream) { *stream++ = 0x80 + 11; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_400>(Stream &stream) { *stream++ = 0x80 + 12; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_404>(Stream &stream) { *stream++ = 0x80 + 13; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_500>(Stream &stream) { *stream++ = 0x80 + 14; }
 
 } // namespace MMS::http::v2

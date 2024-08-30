@@ -9,16 +9,15 @@
 
 namespace MMS::net::tcp::ssl {
 
-thread_local buffer_t connection_t::tempbuffer { };
-
 connection_t::~connection_t() {
     SSL_free(ssl);
 }
 
 err_t connection_t::ProcessRead() {
-    size_t offset { 0 };
+    tempbuffer.Reset();
     while(true) {
-        auto [buffer, buffer_size] = tempbuffer.GetBuffer(offset);
+        tempbuffer.Reserve(connection_base_t::initial_buffer_size);
+        auto [buffer, buffer_size] = tempbuffer.GetRawCurrentBuffer();
         size_t actualread { };
         auto ret = SSL_read_ex(ssl, buffer, buffer_size, &actualread);
         switch(ret) {
@@ -44,15 +43,15 @@ err_t connection_t::ProcessRead() {
         case 0:
         default:
             if (actualread == 0) goto EXIT_LOOP;
-            offset += actualread;
+            tempbuffer += actualread;
             break;
         }
     }
 
 EXIT_LOOP:
-    if (offset) {
-        protocol_implementation->ProcessRead(tempbuffer.GetBuffer<uint8_t *>(), offset);
-        log<log_t::TCP_CONNECTION_READ>(GetFD(), offset);
+    if (tempbuffer.index()) {
+        protocol_implementation->ProcessRead(ConstStream {tempbuffer.begin(), tempbuffer.curr()});
+        log<log_t::TCP_CONNECTION_READ>(GetFD(), tempbuffer.index());
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
 
@@ -92,10 +91,6 @@ EXIT_LOOP:
         pending_wirte.pop();
     }
     return err_t::SUCCESS;
-}
-
-void connection_t::WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) {
-    pending_wirte.emplace(buffer, bytesize, byteoffset);
 }
 
 err_t server_t::ProcessRead() {

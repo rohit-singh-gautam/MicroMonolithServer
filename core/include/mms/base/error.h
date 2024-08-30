@@ -40,6 +40,10 @@ namespace MMS {
     ERROR_T_ENTRY(RECEIVE_FAILURE, "Unable to read from a socket") \
     ERROR_T_ENTRY(SEND_FAILURE, "Unable to write to a socket") \
     ERROR_T_ENTRY(BAD_FILE_DESCRIPTOR, "Bad file descriptor") \
+    ERROR_T_ENTRY(MEMORY_ALLOCATION_FAILURE, "Unable to allocated memory, insufficient memory or high memory fragmentation, restart recommended") \
+    \
+    ERROR_T_ENTRY(STREAM_UNDERFLOW, "Stream moved before begin") \
+    ERROR_T_ENTRY(STREAM_OVERFLOW, "Stream moved to end") \
     \
     ERROR_T_ENTRY(SIGNAL_POLLING_FAILED, "Signal polling failed") \
     ERROR_T_ENTRY(SIGNAL_READ_FAILED, "Signal read failed") \
@@ -262,14 +266,16 @@ inline std::ostream& operator<<(std::ostream& os, const exception_t &error) {
     return os << errdata.to_string();
 }
 
-class http_parser_failed_t : public exception_t {
-    const char *const current_position;
-    const size_t buffer_remaining;
-public:
-    constexpr http_parser_failed_t(const char *const current_position, const size_t buffer_remaining) 
-        : exception_t(err_t::HTTP11_PARSER_FAILURE), current_position { current_position }, buffer_remaining { buffer_remaining } { }
+class ConstFullStream;
 
-    std::string to_string(const char *start_position);
+class http_parser_failed_t : public exception_t {
+    const ConstFullStream &stream;
+
+public:
+    constexpr http_parser_failed_t(const ConstFullStream &stream) 
+        : exception_t(err_t::HTTP11_PARSER_FAILURE), stream { stream } { }
+
+    std::string to_string();
 };
 
 class listener_create_failed_t : public exception_t {
@@ -325,6 +331,26 @@ public:
 class listen_fail_t : public socket_fail_t {
 public:
     constexpr listen_fail_t() : socket_fail_t { err_t::LISTEN_FAILURE } { }
+};
+
+class MemoryAllocationException : public exception_t {
+public:
+    constexpr MemoryAllocationException() : exception_t { err_t::MEMORY_ALLOCATION_FAILURE } { }
+};
+
+class StreamException : public exception_t {
+public:
+    using exception_t::exception_t;
+};
+
+class StreamUnderflowException : public StreamException {
+public:
+    StreamUnderflowException() : StreamException { err_t::STREAM_UNDERFLOW } { }
+};
+
+class StreamOverflowException : public StreamException {
+public:
+    StreamOverflowException() : StreamException { err_t::STREAM_OVERFLOW } { }
 };
 
 } // namespace MMS

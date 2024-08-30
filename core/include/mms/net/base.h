@@ -32,46 +32,6 @@ inline const ipv6_socket_addr_t get_local_ipv6_addr(const int socket_id) {
     return ipv6_socket_addr_t(&addr.sin6_addr.__in6_u, port);
 }
 
-struct buffer_t {
-public:
-    static constexpr size_t initial_size { 256 };
-
-private:
-    void *buffer;
-    size_t size;
-
-public:
-    buffer_t(const size_t size = initial_size) : buffer { malloc(size)}, size { size } { }
-    
-    buffer_t(const buffer_t &) = delete;
-    buffer_t &operator=(const buffer_t &) = delete;
-
-    ~buffer_t() {
-        if (buffer) free(buffer);
-    }
-
-    void increase_buffer(const size_t newsize) {
-        if (newsize > size) {
-            buffer = realloc(buffer, newsize);
-            size = newsize;
-        }
-    }
-
-    template <typename type>
-    auto GetBuffer() { return reinterpret_cast<type>(buffer); }
-
-    auto GetBuffer(const size_t offset) {
-        if (offset + initial_size > size) {
-            increase_buffer(size + initial_size);
-        }
-        auto newsize = size - offset;
-        auto bufferoffset = reinterpret_cast<uint8_t *>(buffer) + offset;
-        return std::make_pair(reinterpret_cast<void *>(bufferoffset), newsize);
-    }
-
-
-}; // buffer_t
-
 class protocol_t {
 protected:
     listener::processor_t *processor;
@@ -85,7 +45,7 @@ public:
 
     void SetProcessor(listener::processor_t *processor) { this->processor = processor; }
 
-    virtual void ProcessRead(const uint8_t *buffer, const size_t size) = 0;
+    virtual void ProcessRead(const ConstStream &stream) = 0;
 
     template <bool CopyBuffer = true, typename buffertype>
     inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {

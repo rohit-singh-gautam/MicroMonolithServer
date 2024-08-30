@@ -8,6 +8,7 @@
 #include <repository.h>
 #include <mms/server/echo.h>
 #include <mms/server/http.h>
+#include <mms/server/http1.h>
 #include <fstream>
 #include <sstream>
 #include <mms/listener.h>
@@ -47,7 +48,7 @@ bool Container::ReadProtocolConfiguration() {
                 }
 
                 auto &httpconf = httpconfigurations[confname];
-                auto proto = new MMS::server::http::creator_t { httpconf.get() };
+                auto proto = new MMS::server::http::v1::creator_t { httpconf.get() };
                 protocols.emplace(protoname, proto);                
             } else {
                 std::cerr << "Unknown protocol " << type_name << std::endl;

@@ -7,19 +7,22 @@
 
 #include <http/httpparser.h>
 #include <gtest/gtest.h>
+#include <mms/base/stream.h>
 
-bool http_request_parse(const std::string &text) {
+bool http_request_parse(const MMS::ConstFullStream &stream) {
     try {
-        MMS::http::request req { text };
+        MMS::http::request req { stream };
     } catch(MMS::http_parser_failed_t &e) {
         return false;
     }
     return true;
 }
 
-bool http_response_parse(const std::string &text) {
+
+
+bool http_response_parse(const MMS::ConstFullStream &stream) {
     try {
-        MMS::http::response response { text };
+        MMS::http::response response { stream };
     } catch(MMS::http_parser_failed_t &e) {
         return false;
     }
@@ -35,19 +38,19 @@ TEST(HttpRequestParserTest, RequestLineTest) {
 }
 
 TEST(HttpRequestParserTest, RequestTest) {
-    EXPECT_TRUE(http_request_parse(
+    EXPECT_TRUE(http_request_parse( {
         "GET /example.txt HTTP/1.1\r\n"
         "Host: www.example.com\r\n"
         "User-Agent: curl/7.16.3 libcurl/7.16.3 OpenSSL/0.9.7l zlib/1.2.3\r\n"
-        "Accept-Language: en, mi"
+        "Accept-Language: en, mi" }
     ));
 
-    EXPECT_TRUE(http_request_parse(
+    EXPECT_TRUE(http_request_parse( {
         "POST /createaccount HTTP/1.1\n"
         "Host: www.example.com\n"
         "Content-Type: application/x-www-form-urlencoded\n"
         "Content-Length: 30\n\n"
-        "name=Rohit+Singh&age=47"
+        "name=Rohit+Singh&age=47" }
     ));
 }
 

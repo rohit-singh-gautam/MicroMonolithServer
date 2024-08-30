@@ -74,156 +74,140 @@ std::string response::to_string() const {
     return ret;
 }
 
-std::string parse_till_space(const char *&requesttext, size_t &size) {
-    auto start = requesttext;
-    while(*requesttext != ' ' && size) {
-        ++requesttext;
-        --size;
+std::string parse_till_space(const ConstFullStream &stream) {
+    auto start = stream.curr();
+    while(*stream != ' ' && stream.remaining_buffer()) {
+        ++stream;
     }
 
-    if (start == requesttext) {
-        throw MMS::http_parser_failed_t(requesttext, size);
+    if (start == stream.curr()) {
+        throw MMS::http_parser_failed_t(stream);
     }
 
-    return { start, static_cast<size_t>(requesttext - start) };
+    return { reinterpret_cast<const char *>(start), static_cast<size_t>(stream.curr() - start)};
 }
 
-std::string parse_till_colon(const char *&requesttext, size_t &size) {
-    while(*requesttext == ' ' && size) {
-        ++requesttext;
-        --size;
+std::string parse_till_colon(const ConstFullStream &stream) {
+    while(*stream == ' ' && stream.remaining_buffer()) {
+        ++stream;
     }
-    auto start = requesttext;
-    while(*requesttext != ':' && *requesttext != ' ' && size) {
-        ++requesttext;
-        --size;
+    auto start = stream.curr();
+    while(*stream != ':' && *stream != ' ' && stream.remaining_buffer()) {
+        ++stream;
     }
-    if (start == requesttext) {
-        throw MMS::http_parser_failed_t(requesttext, size);
+    if (start == stream.curr()) {
+        throw MMS::http_parser_failed_t(stream);
     }
-    std::string ret = { start, static_cast<size_t>(requesttext - start) };
+    std::string ret = { reinterpret_cast<const char *>(start), static_cast<size_t>(stream.curr() - start) };
 
-    while(*requesttext != ':' && size) {
-        ++requesttext;
-        --size;
+    while(*stream != ':' && stream.remaining_buffer()) {
+        ++stream;
     }
 
-    if (size) {
+    if (stream.remaining_buffer()) {
         // Skip colon
-        ++requesttext;
-        --size;
+        ++stream;
     }
 
     return ret;
 }
 
-std::string parse_till_CRLF(const char *&requesttext, size_t &size) {
-    while(*requesttext == ' ' && size) {
-        ++requesttext;
-        --size;
+std::string parse_till_CRLF(const ConstFullStream &stream) {
+    while(*stream == ' ' && stream.remaining_buffer()) {
+        ++stream;
     }
-    auto start = requesttext;
-    auto end = requesttext;
-    while(size) {
-        if (*requesttext == '\r' || *requesttext == '\n') break;
-        if (*(requesttext - 1) != ' ') end = requesttext;
-        ++requesttext;
-        --size;
+    auto start = stream.curr();
+    auto end = stream.curr();
+    while(stream.remaining_buffer()) {
+        if (*stream == '\r' || *stream == '\n') break;
+        if (*(stream.curr() - 1) != ' ') end = stream.curr();
+        ++stream;
     }
-    if (*(requesttext - 1) != ' ') end = requesttext;
+    if (*(stream.curr() - 1) != ' ') end = stream.curr();
 
-    std::string ret = { start, static_cast<size_t>(end - start) };
+    std::string ret = { reinterpret_cast<const char *>(start), static_cast<size_t>(end - start) };
     
-    if (size) {
-        if (*requesttext == '\r') {
-            ++requesttext;
-            --size;
-            if (!size || *requesttext != '\n') throw MMS::http_parser_failed_t(requesttext, size);
-            ++requesttext;
-            --size;
-        } else if(*requesttext == '\n') {
-            ++requesttext;
-            --size;
+    if (stream.remaining_buffer()) {
+        if (*stream == '\r') {
+            ++stream;
+            if (stream.full() || *stream != '\n') throw MMS::http_parser_failed_t(stream);
+            ++stream;
+        } else if(*stream == '\n') {
+            ++stream;
         }
     }
 
     return ret;
 }
 
-void parse_skip_one(const char *&requesttext, size_t &size) {
-    if (!size) throw MMS::http_parser_failed_t(requesttext, size);
-    ++requesttext;
-    --size;
+void parse_skip_one(const ConstFullStream &stream) {
+    if (stream.full()) throw MMS::http_parser_failed_t(stream);
+    ++stream;
 }
 
 
-bool parse_check_CRLF(const char *&requesttext, size_t &size) {
-    if (*requesttext == '\r') {
-        ++requesttext;
-        --size;
-        if (!size || *requesttext != '\n') throw MMS::http_parser_failed_t(requesttext, size);
-        ++requesttext;
-        --size;
+bool parse_check_CRLF(const ConstFullStream &stream) {
+    if (*stream == '\r') {
+        ++stream;
+        if (stream.full() || *stream != '\n') throw MMS::http_parser_failed_t(stream);
+        ++stream;
         return true;
-    } else if(*requesttext == '\n') {
-        ++requesttext;
-        --size;
+    } else if(*stream == '\n') {
+        ++stream;
         return true;
     }
     return false;
 }
 
 template <bool crlf_end>
-void header::parse_version(const char *&requesttext, size_t &size) {
-    const auto versiontext = crlf_end ? parse_till_CRLF(requesttext, size) : parse_till_space(requesttext, size);
+void header::parse_version(const ConstFullStream &stream) {
+    const auto versiontext = crlf_end ? parse_till_CRLF(stream) : parse_till_space(stream);
     version = to_version(versiontext);
-    if (version == VERSION::VER_UNKNOWN) throw MMS::http_parser_failed_t(requesttext, size);
+    if (version == VERSION::VER_UNKNOWN) throw MMS::http_parser_failed_t(stream);
 }
 
-void header::parse_fields(const char *&requesttext, size_t &size) {
+void header::parse_fields(const ConstFullStream &stream) {
     while(true) {
-        auto fieldtext = parse_till_colon(requesttext, size);
-        auto value = parse_till_CRLF(requesttext, size);
+        auto fieldtext = parse_till_colon(stream);
+        auto value = parse_till_CRLF(stream);
         auto field = to_field(fieldtext);
         // When field is not present in enumeration it will be ignored.
         if (field != FIELD::IGNORE_THIS) fields[field] = std::move(value);
-        if (!size || parse_check_CRLF(requesttext, size)) break;
+        if (stream.full() || parse_check_CRLF(stream)) break;
     }
 }
 
-void request_header::parse_method(const char *&requesttext, size_t &size) {
-    auto methodtext = parse_till_space(requesttext, size);
+void request_header::parse_method(const ConstFullStream &stream) {
+    auto methodtext = parse_till_space(stream);
     method = to_method(methodtext);
-    if (method == METHOD::IGNORE_THIS) throw MMS::http_parser_failed_t(requesttext, size);
+    if (method == METHOD::IGNORE_THIS) throw MMS::http_parser_failed_t(stream);
 }
 
-void request_header::parse_request_uri(const char *&requesttext, size_t &size) {
-    auto requesturi = parse_till_space(requesttext, size);
+void request_header::parse_request_uri(const ConstFullStream &stream) {
+    auto requesturi = parse_till_space(stream);
     path = requesturi;
 }
 
 // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
 // We will allow CR
-void request_header::parse_request_line(const char *&requesttext, size_t &size) {
-    parse_method(requesttext, size);
-    parse_skip_one(requesttext, size);
-    parse_request_uri(requesttext, size);
-    parse_skip_one(requesttext, size);
-    parse_version<true>(requesttext, size);
+void request_header::parse_request_line(const ConstFullStream &stream) {
+    parse_method(stream);
+    parse_skip_one(stream);
+    parse_request_uri(stream);
+    parse_skip_one(stream);
+    parse_version<true>(stream);
 }
 
-void request::parse(const char *&requesttext, size_t &size) {
-    parse_request_line(requesttext, size);
-    if (size) {
-        parse_fields(requesttext, size);
-        if (size) body = std::string { requesttext, size };
+void request::parse(const ConstFullStream &stream) {
+    parse_request_line(stream);
+    if (stream.remaining_buffer()) {
+        parse_fields(stream);
+        if (stream.remaining_buffer()) body = std::string { reinterpret_cast<const char *>(stream.curr()), stream.remaining_buffer() };
     }
 }
 
-request::request(const std::string &text) {
-    const char *requesttext = text.data();
-    size_t size = text.size();
-    parse(requesttext, size);
+request::request(const ConstFullStream &stream) {
+    parse(stream);
 }
 
 response request::CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) const {
@@ -277,32 +261,30 @@ response response::CreateErrorResponse(CODE code, const std::string &errortext, 
     return res;
 }
 
-void response_header::parse_code(const char *&requesttext, size_t &size) {
-    auto codetext = parse_till_space(requesttext, size);
+void response_header::parse_code(const ConstFullStream &stream) {
+    auto codetext = parse_till_space(stream);
     code = to_code_map(codetext);
-    if (code == CODE::_0) throw MMS::http_parser_failed_t(requesttext, size);
+    if (code == CODE::_0) throw MMS::http_parser_failed_t(stream);
 }
 
-void response_header::parse_response_line(const char *&requesttext, size_t &size) {
-    parse_version<false>(requesttext, size);
-    parse_skip_one(requesttext, size);
-    parse_code(requesttext, size);
-    parse_skip_one(requesttext, size);
-    parse_till_CRLF(requesttext, size);
+void response_header::parse_response_line(const ConstFullStream &stream) {
+    parse_version<false>(stream);
+    parse_skip_one(stream);
+    parse_code(stream);
+    parse_skip_one(stream);
+    parse_till_CRLF(stream);
 }
 
-void response::parse(const char *&requesttext, size_t &size) {
-    parse_response_line(requesttext, size);
-    if (size) {
-        parse_fields(requesttext, size);
-        if (size) body = std::string { requesttext, size };
+void response::parse(const ConstFullStream &stream) {
+    parse_response_line(stream);
+    if (stream.remaining_buffer()) {
+        parse_fields(stream);
+        if (stream.remaining_buffer()) body = std::string { reinterpret_cast<const char *>(stream.curr()), stream.remaining_buffer() };
     }
 }
 
-response::response(const std::string &text) {
-    const char *responsetext = text.data();
-    size_t size = text.size();
-    parse(responsetext, size);
+response::response(const ConstFullStream &stream) {
+    parse(stream);
 }
 
 response response::CreateBasicResponse(CODE code) {
