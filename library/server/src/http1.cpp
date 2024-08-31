@@ -65,7 +65,7 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
     }
 }
 
-void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) {
+void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
     auto response = response::CreateBasicResponse(code);
     auto [bodybuffer, bodysize] = bodystream.GetRawCurrentBuffer();
     std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });

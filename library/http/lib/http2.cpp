@@ -10,7 +10,7 @@
 
 namespace MMS::http::v2 {
 
-void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::deque<std::pair<FIELD, std::string>> &fields) {
+void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields) {
     constexpr uint64_t max_date_string_size = 92;
     std::time_t now_time = std::time(0);   // get time now
     std::tm* now_tm = std::gmtime(&now_time);

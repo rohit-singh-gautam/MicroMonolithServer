@@ -12,7 +12,7 @@
 namespace MMS::server::http::v2 {
 
 void protocol_t::WriteError(const CODE code, const std::string &errortext) {
-    std::deque<std::pair<FIELD, std::string>> fields {
+    std::vector<std::pair<FIELD, std::string>> fields {
         { FIELD::Content_Type, std::string { "text/html" } }
     };
 
@@ -33,8 +33,8 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
     Write(code, ConstStream { body }, fields);
 }
 
-void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) {
-    fields.emplace_front(FIELD::Server, configuration->ServerName);
+void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
+    fields.emplace_back(FIELD::Server, configuration->ServerName);
     fields.emplace_back(FIELD::Content_Length, std::to_string(bodystream.remaining_buffer()));
     MMS::http::v2::CreateHeaderFrame(dynamic_table, response_buffer, header_request->stream_identifier, code, fields);
     auto bodysize = bodystream.remaining_buffer();

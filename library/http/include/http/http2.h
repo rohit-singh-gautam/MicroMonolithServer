@@ -919,7 +919,7 @@ template <> constexpr void request::copy_http_header_response<FIELD::Status, COD
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_404>(Stream &stream) { *stream++ = 0x80 + 13; }
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_500>(Stream &stream) { *stream++ = 0x80 + 14; }
 
-void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::deque<std::pair<FIELD, std::string>> &fields);
+void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields);
 
 void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const ConstStream &bodystream, uint32_t stream_identifier);
 

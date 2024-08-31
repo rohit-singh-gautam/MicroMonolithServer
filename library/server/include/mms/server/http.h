@@ -65,17 +65,17 @@ public:
 
 
     virtual void WriteError(const CODE code, const std::string &errortext) =  0;
-    virtual void Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) = 0;
+    virtual void Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
 
     template <typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const ConstStream &bodystream, const fieldlist& ... field) {
-        std::deque<std::pair<FIELD, std::string>> fields { field... };
+        std::vector<std::pair<FIELD, std::string>> fields { field... };
         Write(code, bodystream, fields);
     }
 
     template <typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const std::string &body, const fieldlist& ... field) {
-        std::deque<std::pair<FIELD, std::string>> fields { field... };
+        std::vector<std::pair<FIELD, std::string>> fields { field... };
         ConstStream bodystream { body.c_str(), body.size() };
         Write(code, bodystream,  fields);
     }
