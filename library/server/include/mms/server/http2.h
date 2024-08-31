@@ -22,12 +22,11 @@ using MMS::http::response;
 using MMS::server::http::typecheck::fieldentrypair;
 
 class protocol_t : public MMS::server::http::protocol_t{
-    static constexpr size_t response_buffer_size = 1_kb;
+    static constexpr size_t response_buffe_initial_size = 1_kb;
     bool first_frame { true };
     MMS::http::v2::request *current_request { nullptr };
     MMS::http::v2::header_request *header_request { nullptr };
-    FullStreamAutoAlloc response_buffer { response_buffer_size };
-    uint8_t *response_itr { nullptr };
+    FullStreamAutoAlloc response_buffer { response_buffe_initial_size };
 
     MMS::http::v2::dynamic_table_t dynamic_table { };
     MMS::http::v2::settings_store peer_settings { };
@@ -40,8 +39,8 @@ public:
 
     void ProcessRead(const ConstStream &stream) override;
     void WriteError(const CODE code, const std::string &errortext) override;
-    void Write(const CODE code, const char *bodybuffer, size_t bodysize, const std::vector<std::pair<FIELD, std::string>> &fields) override;
-    void FinalizeWrite() { } // this is required for HTTP v2
+    void Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) override;
+    void FinalizeWrite(); // this is required for HTTP v2
 };
 
 class creator_t : public MMS::server::http::creator_t {

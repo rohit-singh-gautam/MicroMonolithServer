@@ -341,18 +341,19 @@ inline auto get_header_string(const ConstStream &stream) {
 
 inline size_t huffman_string_size(const ConstStream &stream) {
     size_t size = 7;
-    while(!stream.full()) size += static_huffman[*stream].code_len;
+    while(!stream.full()) size += static_huffman[*stream++].code_len;
     return size / 8;
 }
 
 void add_huffman_string(Stream &stream, const ConstStream &valstream);
 
 inline auto add_header_string(Stream &stream, const std::string &value) {
-    auto strstream = ConstStream { value };
+    auto strstream = ConstFullStream { value };
     size_t size = huffman_string_size(strstream);
     if (size < value.size()) {
         // Encoded string is smaller hence we are encoded
         encode_integer<7>(stream, static_cast<uint8_t>(0x80), size);
+        strstream.Reset();
         add_huffman_string(stream, strstream);
     } else {
         encode_integer<7>(stream, static_cast<uint8_t>(0x80), value.size());

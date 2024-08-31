@@ -79,6 +79,26 @@ bool Container::ReadHTTPConfiguration() {
             auto &ServerName = ServerNameJson.GetString();
             auto ptrconf = new server::http::configuration_t  { ServerName };
 
+            auto &MaxFrameSizeJson = confjson["Max Frame Size"];
+            if (!MaxFrameSizeJson.IsError()) {
+                ptrconf->max_frame_size = MaxFrameSizeJson.GetInt();
+            }
+
+            auto &http1json = confjson["HTTP1"];
+            if (!http1json.IsError()) {
+                ptrconf->http1 = http1json.GetBool();
+            }
+
+            auto &http2json = confjson["HTTP2"];
+            if (!http2json.IsError()) {
+                ptrconf->http2 = http2json.GetBool();
+            }
+
+            auto &http2prijson = confjson["HTTP2Pri"];
+            if (!http2prijson.IsError()) {
+                ptrconf->http2pri = http2prijson.GetBool();
+            }
+
             // Extracting Hander parameter and adding it to configuration.
             auto &Handlers = confjson["Handlers"];
             if (!Handlers.IsObject()) {

@@ -46,7 +46,8 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
             writer->WriteError(http::CODE::_404, errortext);
             return;
         }
-        writer->Write(http::CODE::_200, bodybuffer, bodysize, 
+        ConstStream stream { bodybuffer, bodysize };
+        writer->Write(http::CODE::_200, stream, 
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second });
     }

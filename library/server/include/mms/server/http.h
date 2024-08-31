@@ -37,6 +37,10 @@ struct configuration_t {
     prefixmap<std::string, std::unique_ptr<handler_t>> handlermap { };
     std::unordered_map<std::string, std::string> mimemap { };
     std::vector<std::string> defaultlist { };
+    uint32_t max_frame_size { 16384 };
+    bool http1 { true };
+    bool http2 { true };
+    bool http2pri { true };
     configuration_t(const std::string &ServerName) : ServerName { ServerName } { }
     configuration_t(configuration_t &&configuration) 
         : ServerName { std::move(configuration.ServerName) }, handlermap { std::move(configuration.handlermap) }, 
@@ -61,18 +65,19 @@ public:
 
 
     virtual void WriteError(const CODE code, const std::string &errortext) =  0;
-    virtual void Write(const CODE code, const char *bodybuffer, size_t bodysize, const std::vector<std::pair<FIELD, std::string>> &fields) = 0;
+    virtual void Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) = 0;
 
     template <typecheck::fieldentrypair... fieldlist>
-    inline void Write(const CODE code, const char *bodybuffer, size_t bodysize, const fieldlist& ... field) {
-        const std::vector<std::pair<FIELD, std::string>> fields { field... };
-        Write(code, bodybuffer, bodysize,  fields);
+    inline void Write(const CODE code, const ConstStream &bodystream, const fieldlist& ... field) {
+        std::deque<std::pair<FIELD, std::string>> fields { field... };
+        Write(code, bodystream, fields);
     }
 
     template <typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const std::string &body, const fieldlist& ... field) {
-        const std::vector<std::pair<FIELD, std::string>> fields { field... };
-        Write(code, body.c_str(), body.size(),  fields);
+        std::deque<std::pair<FIELD, std::string>> fields { field... };
+        ConstStream bodystream { body.c_str(), body.size() };
+        Write(code, bodystream,  fields);
     }
 };
 

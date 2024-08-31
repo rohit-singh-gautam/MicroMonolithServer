@@ -7,10 +7,12 @@
 
 #pragma once
 
+#include <http/httpdef.h>
 #include <http/hpack.h>
 #include <mms/base/maths.h>
 #include <iostream>
 #include <mms/listener.h>
+#include <ranges>
 
 namespace MMS::http::v2 {
 
@@ -183,16 +185,9 @@ public:
 
     constexpr frame() {}
 
-    constexpr frame(
-                uint32_t    length,
-                type_t      type,
-                flags_t     flags,
-                uint32_t    stream_identifier)
+    constexpr frame(uint32_t length, type_t type, flags_t flags, uint32_t stream_identifier)
             : length(changeEndian<std::endian::native, std::endian::big>(length) >> 8),
-              type(type),
-              flags(flags),
-              stream_identifier(changeEndian<std::endian::native, std::endian::big>(stream_identifier)),
-              reserved(0) {}
+              type(type), flags(flags), stream_identifier(changeEndian<std::endian::native, std::endian::big>(stream_identifier)), reserved(0) {}
 } __attribute__((packed)); // struct frame
 
 inline std::ostream& operator<<(std::ostream& os, const frame::type_t &http2frametype) {
@@ -276,9 +271,9 @@ private:
     uint32_t value;
 
     template <typename... ARGS>
-    static constexpr auto add(uint8_t *buffer, const identifier_t identifier, uint32_t value, const ARGS&... args) {
-        buffer = add(buffer, identifier, value);
-        return add(buffer, args...);
+    static constexpr void add(Stream &stream, const identifier_t identifier, uint32_t value, const ARGS&... args) {
+        add(stream, identifier, value);
+        add(stream, args...);
     }
 
 public:
@@ -290,10 +285,9 @@ public:
         this->value = changeEndian<std::endian::native, std::endian::big>(value);
     }
 
-    static inline auto add(uint8_t *buffer, const identifier_t identifier, const uint32_t value) {
-        settings *psettings = reinterpret_cast<settings *>(buffer);
+    static inline void add(Stream &stream, const identifier_t identifier, const uint32_t value) {
+        settings *psettings = reinterpret_cast<settings *>(stream.GetCurrAndIncrease(sizeof(settings)));
         psettings->init(identifier, value);
-        return buffer + sizeof(settings);
     }
 
     static constexpr size_t get_frame_len(size_t count) {
@@ -306,12 +300,11 @@ public:
     }
 
     template <typename... ARGS>
-    static inline auto add_frame(uint8_t *buffer, const ARGS&... args) {
+    static inline void add_frame(Stream &stream, const ARGS&... args) {
         constexpr uint32_t length = sizeof...(ARGS) * 3;
-        frame *pframe = reinterpret_cast<frame *>(buffer);
-        buffer += sizeof(frame);
+        frame *pframe = reinterpret_cast<frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
         pframe->init_frame(length, frame::type_t::SETTINGS, frame::flags_t::NONE, 0x00);
-        return add(buffer, args...);
+        add(stream, args...);
     }
 
 } __attribute__((packed)); // struct settings
@@ -525,7 +518,7 @@ inline void displaymem(std::ostream& os, const uint8_t *pstart, const uint8_t *c
     os << ']' << std::endl;
 }
 
-class header_request : public request_header {
+class header_request : public MMS::http::request {
 public:
     uint32_t stream_identifier;
     uint8_t weight;
@@ -536,15 +529,15 @@ public:
     header_request *previous;
 
     inline header_request(uint32_t stream_identifier = 0, uint8_t weight = 16)
-                :   request_header(VERSION::VER_2),
+                :   request(VERSION::VER_2),
                     stream_identifier(stream_identifier),
                     weight(weight),
                     error(frame::error_t::NO_ERROR),
                     next(nullptr), previous(nullptr) {}
 
     // Upgrade from http 1.1
-    inline header_request(request_header &&header)
-                :   request_header(std::move(header)),
+    inline header_request(request &&header)
+                :   request(std::move(header)),
                     stream_identifier(1),   // Upgrade stream is 1
                     weight(16),             // Setting up default
                     error(frame::error_t::NO_ERROR),
@@ -612,9 +605,7 @@ public:
         version = VERSION::VER_2;
         auto method_itr = fields.find(FIELD::Method);
         if (method_itr != fields.end()) {
-            method = to_method(method_itr->second);
-        } else {
-            method = METHOD::IGNORE_THIS;
+            SetMethod(method_itr->second);
         }
     }
 
@@ -651,7 +642,7 @@ public:
                     first(nullptr), last(nullptr), header_map(),
                     peer_settings(peer_settings), max_stream(0) {}
 
-    inline request(
+    /*inline request(
                 dynamic_table_t &dynamic_table,
                 MMS::http::v2::settings_store &peer_settings,
                 request_header &&header)
@@ -661,7 +652,7 @@ public:
     {
         header_request *pheader = new header_request(std::move(header));
         insert(pheader, 0x00);
-    }
+    }*/
 
     request(const request &) = delete;
     request &operator=(const request &) = delete;
@@ -718,14 +709,19 @@ public:
             const auto stream_identifier = pframe->get_stream_identifier();
             if (stream_identifier > max_stream) max_stream = stream_identifier;
             const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
-
-            auto frameStreamBuffer = stream.GetCurrAndIncrease(pframe->get_length());
-            ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  pframe->get_length() - padded_bytes};
+            const auto frame_length = pframe->get_length();
+            auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
+            ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
 
             switch(pframe->get_type()) {
+                // rfc7540 - 6.1.  DATA
+            case frame::type_t::DATA:
+                // TODO: data handling
+
+                break;
+
             case frame::type_t::HEADERS: {
                 // rfc7540 - 6.2.  HEADERS
-                auto frameStream = stream.GetSimpleConstStream();
                 uint32_t stream_dependency;
                 if (pframe->contains(frame::flags_t::PRIORITY)) {
                     stream_dependency = changeEndian<std::endian::big, std::endian::native>(*reinterpret_cast<const uint32_t *>(frameStream.curr()));
@@ -799,6 +795,7 @@ public:
                 break;
             }
             case frame::type_t::PUSH_PROMISE: {
+                // TODO:: Implement this
                 // Push promise is not supported we will ignore this
                 goaway::add_frame(
                                 writestream,
@@ -921,5 +918,9 @@ template <> constexpr void request::copy_http_header_response<FIELD::Status, COD
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_400>(Stream &stream) { *stream++ = 0x80 + 12; }
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_404>(Stream &stream) { *stream++ = 0x80 + 13; }
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_500>(Stream &stream) { *stream++ = 0x80 + 14; }
+
+void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::deque<std::pair<FIELD, std::string>> &fields);
+
+void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const ConstStream &bodystream, uint32_t stream_identifier);
 
 } // namespace MMS::http::v2

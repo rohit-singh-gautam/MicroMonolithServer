@@ -1,6 +1,6 @@
 {
     "System": {
-        "Thread Count" : 4,
+        "Thread Count" : 1,
     },
     "Servers" : {
         "TCP HTTP" : {
@@ -44,6 +44,10 @@
         },
         "HTTP" : {
             "Default" : {
+                "Max Frame Size": 16384,
+                "HTTP2": true,
+                "HTTP1": true,
+                "HTTP2Pri": true,
                 "Server Name": "Micro Monolith Server 1.0",
                 "Handlers" : {
                     "/": { "Type": "File Handler", "File Path": "conf/www1" },

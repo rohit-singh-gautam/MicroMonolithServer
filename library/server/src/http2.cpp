@@ -6,65 +6,90 @@
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mms/server/http2.h>
+#include <http/http2.h>
 #include <format>
 
 namespace MMS::server::http::v2 {
 
 void protocol_t::WriteError(const CODE code, const std::string &errortext) {
-    constexpr uint64_t max_date_string_size = 92;
-    std::time_t now_time = std::time(0);   // get time now
-    std::tm* now_tm = std::gmtime(&now_time);
-    uint8_t date_str[max_date_string_size];
-    size_t date_str_size = strftime((char *)date_str, max_date_string_size, "%a, %d %b %Y %H:%M:%S %Z", now_tm) + 1;
-    if (current_request && header_request) {
-        rohit::http::v2::frame *pframe = (rohit::http::v2::frame *)response_itr;
-        response_itr += sizeof(rohit::http::v2::frame);
-        response_itr = current_request.copy_http_header_response(response_itr, );
-        response_itr = http2_add_404_Not_Found(response_itr, current_request, header_request, MMS::net::get_local_ipv6_addr(GetFD()), date_str, date_str_size);
-    } else {
-        auto res = response::CreateErrorResponse(code, errortext, configuration->ServerName);
-        Write(res.to_string());
+    std::deque<std::pair<FIELD, std::string>> fields {
+        { FIELD::Content_Type, std::string { "text/html" } }
+    };
+
+    auto body = std::format(
+        "<html>"
+        "<head><title>{0}</title></head>"
+        "<h1>{2}</h1>"
+        "<h2>{0}</h2>"
+        "<pre>{1}</pre>"
+        "</html>",
+        MMS::http::to_string(code), errortext, configuration->ServerName
+    );
+
+    auto icode = static_cast<uint16_t>(code);
+    if (icode >= 400 && icode <= 599) fields.emplace_back( FIELD::Connection, std::string { "close" } );
+    if (icode == 405) fields.emplace_back( FIELD::Connection, std::string { "GET, PRI" } );
+
+    Write(code, ConstStream { body }, fields);
+}
+
+void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::deque<std::pair<FIELD, std::string>> &fields) {
+    fields.emplace_front(FIELD::Server, configuration->ServerName);
+    fields.emplace_back(FIELD::Content_Length, std::to_string(bodystream.remaining_buffer()));
+    MMS::http::v2::CreateHeaderFrame(dynamic_table, response_buffer, header_request->stream_identifier, code, fields);
+    auto bodysize = bodystream.remaining_buffer();
+    response_buffer.Reserve(bodysize + (bodysize / (configuration->max_frame_size - sizeof(MMS::http::v2::frame)) * sizeof(MMS::http::v2::frame)));
+    MMS::http::v2::CreateBodyFrame(response_buffer, configuration->max_frame_size, bodystream, header_request->stream_identifier);
+}
+
+void protocol_t::FinalizeWrite() {
+    if (!response_buffer.empty()) {
+        auto writestream = response_buffer.ReturnOldAndAlloc(response_buffe_initial_size);
+        Write<false>(writestream.begin(), writestream.index());
     }
 }
 
 void protocol_t::ProcessRead(const ConstStream &stream) {
-    response_itr = response_buffer.get();
+    response_buffer.Reset();
     try {
-        // TODO: Optimize memory utilized by this.
-        // Currently we are allocating huge memory
-        http::v2::request request { dynamic_table, peer_settings };
-        auto ret = request.parse(buffer, buffer + size);
+        if (first_frame) {
+            // TODO: Pull setting range from configurations
+            MMS::http::v2::settings::add_frame(response_buffer,
+                MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, 0,
+                MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, 10,
+                MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, 1048576,
+                MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, 2048
+            );
+            first_frame = false;
+        }
+        MMS::http::v2::request request { dynamic_table, peer_settings };
+        auto ret = request.parse(stream, response_buffer);
+        current_request = &request;
         if (ret != err_t::HTTP2_INITIATE_GOAWAY) {
-            std::string newpath { };
-            auto &handler = configuration->handlermap.search(request.GetPath(), newpath);
-            if (handler == nullptr) {
-                WriteError(CODE::_404,  std::format("Path {} not found", request.GetPath()));
-            }
-            else {
-                current_request = &request;
-                handler->ProcessRead(request, newpath, this);
+            auto header = request.get_first_header();
+            while(header) {
+                header_request = header;
+                std::string newpath { };
+                auto &handler = configuration->handlermap.search(header->GetPath(), newpath);
+                if (handler == nullptr) {
+                    WriteError(CODE::_404,  std::format("Path {} not found", header->GetPath()));
+                }
+                else {
+                    handler->ProcessRead(*header, newpath, this);
+                }
+                header = header->get_next();
             }
         }
     }
     catch(http_parser_failed_t &parser_failed) {
-        WriteError(CODE::_400, parser_failed.to_string(reinterpret_cast<const char *>(buffer)));
+        WriteError(CODE::_400, parser_failed.to_string());
     }
 
-    response_itr = nullptr;
-    body_buffer = nullptr;
     current_request = nullptr;
+    header_request = nullptr;
+
     FinalizeWrite();
 }
 
-
-void protocol_t::Write(const CODE code, const char *bodybuffer, size_t bodysize, const std::vector<std::pair<FIELD, std::string>> &fields) {
-    auto response = response::CreateBasicResponse(code);
-    std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
-    response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
-    response.add_field(FIELD::Content_Length, bodysize);
-    Write(
-        listener::write_entry_const { response.to_string()},
-        listener::write_entry_const { bodybuffer, bodysize });
-}
 
 } // namespace MMS::server::http

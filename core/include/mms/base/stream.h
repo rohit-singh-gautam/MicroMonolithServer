@@ -48,6 +48,8 @@ public:
     virtual constexpr inline uint8_t *GetCurrAndIncrease(const size_t len) { auto temp = _curr; _curr += len; return temp; }
     virtual constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const { auto temp = _curr; _curr += len; return temp; }
 
+    size_t GetSizeFrom(const auto *start) const { return static_cast<size_t>(_curr - reinterpret_cast<const uint8_t *>(start)); }
+
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Weffc++"
     virtual constexpr inline uint8_t *operator++(int) { uint8_t *temp = _curr; ++_curr; return temp; };
@@ -83,8 +85,8 @@ protected:
     void CheckOverflow() const { if (_curr >= _end) throw StreamOverflowException { }; }
 
 public:
-    constexpr ConstStream(const uint8_t *_begin, const uint8_t *_end) : _curr { _begin }, _end { _end } { }
-    constexpr ConstStream(const uint8_t *_begin, size_t size) : _curr { _begin }, _end { _begin + size } { }
+    constexpr ConstStream(const auto *_begin, const auto *_end) : _curr { reinterpret_cast<const uint8_t *>(_begin) }, _end { reinterpret_cast<const uint8_t *>(_end) } { }
+    constexpr ConstStream(const auto *_begin, size_t size) : _curr { reinterpret_cast<const uint8_t *>(_begin) }, _end { reinterpret_cast<const uint8_t *>(_begin) + size } { }
     constexpr ConstStream(Stream &&stream) : _curr { stream._curr }, _end { stream._end } { stream._curr = stream._end = nullptr; }
     constexpr ConstStream(const std::string &string) : _curr { reinterpret_cast<const uint8_t *>(string.c_str()) }, _end { _curr + string.size() } { }
     ConstStream(const Stream &stream) : _curr { stream._curr }, _end { stream._end } { }
@@ -112,6 +114,8 @@ public:
     virtual constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) { auto temp = _curr; _curr += len; return temp; }
     virtual constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const { auto temp = _curr; _curr += len; return temp; }
 
+    size_t GetSizeFrom(const auto *start) const { return static_cast<size_t>(_curr - reinterpret_cast<const uint8_t *>(start)); }
+
 
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Weffc++"
@@ -134,7 +138,7 @@ public:
     bool CheckCapacity(const size_t size) const { return remaining_buffer() >= size; }
 
     void UpdateCurr(uint8_t *_curr) const { this->_curr = _curr; }
-    auto GetRawCurrentBuffer() { return std::make_pair(_curr, remaining_buffer()); }
+    auto GetRawCurrentBuffer() const { return std::make_pair(_curr, remaining_buffer()); }
 };
 
 constexpr ConstStream Stream::GetSimpleConstStream() { return ConstStream { _curr, _end }; }
@@ -155,6 +159,7 @@ protected:
     void CheckUnderflow() const { if (_curr == _begin) throw StreamUnderflowException { }; }
 public:
     constexpr FullStream(uint8_t *_begin, uint8_t *_end) : Stream {_begin, _end}, _begin { _begin } { }
+    constexpr FullStream(uint8_t *_begin, uint8_t *_end, uint8_t *_curr) : Stream {_curr, _end}, _begin { _begin } { }
     constexpr FullStream(uint8_t *_begin, size_t size) :  Stream {_begin, size}, _begin { _begin } { }
     constexpr FullStream(FullStream &&stream) : Stream { std::move(stream) }, _begin { stream._begin } { stream._begin = nullptr; }
     FullStream(const FullStream &stream) : Stream { stream }, _begin { stream._begin } { }
@@ -265,13 +270,6 @@ public:
     FullStreamAutoAlloc(const size_t size) : FullStream { reinterpret_cast<uint8_t *>(malloc(size)), size } { if (_begin == nullptr) throw MemoryAllocationException { }; }
     FullStreamAutoAlloc() : FullStream { nullptr, nullptr } { };
 
-    void Alloc(const size_t size) {
-        _begin = reinterpret_cast<uint8_t *>(malloc(size));
-        if (_begin == nullptr) throw MemoryAllocationException { }; 
-        _curr = _begin;
-        _end = _begin + size;
-    }
-
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Weffc++"
     constexpr inline Stream &operator--() override { CheckUnderflow(); --_curr; return *this;}
@@ -292,6 +290,14 @@ public:
     constexpr inline uint8_t *GetCurrAndIncrease(const size_t len) override { CheckResize(len); auto temp = _curr; _curr += len; return temp; }
     constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const override { auto temp = _curr; _curr += len; CheckOverflow(); return temp; }
 
+    auto ReturnOldAndAlloc(const size_t size) { 
+        FullStream stream { _begin, _end, _curr };
+        _begin = reinterpret_cast<uint8_t *>(malloc(size));
+        if (_begin == nullptr) throw MemoryAllocationException { }; 
+        _curr = _begin;
+        _end = _begin + size;
+        return stream;
+    }
 };
 
 

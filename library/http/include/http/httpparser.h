@@ -62,18 +62,45 @@ public:
 
 class request_header : public header {
 protected:
+    static const std::string empty;
+
     constexpr request_header() { }
     constexpr request_header(VERSION version) : header(version) {}
-
-    METHOD method { };
-    std::string path { };
 
     void parse_request_uri(const ConstFullStream &);
     void parse_method(const ConstFullStream &);
     void parse_request_line(const ConstFullStream &);
+
+    void SetMethod(const METHOD method) { fields.emplace(FIELD::Method, to_string(method)); }
+    void SetMethod(const std::string &method) { fields.emplace(FIELD::Method, method); }
+    void SetMethod(const std::string &&method) { fields.emplace(FIELD::Method, std::move(method)); }
+    void SetPath(const std::string &path) { fields.emplace(FIELD::Path, path); }
+    void SetPath(const std::string &&path) { fields.emplace(FIELD::Path, std::move(path)); }
+
 public: 
-    constexpr auto GetMethod() const { return method; }
-    constexpr const auto &GetPath() const { return path; }
+    constexpr auto GetMethod() const {
+        auto field_itr = fields.find(FIELD::Method);
+        if (field_itr != fields.end()) {
+            return to_method(field_itr->second);
+        }
+        return METHOD::IGNORE_THIS;
+    }
+
+    constexpr auto GetMethodStr() const {
+        auto field_itr = fields.find(FIELD::Method);
+        if (field_itr != fields.end()) {
+            return field_itr->second;
+        }
+        return empty;
+    }
+
+    constexpr const auto &GetPath() const { 
+        auto field_itr = fields.find(FIELD::Path);
+        if (field_itr != fields.end()) {
+            return field_itr->second;
+        }
+        return empty;
+     }
 
     constexpr auto upgrade_version() {
         auto field_itr = fields.find(FIELD::Upgrade);
@@ -90,6 +117,9 @@ public:
 
 class response;
 class request : public request_header {
+protected:
+    using request_header::request_header;
+
     friend class http_request_parser;
     std::string body { };
 

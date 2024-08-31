@@ -37,7 +37,7 @@ node *created_huffman_tree() {
     return root;
 }
 
-std::string get_huffman_string(const Stream &stream) {
+std::string get_huffman_string(const ConstStream &stream) {
     std::string value;
     const node *curr = huffman_root;
     while(!stream.full()) {
