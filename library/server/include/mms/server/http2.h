@@ -24,7 +24,6 @@ using MMS::server::http::typecheck::fieldentrypair;
 class protocol_t : public MMS::server::http::protocol_t{
     static constexpr size_t response_buffe_initial_size = 1_kb;
     bool first_frame { true };
-    MMS::http::v2::request *current_request { nullptr };
     MMS::http::v2::header_request *header_request { nullptr };
     FullStreamAutoAlloc response_buffer { response_buffe_initial_size };
 
@@ -36,6 +35,10 @@ public:
     using net::protocol_t::Write;
     protocol_t(const protocol_t &) = delete;
     protocol_t &operator=(const protocol_t &) = delete;
+
+    void PrepareFirstFrame();
+    void AddBase64Settings(const std::string &settings);
+    void Upgrade(MMS::http::request &&);
 
     void ProcessRead(const ConstStream &stream) override;
     void WriteError(const CODE code, const std::string &errortext) override;

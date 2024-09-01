@@ -18,10 +18,12 @@ protected:
     uint8_t * _end;
 
     void CheckOverflow() const { if (_curr >= _end) throw StreamOverflowException { }; }
+    void CheckOverflow(size_t len) const { if (_curr + len > _end) throw StreamOverflowException { }; }
 
+    Stream() : _curr { nullptr }, _end { nullptr } { }
 public:
-    constexpr Stream(uint8_t *_begin, uint8_t *_end) : _curr { _begin }, _end { _end } { }
-    constexpr Stream(uint8_t *_begin, size_t size) : _curr { _begin }, _end { _begin + size } { }
+    constexpr Stream(auto *_begin, auto *_end) : _curr { reinterpret_cast<uint8_t *>(_begin) }, _end { reinterpret_cast<uint8_t *>(_end) } { }
+    constexpr Stream(auto *_begin, size_t size) : _curr { reinterpret_cast<uint8_t *>(_begin) }, _end { _curr + size } { }
     constexpr Stream(Stream &&stream) : _curr { stream._curr }, _end { stream._end } { stream._curr = stream._end = nullptr; }
     Stream(const Stream &stream) : _curr { stream._curr }, _end { stream._end } { }
     virtual ~Stream() = default;
@@ -75,6 +77,11 @@ public:
     void UpdateCurr(uint8_t *_curr) const { this->_curr = _curr; }
 
     auto GetRawCurrentBuffer() { return std::make_pair(_curr, remaining_buffer()); }
+
+    virtual constexpr inline void Reserve(const size_t len) { CheckOverflow(len); }
+    constexpr inline void Copy(const ConstStream &source);
+    constexpr inline void Copy(const auto *begin, const auto *end) { Reserve(static_cast<size_t>(end - begin)); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(end), _curr); }
+    constexpr inline void Copy(const auto *begin, size_t size) { Reserve(size); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(begin) + size, _curr); }
 };
 
 class ConstStream {
@@ -141,6 +148,11 @@ public:
     auto GetRawCurrentBuffer() const { return std::make_pair(_curr, remaining_buffer()); }
 };
 
+constexpr inline void Stream::Copy(const ConstStream &source) {
+    Reserve(source.remaining_buffer());
+    _curr = std::copy(source.curr(), source.end(), _curr);
+}
+
 constexpr ConstStream Stream::GetSimpleConstStream() { return ConstStream { _curr, _end }; }
 constexpr const ConstStream Stream::GetSimpleConstStream() const { return ConstStream { _curr, _end }; }
 
@@ -150,6 +162,7 @@ public:
     using Stream::Stream;
     constexpr inline uint8_t &operator*() override { CheckOverflow(); return *_curr; }
     constexpr inline uint8_t operator*() const override { CheckOverflow(); return *_curr; }
+    constexpr inline void Reserve(const size_t) override { }
 };
 
 class FullStream : public Stream {
@@ -157,10 +170,12 @@ protected:
     uint8_t * _begin;
 
     void CheckUnderflow() const { if (_curr == _begin) throw StreamUnderflowException { }; }
+
+    FullStream() : Stream { }, _begin { nullptr } { }
 public:
-    constexpr FullStream(uint8_t *_begin, uint8_t *_end) : Stream {_begin, _end}, _begin { _begin } { }
-    constexpr FullStream(uint8_t *_begin, uint8_t *_end, uint8_t *_curr) : Stream {_curr, _end}, _begin { _begin } { }
-    constexpr FullStream(uint8_t *_begin, size_t size) :  Stream {_begin, size}, _begin { _begin } { }
+    constexpr FullStream(auto *_begin, auto *_end) : Stream {reinterpret_cast<uint8_t *>(_begin), reinterpret_cast<uint8_t *>(_end)}, _begin { reinterpret_cast<uint8_t *>(_begin) } { }
+    constexpr FullStream(auto *_begin, auto *_end, auto *_curr) : Stream {reinterpret_cast<uint8_t *>(_curr), reinterpret_cast<uint8_t *>(_end)}, _begin { reinterpret_cast<uint8_t *>(_begin) } { }
+    constexpr FullStream(auto *_begin, size_t size) :  Stream {reinterpret_cast<uint8_t *>(_begin), size}, _begin { reinterpret_cast<uint8_t *>(_begin) } { }
     constexpr FullStream(FullStream &&stream) : Stream { std::move(stream) }, _begin { stream._begin } { stream._begin = nullptr; }
     FullStream(const FullStream &stream) : Stream { stream }, _begin { stream._begin } { }
 
@@ -190,8 +205,8 @@ protected:
 
     void CheckUnderflow() const { if (_curr == _begin) throw StreamUnderflowException { }; }
 public:
-    constexpr ConstFullStream(const uint8_t *_begin, const uint8_t *_end) : ConstStream {_begin, _end}, _begin { _begin } { }
-    constexpr ConstFullStream(const uint8_t *_begin, size_t size) :  ConstStream {_begin, size}, _begin { _begin } { }
+    constexpr ConstFullStream(const auto *_begin, const auto *_end) : ConstStream {reinterpret_cast<const uint8_t *>(_begin), reinterpret_cast<const uint8_t *>(_end)}, _begin { reinterpret_cast<const uint8_t *>(_begin) } { }
+    constexpr ConstFullStream(const auto *_begin, size_t size) :  ConstStream {reinterpret_cast<const uint8_t *>(_begin), size}, _begin { reinterpret_cast<const uint8_t *>(_begin) } { }
     constexpr ConstFullStream(const std::string &string) :  ConstStream {reinterpret_cast<const uint8_t *>(string.c_str()), string.size()}, _begin { _curr } { }
     constexpr ConstFullStream(ConstFullStream &&stream) : ConstStream { std::move(stream) }, _begin { stream._begin } { stream._begin = nullptr; }
     ConstFullStream(const ConstFullStream &stream) : ConstStream { stream }, _begin { stream._begin } { }
@@ -268,7 +283,7 @@ class FullStreamAutoAlloc : public FullStream {
 public:
     using FullStream::FullStream;
     FullStreamAutoAlloc(const size_t size) : FullStream { reinterpret_cast<uint8_t *>(malloc(size)), size } { if (_begin == nullptr) throw MemoryAllocationException { }; }
-    FullStreamAutoAlloc() : FullStream { nullptr, nullptr } { };
+    FullStreamAutoAlloc() : FullStream { } { }
 
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Weffc++"
@@ -285,7 +300,7 @@ public:
     #pragma GCC diagnostic pop
 
 
-    constexpr inline void Reserve(const size_t len) { CheckResize(len); }
+    constexpr inline void Reserve(const size_t len) override { CheckResize(len); }
 
     constexpr inline uint8_t *GetCurrAndIncrease(const size_t len) override { CheckResize(len); auto temp = _curr; _curr += len; return temp; }
     constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const override { auto temp = _curr; _curr += len; CheckOverflow(); return temp; }

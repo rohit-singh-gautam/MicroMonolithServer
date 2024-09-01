@@ -26,12 +26,18 @@ namespace constant {
 
 } // namespace constant
 
-constexpr char connection_preface[] = {
+constexpr char connection_preface[] {
         'P', 'R', 'I', ' ', '*', ' ', 
         'H', 'T', 'T', 'P', '/', '2', '.', '0',
         '\r', '\n', '\r', '\n', 'S', 'M', '\r', '\n', '\r', '\n'};
 
-constexpr size_t connection_preface_size = std::size(connection_preface);
+constexpr char connection_upgrade[] {
+    "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n"
+};
+
+constexpr size_t connection_preface_size { std::size(connection_preface) };
+
+constexpr size_t connection_upgrade_size { sizeof(connection_upgrade) - 1 };
 
 
 // This is definition of frame
@@ -641,18 +647,6 @@ public:
                 :   dynamic_table(dynamic_table),
                     first(nullptr), last(nullptr), header_map(),
                     peer_settings(peer_settings), max_stream(0) {}
-
-    /*inline request(
-                dynamic_table_t &dynamic_table,
-                MMS::http::v2::settings_store &peer_settings,
-                request_header &&header)
-        :   dynamic_table(dynamic_table),
-                    first(nullptr), last(nullptr), header_map(),
-                    peer_settings(peer_settings), max_stream(0)
-    {
-        header_request *pheader = new header_request(std::move(header));
-        insert(pheader, 0x00);
-    }*/
 
     request(const request &) = delete;
     request &operator=(const request &) = delete;

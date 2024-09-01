@@ -20,8 +20,7 @@
 namespace MMS::http {
 class header {
 protected:
-
-    const std::string empty { };
+    static const std::string empty;
     VERSION version { };
     fields_t fields { };
 
@@ -32,6 +31,7 @@ protected:
 public:
     constexpr header() { }
     constexpr header(VERSION version) : version { version } { }
+    header(header &&other) : version { other.version }, fields { std::move(other.fields) } { }
 
     const auto  &GetField(FIELD field) const {
         const auto field_itr = fields.find(field);
@@ -57,16 +57,7 @@ public:
         fields.emplace(field, std::to_string(value));
     }
 
-
-}; // class header
-
-class request_header : public header {
 protected:
-    static const std::string empty;
-
-    constexpr request_header() { }
-    constexpr request_header(VERSION version) : header(version) {}
-
     void parse_request_uri(const ConstFullStream &);
     void parse_method(const ConstFullStream &);
     void parse_request_line(const ConstFullStream &);
@@ -116,15 +107,16 @@ public:
 }; // class request_header
 
 class response;
-class request : public request_header {
+class request : public header {
 protected:
-    using request_header::request_header;
+    using header::header;
 
     friend class http_request_parser;
     std::string body { };
 
 public:
     request(const ConstFullStream &);
+    request(request &&other) : header { std::move(other) }, body { std::move(body) } { }
 
     constexpr const auto &GetBody() const { return body; }
 

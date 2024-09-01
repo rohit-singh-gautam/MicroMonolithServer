@@ -130,6 +130,10 @@ namespace MMS {
     LOGGER_ENTRY(HTTP_CREATED_PROTOCOL, DEBUG, TCP_SERVER, "FD %i: HTTP Protocol created with request served") \
     LOGGER_ENTRY(HTTP_UNKNOWN_EXTENSION, DEBUG, TCP_SERVER, "FD %i: Unknown HTTP content type using text/plain") \
     \
+    LOGGER_ENTRY(HTTP2_PRI_KNOWLEDGE, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol created with prior knowledge") \
+    LOGGER_ENTRY(HTTP2_UPGRADE, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol upgrade from HTTP 1.1") \
+    LOGGER_ENTRY(HTTP2_UPGRADE_NO_PRI, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol upgrade expecting HTTP Magic as first packet") \
+    \
     LOGGER_ENTRY(TEST_GUID_LOG, INFO, TEST, "IOT Error '%vg' caps '%vG'") \
     LOGGER_ENTRY(TEST_FLOAT_LOGS, INFO, TEST, "Test float %%%hf, double %f") \
     LOGGER_ENTRY(TEST_INTEGER_LOGS, INFO, TEST, "Test %%, Integer %i, long %li, long long %lli, Short %hi, Short Short %hhi, Unsigned %u, long %lu, long long %llu, Short %hu, Short Short %hhu") \

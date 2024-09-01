@@ -28,7 +28,7 @@ const std::unordered_map<std::string, CODE> code_map_raw = {
 #undef HTTP_CODE_ENTRY
 };
 
-const std::string request_header::empty { };
+const std::string header::empty { };
 
 std::string request::to_string() {
     std::string ret {};
@@ -179,20 +179,20 @@ void header::parse_fields(const ConstFullStream &stream) {
     }
 }
 
-void request_header::parse_method(const ConstFullStream &stream) {
+void header::parse_method(const ConstFullStream &stream) {
     auto methodtext = parse_till_space(stream);
     SetMethod(std::move(methodtext));
     if (GetMethod() == METHOD::IGNORE_THIS) throw MMS::http_parser_failed_t(stream);
 }
 
-void request_header::parse_request_uri(const ConstFullStream &stream) {
+void header::parse_request_uri(const ConstFullStream &stream) {
     auto requesturi = parse_till_space(stream);
     SetPath(std::move(requesturi));
 }
 
 // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
 // We will allow CR
-void request_header::parse_request_line(const ConstFullStream &stream) {
+void header::parse_request_line(const ConstFullStream &stream) {
     parse_method(stream);
     parse_skip_one(stream);
     parse_request_uri(stream);

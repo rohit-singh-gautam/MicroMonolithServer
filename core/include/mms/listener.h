@@ -91,7 +91,7 @@ public:
 
     template <bool CopyBuffer = true, typename buffertype>
     inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {
-        if constexpr (CopyBuffer) WriteWithCopy(buffer, bytesize, byteoffset);
+        if constexpr (CopyBuffer) WriteWithCopy(reinterpret_cast<const uint8_t *>(buffer), bytesize, byteoffset);
         else WriteNoCopy(buffer, bytesize, byteoffset);
     }
 

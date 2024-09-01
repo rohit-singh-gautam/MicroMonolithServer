@@ -49,22 +49,53 @@ void protocol_t::FinalizeWrite() {
     }
 }
 
+void protocol_t::AddBase64Settings(const std::string &settings) {
+    peer_settings.parse_base64_frame( ConstStream { settings.c_str(), settings.size() });
+}
+
+void protocol_t::PrepareFirstFrame() {
+    if (first_frame) {
+        // TODO: Pull setting range from configurations
+        MMS::http::v2::settings::add_frame(response_buffer,
+            MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, 0,
+            MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, 10,
+            MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, 1048576,
+            MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, 2048
+        );
+        first_frame = false;
+    }
+}
+
+void protocol_t::Upgrade(MMS::http::request &&request) {
+    try {
+        response_buffer.Copy(MMS::http::v2::connection_upgrade, MMS::http::v2::connection_upgrade_size);
+        PrepareFirstFrame();
+        MMS::http::v2::settings::add_ack_frame(response_buffer);
+        std::string newpath { };
+        auto &handler = configuration->handlermap.search(request.GetPath(), newpath);
+        if (handler == nullptr) {
+            WriteError(CODE::_404,  std::format("Path {} not found", request.GetPath()));
+        }
+        else {
+            MMS::http::v2::header_request newreq { std::move(request) };
+            header_request = &newreq;
+            handler->ProcessRead(newreq, newpath, this);
+            header_request = nullptr;
+        }
+    }
+    catch(http_parser_failed_t &parser_failed) {
+        WriteError(CODE::_400, parser_failed.to_string());
+    }
+    
+    FinalizeWrite();
+}
+
 void protocol_t::ProcessRead(const ConstStream &stream) {
     response_buffer.Reset();
     try {
-        if (first_frame) {
-            // TODO: Pull setting range from configurations
-            MMS::http::v2::settings::add_frame(response_buffer,
-                MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, 0,
-                MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, 10,
-                MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, 1048576,
-                MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, 2048
-            );
-            first_frame = false;
-        }
+        PrepareFirstFrame();
         MMS::http::v2::request request { dynamic_table, peer_settings };
         auto ret = request.parse(stream, response_buffer);
-        current_request = &request;
         if (ret != err_t::HTTP2_INITIATE_GOAWAY) {
             auto header = request.get_first_header();
             while(header) {
@@ -85,7 +116,6 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
         WriteError(CODE::_400, parser_failed.to_string());
     }
 
-    current_request = nullptr;
     header_request = nullptr;
 
     FinalizeWrite();

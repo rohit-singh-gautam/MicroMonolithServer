@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 namespace MMS::server::http {
+using MMS::http::VERSION;
 using MMS::http::CODE;
 using MMS::http::FIELD;
 using MMS::http::METHOD;
