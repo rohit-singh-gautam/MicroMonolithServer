@@ -122,4 +122,11 @@ void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vect
         listener::write_entry_const { bodybuffer, bodysize });
 }
 
+void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) {
+    auto response = response::CreateBasicResponse(code);
+    std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
+    response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
+    Write(response.to_string());
+}
+
 } // namespace MMS::server::http

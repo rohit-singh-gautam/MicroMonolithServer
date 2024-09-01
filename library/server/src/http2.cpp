@@ -42,6 +42,11 @@ void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vect
     MMS::http::v2::CreateBodyFrame(response_buffer, configuration->max_frame_size, bodystream, header_request->stream_identifier);
 }
 
+void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) {
+    fields.emplace_back(FIELD::Server, configuration->ServerName);
+    MMS::http::v2::CreateHeaderFrame(dynamic_table, response_buffer, header_request->stream_identifier, code, fields);
+}
+
 void protocol_t::FinalizeWrite() {
     if (!response_buffer.empty()) {
         auto writestream = response_buffer.ReturnOldAndAlloc(response_buffe_initial_size);

@@ -33,6 +33,7 @@ public:
     void ProcessRead(const ConstStream &stream) override;
     void WriteError(const CODE code, const std::string &errortext) override;
     void Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) override;
+    void Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) override;
 };
 
 class creator_t : public MMS::server::http::creator_t {

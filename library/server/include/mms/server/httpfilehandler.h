@@ -7,25 +7,44 @@
 
 #pragma once
 #include <mms/server/http.h>
+#include <mms/base/maths.h>
 #include <filesystem>
 #include <list>
 #include <unordered_map>
 #include <memory>
 
 namespace MMS::server {
-struct filecacheentry {
-    std::filesystem::path path;
-    size_t size;
-    uint8_t *buffer;
 
+constexpr size_t etag_size = to_string64_hash<uint64_t>();
+
+inline uint64_t get_etag(int fd) {
+    struct stat statbuf;
+    auto ret = fstat(fd, &statbuf);
+    if (ret == -1) throw exception_t(err_t::BAD_FILE_DESCRIPTOR);
+
+    uint64_t nanos = (uint64_t)statbuf.st_mtim.tv_sec * 1000000000 + (uint64_t)statbuf.st_mtim.tv_nsec;
+    nanos = nanos & (~0xfffff);
+    nanos += statbuf.st_size;
+
+    return nanos;
+}
+
+struct filecacheentry {
+    std::filesystem::path path { };
+    size_t size { 0 };
+    uint8_t *buffer { nullptr };
+    uint64_t etag { 0 };
+
+    filecacheentry() { }
     filecacheentry(const filecacheentry &cc) = delete;
     filecacheentry &operator=(const filecacheentry &) = delete;
-    filecacheentry(filecacheentry &&cacheentry) : path { cacheentry.path }, size { cacheentry.size }, buffer { cacheentry.buffer } {
+    filecacheentry(filecacheentry &&cacheentry) : path { std::move(cacheentry.path) }, size { cacheentry.size }, buffer { cacheentry.buffer }, etag { cacheentry.etag } {
         cacheentry.buffer = nullptr;
         cacheentry.size = 0;
+        cacheentry.etag = 0;
     }
 
-    filecacheentry(const std::filesystem::path &path, size_t size, uint8_t *buffer) : path { path }, size { size }, buffer { buffer } { }
+    filecacheentry(const std::filesystem::path &path, size_t size, uint8_t *buffer, uint64_t etag) : path { path }, size { size }, buffer { buffer }, etag { etag } { }
 
     ~filecacheentry() {
         if (buffer) free(buffer);
@@ -43,16 +62,16 @@ class filecache {
 public:
     filecache(const size_t max_memory_size = std::numeric_limits<size_t>::max()) : max_size { max_memory_size } { }
 
-    std::pair<const char *, size_t> GetCache(const std::filesystem::path &path) {
+    const filecacheentry &GetCache(const std::filesystem::path &path) {
         auto cacheitr = cachemap.find(path);
         if (cacheitr == std::end(cachemap)) {
             if (!std::filesystem::is_regular_file(path)) {
-                return {nullptr, 0};
+                return empty;
             }
             int fd = open(path.c_str(), O_RDONLY);
             if ( fd == -1 ) {
                 perror("Unable to open file");
-                return { nullptr, 0 };
+                return empty;
             }
 
             struct stat bufstat;
@@ -60,7 +79,9 @@ public:
 
             size_t size = bufstat.st_size;
             auto buffer = malloc(size);
-            auto read_size = read(fd, buffer, size);
+            const auto read_size = read(fd, buffer, size);
+            const auto etag = get_etag(fd);
+            close(fd);
             current_size += read_size;
             if (current_size > max_size) {
                 auto &cacheback = cachelist.back();
@@ -68,18 +89,18 @@ public:
                 cachemap.erase(cacheback.path);
                 current_size -= cacheback.size;
             }
-            auto bufferentry = filecacheentry {path, size, reinterpret_cast<uint8_t *>(buffer)};
+            auto bufferentry = filecacheentry {path, size, reinterpret_cast<uint8_t *>(buffer), etag};
             cachelist.push_front(std::move(bufferentry));
             auto cachelistitr = std::begin(cachelist);
             cachemap.insert(std::pair(path, cachelistitr));
-            return { reinterpret_cast<char *>(buffer), size };
+            return *cachelistitr;
         } else {
             auto bufferentry = cacheitr->second;
-            return { reinterpret_cast<char *>(bufferentry->buffer), bufferentry->size };
+            return *bufferentry;
         }
     }
 
-
+    static const filecacheentry empty;
 };
 
 
@@ -92,19 +113,40 @@ public:
     httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const http::configuration_t &conf)
         : cache { cache }, rootpath { std::filesystem::canonical(rootpath) }, conf { conf } { }
 
-    auto GetFromfileCahce(const std::filesystem::path &fullpath) {
+    const filecacheentry &GetFromfileCahce(const std::filesystem::path &fullpath) {
         if (std::filesystem::is_directory(fullpath)) {
             for(const auto &defaultfile: conf.defaultlist) {
                 auto newpath = fullpath;
                 newpath /= defaultfile;
-                auto [buffer, size] = cache.GetCache(newpath);
-                if (buffer) return std::make_tuple(buffer, size, newpath);
+                return cache.GetCache(newpath);
             }
-            return std::tuple<const char *, size_t, std::filesystem::path>(nullptr, 0, {});
+            return filecache::empty;
         } else {
-            auto [buffer, size] = cache.GetCache(fullpath);
-            return std::make_tuple(buffer, size, fullpath);
+            return cache.GetCache(fullpath);
         }
+    }
+
+    bool match_etag(const std::string &etag_match_list, const char *etag) {
+        bool ignore = false;
+        size_t index = 0;
+
+        for(const auto ch: etag_match_list) {
+            if (ch == ' ' || ch == ',' || ch == '"') {
+                if (index == etag_size && !ignore) return true;
+                ignore = false;
+                index = 0;
+                continue;
+            }
+            if (ignore) continue;
+            if (index == etag_size) {
+                ignore = true;
+                continue;
+            }
+            if (ch != etag[index++]) ignore = true;
+        }
+        if (index == etag_size && !ignore) return true;
+
+        return false;
     }
 
     void ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) override;
