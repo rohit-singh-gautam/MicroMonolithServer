@@ -41,7 +41,7 @@ public:
     creator_t(const creator_t &) = delete;
     creator_t &operator=(const creator_t &) = delete;
 
-    net::protocol_t *create_protocol() override { return new protocol_t { configuration }; }
+    net::protocol_t *create_protocol(int logid, const std::string_view &protoname) override;
 };
 
 } // namespace MMS::server::http

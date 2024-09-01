@@ -72,7 +72,7 @@ public:
 class protocol_creator_t {
 public:
     virtual ~protocol_creator_t() = default;
-    virtual protocol_t *create_protocol() = 0;
+    virtual protocol_t *create_protocol(int logid, const std::string_view &protoname = { }) = 0;
 }; // protocol_creator_t
 
 

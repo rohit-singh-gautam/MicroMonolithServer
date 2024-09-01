@@ -61,8 +61,7 @@ namespace MMS {
     LOGGER_MODULE_ENTRY(SOCKET) \
     LOGGER_MODULE_ENTRY(LISTENER) \
     LOGGER_MODULE_ENTRY(TCP_SERVER) \
-    LOGGER_MODULE_ENTRY(IOT_HTTPSERVER) \
-    LOGGER_MODULE_ENTRY(IOT_HTTP2SERVER) \
+    LOGGER_MODULE_ENTRY(HTTPSERVER) \
     LOGGER_MODULE_ENTRY(TEST) \
     LOGGER_MODULE_ENTRY(MAX_MODULE) \
     LOGGER_MODULE_ENTRY(UNKNOWN) \
@@ -114,6 +113,7 @@ namespace MMS {
     LOGGER_ENTRY(TCP_SERVER_RECEIVED_EVENT, DEBUG, TCP_SERVER, "FD %i: TCP server received event") \
     LOGGER_ENTRY(TCP_SERVER_ACCEPT_FAILED, ERROR, TCP_SERVER, "FD %i: TCP server failed to accept connection with error %ve") \
     LOGGER_ENTRY(TCP_SERVER_PEER_CREATED, VERBOSE, TCP_SERVER, "FD %i: TCP server new peer %i created from remote %vN") \
+    LOGGER_ENTRY(TCP_SERVER_PEER_CREATE_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server new peer %i failed to create protocol for remote %vN") \
     LOGGER_ENTRY(TCP_SERVER_PEER_ADD_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer %i add to listener failed %vN") \
     LOGGER_ENTRY(TCP_SERVER_PEER_WRITE_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer write failed with error %ve") \
     LOGGER_ENTRY(TCP_SERVER_PEER_READ_FAILED, WARNING, TCP_SERVER, "FD %i: TCP server peer read failed with error %ve") \
@@ -127,12 +127,15 @@ namespace MMS {
     LOGGER_ENTRY(TCP_SSL_ACCEPT_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to accept peer %i, failed with error %vc") \
     LOGGER_ENTRY(TCP_SSL_ACCEPT_FAILED_NON_SSL, ERROR, TCP_SERVER, "FD %i: SSL TCP Server peer %i, failed as non SSL protocol used. Protocol like https must be used, http will not connect to SSL server.") \
     \
-    LOGGER_ENTRY(HTTP_CREATED_PROTOCOL, DEBUG, TCP_SERVER, "FD %i: HTTP Protocol created with request served") \
-    LOGGER_ENTRY(HTTP_UNKNOWN_EXTENSION, DEBUG, TCP_SERVER, "FD %i: Unknown HTTP content type using text/plain") \
+    LOGGER_ENTRY(HTTP_CREATED_PROTOCOL, DEBUG, HTTPSERVER, "FD %i: HTTP Protocol created with request served") \
+    LOGGER_ENTRY(HTTP_UNKNOWN_EXTENSION, DEBUG, HTTPSERVER, "FD %i: Unknown HTTP content type using text/plain") \
+    LOGGER_ENTRY(HTTP_UNSUPPORTED_PROTOCOL, INFO, HTTPSERVER, "FD %i: Unknown HTTP protocol only h2 and http/1.1 supported via TCP+SSL") \
+    LOGGER_ENTRY(HTTP1_UNSUPPORTED, INFO, HTTPSERVER, "FD %i: HTTP 1.1 is not supported") \
+    LOGGER_ENTRY(HTTP2_UNSUPPORTED, INFO, HTTPSERVER, "FD %i: HTTP 2.0 is not supported") \
     \
-    LOGGER_ENTRY(HTTP2_PRI_KNOWLEDGE, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol created with prior knowledge") \
-    LOGGER_ENTRY(HTTP2_UPGRADE, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol upgrade from HTTP 1.1") \
-    LOGGER_ENTRY(HTTP2_UPGRADE_NO_PRI, INFO, TCP_SERVER, "FD %i: HTTP 2 Protocol upgrade expecting HTTP Magic as first packet") \
+    LOGGER_ENTRY(HTTP2_PRI_KNOWLEDGE, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol created with prior knowledge") \
+    LOGGER_ENTRY(HTTP2_UPGRADE, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol upgrade from HTTP 1.1") \
+    LOGGER_ENTRY(HTTP2_UPGRADE_NO_PRI, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol upgrade expecting HTTP Magic as first packet") \
     \
     LOGGER_ENTRY(TEST_GUID_LOG, INFO, TEST, "IOT Error '%vg' caps '%vG'") \
     LOGGER_ENTRY(TEST_FLOAT_LOGS, INFO, TEST, "Test float %%%hf, double %f") \

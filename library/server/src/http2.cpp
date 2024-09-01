@@ -53,8 +53,8 @@ void protocol_t::AddBase64Settings(const std::string &settings) {
     peer_settings.parse_base64_frame( ConstStream { settings.c_str(), settings.size() });
 }
 
-void protocol_t::PrepareFirstFrame() {
-    if (first_frame) {
+void protocol_t::AddSettingResponse() {
+    if (!settings_responded) {
         // TODO: Pull setting range from configurations
         MMS::http::v2::settings::add_frame(response_buffer,
             MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, 0,
@@ -62,14 +62,14 @@ void protocol_t::PrepareFirstFrame() {
             MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, 1048576,
             MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, 2048
         );
-        first_frame = false;
+        settings_responded = true;
     }
 }
 
 void protocol_t::Upgrade(MMS::http::request &&request) {
     try {
         response_buffer.Copy(MMS::http::v2::connection_upgrade, MMS::http::v2::connection_upgrade_size);
-        PrepareFirstFrame();
+        AddSettingResponse();
         MMS::http::v2::settings::add_ack_frame(response_buffer);
         std::string newpath { };
         auto &handler = configuration->handlermap.search(request.GetPath(), newpath);
@@ -93,7 +93,13 @@ void protocol_t::Upgrade(MMS::http::request &&request) {
 void protocol_t::ProcessRead(const ConstStream &stream) {
     response_buffer.Reset();
     try {
-        PrepareFirstFrame();
+        if (first_frame) {
+            if (stream == std::string_view { MMS::http::v2::connection_preface, MMS::http::v2::connection_preface_size }) {
+                stream += MMS::http::v2::connection_preface_size;
+                AddSettingResponse();
+            }
+            first_frame = false;
+        }
         MMS::http::v2::request request { dynamic_table, peer_settings };
         auto ret = request.parse(stream, response_buffer);
         if (ret != err_t::HTTP2_INITIATE_GOAWAY) {

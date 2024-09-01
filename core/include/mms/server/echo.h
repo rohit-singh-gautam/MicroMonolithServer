@@ -23,7 +23,7 @@ class echocreator_t : public net::protocol_creator_t {
 
 public:
 
-    net::protocol_t *create_protocol() override {
+    net::protocol_t *create_protocol(int, const std::string_view &) override {
         return new echo_t();
     }
 

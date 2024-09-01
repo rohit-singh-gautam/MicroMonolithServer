@@ -105,6 +105,18 @@ public:
     constexpr ConstStream GetSimpleConstStream() { return ConstStream { _curr, _end }; }
     constexpr const ConstStream GetSimpleConstStream() const { return ConstStream { _curr, _end }; }
 
+    template <size_t _size>
+    bool operator==(const auto (&data)[_size + 1]) const {
+        if (remaining_buffer() < _size) return false;
+        return std::equal(std::begin(data), std::end(data), _curr);
+    }
+
+    /*! IMPORTANT: text must not be null terminated */
+    bool operator==(const std::string_view &text) const {
+        if (remaining_buffer() < text.size()) return false;
+        return std::equal(std::begin(text), std::end(text), _curr);
+    }
+
     ConstStream &operator=(const ConstStream &stream) { _curr = stream._curr; return *this; }
     const ConstStream &operator=(const ConstStream &stream) const { _curr = stream._curr; return *this; }
     virtual ConstStream operator+(size_t len) { _curr += len; return *this; }
@@ -136,7 +148,7 @@ public:
     auto &end() { return _end; }
     auto &curr() { return _curr; }
 
-    auto remaining_buffer() const { return static_cast<size_t>(_end - _curr); }
+    size_t remaining_buffer() const { return static_cast<size_t>(_end - _curr); }
 
     bool full() const { return _curr == _end; }
 

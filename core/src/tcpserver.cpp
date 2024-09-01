@@ -118,7 +118,7 @@ err_t server_t::ProcessRead() {
         }
         log<log_t::TCP_SOCKET_ACCEPT_SUCCESS>(GetFD(), peer_id);
 
-        auto protocol = protocol_creator.create_protocol();
+        auto protocol = protocol_creator.create_protocol(peer_id, { });
         auto connection = new connection_t(peer_id, protocol);
         protocol->SetProcessor(connection);
         log<log_t::HTTP_CREATED_PROTOCOL>(peer_id);

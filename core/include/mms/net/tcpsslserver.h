@@ -49,6 +49,8 @@ public:
     server_t(const server_t &) = default;
     server_t &operator=(const server_t &) = default;
     err_t ProcessRead() override;
+
+    static const std::string_view get_protocol(SSL *ssl);
 }; // server_t
 
 

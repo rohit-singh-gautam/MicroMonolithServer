@@ -13,6 +13,17 @@ connection_t::~connection_t() {
     SSL_free(ssl);
 }
 
+const std::string_view server_t::get_protocol(SSL *ssl) {
+    const uint8_t *data;
+    unsigned int len;
+    SSL_get0_alpn_selected(ssl, &data, &len);
+
+    if (data == nullptr) {
+        SSL_get0_next_proto_negotiated(ssl, &data, &len);
+    }
+    return std::string_view { reinterpret_cast<const char *>(data), len };
+}
+
 err_t connection_t::ProcessRead() {
     tempbuffer.Reset();
     while(true) {
@@ -142,17 +153,26 @@ err_t server_t::ProcessRead() {
         }
     }
 
-    auto protocol = protocol_creator.create_protocol();
-    auto connection = new connection_t(peer_id, ssl, protocol);
-    protocol->SetProcessor(connection);
-    auto ret = listener->add(connection);
-    if (ret == err_t::SUCCESS) {
-        log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+    auto proto = get_protocol(ssl);
+
+    auto protocol = protocol_creator.create_protocol(peer_id, proto);
+    if (protocol) {
+        auto connection = new connection_t(peer_id, ssl, protocol);
+        protocol->SetProcessor(connection);
+        auto ret = listener->add(connection);
+        if (ret == err_t::SUCCESS) {
+            log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+        } else {
+            log<log_t::TCP_SERVER_PEER_CREATE_FAILED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
+            delete connection;
+        }
     } else {
-        log<log_t::TCP_SERVER_PEER_CREATED>(GetFD(), connection->GetFD(), connection->get_peer_ipv6_addr());
-        delete connection;
+        log<log_t::TCP_SERVER_PEER_CREATE_FAILED>(GetFD(), peer_id, get_peer_ipv6_addr(peer_id));
+        close(peer_id);
+        SSL_free(ssl);
     }
 
+    // Return must always be success or server will be stopped.
     return err_t::SUCCESS;
 }
 

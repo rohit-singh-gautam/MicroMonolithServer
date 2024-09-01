@@ -24,6 +24,7 @@ using MMS::server::http::typecheck::fieldentrypair;
 class protocol_t : public MMS::server::http::protocol_t{
     static constexpr size_t response_buffe_initial_size = 1_kb;
     bool first_frame { true };
+    bool settings_responded { false };
     MMS::http::v2::header_request *header_request { nullptr };
     FullStreamAutoAlloc response_buffer { response_buffe_initial_size };
 
@@ -36,7 +37,7 @@ public:
     protocol_t(const protocol_t &) = delete;
     protocol_t &operator=(const protocol_t &) = delete;
 
-    void PrepareFirstFrame();
+    void AddSettingResponse();
     void AddBase64Settings(const std::string &settings);
     void Upgrade(MMS::http::request &&);
 
@@ -44,15 +45,6 @@ public:
     void WriteError(const CODE code, const std::string &errortext) override;
     void Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) override;
     void FinalizeWrite(); // this is required for HTTP v2
-};
-
-class creator_t : public MMS::server::http::creator_t {
-public:
-    using MMS::server::http::creator_t::creator_t;
-    creator_t(const creator_t &) = delete;
-    creator_t &operator=(const creator_t &) = delete;
-
-    net::protocol_t *create_protocol() override { return new protocol_t { configuration }; }
 };
 
 } // namespace MMS::server::http

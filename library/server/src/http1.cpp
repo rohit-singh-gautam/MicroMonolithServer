@@ -13,21 +13,43 @@
 
 namespace MMS::server::http::v1 {
 
+net::protocol_t *creator_t::create_protocol(int logid, const std::string_view &protoname) { 
+    if (protoname == "h2") {
+        if (configuration->http2 || configuration->http2pri) {
+            return new MMS::server::http::v2::protocol_t(configuration);
+        }
+
+        // TODO:: HTTP_1_1_REQUIRED  must be returnedd from here
+        log<log_t::HTTP2_UNSUPPORTED>(logid);
+    } else if (protoname == "http/1.1") {
+        if (configuration->http1) {
+            return new protocol_t { configuration };
+        }
+
+        // TODO: Return appropriate errors
+        log<log_t::HTTP1_UNSUPPORTED>(logid);
+    } else if (protoname.empty()) {
+        // This path is for non SSL
+        return new protocol_t { configuration };
+    } else {
+        log<log_t::HTTP_UNSUPPORTED_PROTOCOL>(logid);
+    }
+    return nullptr;
+}
+
 protocol_t::~protocol_t() { if(http2_upgrade) delete http2_upgrade; }
 
 void protocol_t::ProcessRead(const ConstStream &stream) {
     try {
         // Check for HTTP 2.0 Pri
         if (configuration->http2pri) {
-            auto buffer = reinterpret_cast<const char *>(stream.curr());
-            if (std::equal(std::begin(MMS::http::v2::connection_preface), std::end(MMS::http::v2::connection_preface), buffer)) {
+            if (stream == std::string_view { MMS::http::v2::connection_preface, MMS::http::v2::connection_preface_size }) {
                 log<log_t::HTTP2_PRI_KNOWLEDGE>(GetFD());
                 // Move to http2
                 if (!http2_upgrade) {
                     http2_upgrade = new v2::protocol_t { configuration };
                     http2_upgrade->SetProcessor(processor);
                 }
-                stream += sizeof(MMS::http::v2::connection_preface);
                 http2_upgrade->ProcessRead(stream);
                 auto connection = dynamic_cast<MMS::net::tcp::connection_base_t *>(processor);
                 assert(connection);
