@@ -84,19 +84,61 @@ bool Container::ReadHTTPConfiguration() {
                 ptrconf->max_frame_size = MaxFrameSizeJson.GetInt();
             }
 
-            auto &http1json = confjson["HTTP1"];
-            if (!http1json.IsError()) {
-                ptrconf->http1 = http1json.GetBool();
+            auto &httpversionjson = confjson["Version"];
+            if (httpversionjson.IsObject()) {
+                auto &http1json = confjson["HTTP1"];
+                if (!http1json.IsError()) {
+                    ptrconf->version.http1 = http1json.GetBool();
+                }
+
+                auto &http2json = confjson["HTTP2"];
+                if (!http2json.IsError()) {
+                    ptrconf->version.http2 = http2json.GetBool();
+                }
+
+                auto &http2prijson = confjson["HTTP2Pri"];
+                if (!http2prijson.IsError()) {
+                    ptrconf->version.http2pri = http2prijson.GetBool();
+                }
+            } else if (!httpversionjson.IsError()) {
+                std::cerr << "Expected /configuration/http/<Conf Name>/Version as Object containing following optional configuraiton HTTP1, HTTP2, HTTP2Pri\n";
+                return false;
             }
 
-            auto &http2json = confjson["HTTP2"];
-            if (!http2json.IsError()) {
-                ptrconf->http2 = http2json.GetBool();
-            }
+            // Read limits for HTTP 2
+            auto &limitsjson = confjson["Limits"];
+            if (limitsjson.IsObject()) {
+                auto &MaxReadBuffer = limitsjson["Max Read Buffer"];
+                if (!MaxReadBuffer.IsError()) ptrconf->limits.MaxReadBuffer = MaxReadBuffer.GetInt();
+                auto &FrameSize = limitsjson["Frame Size"];
+                if (!FrameSize.IsError()) {
+                    ptrconf->limits.FrameSizeMin = FrameSize[0].GetInt();
+                    ptrconf->limits.FrameSizeMax = FrameSize[1].GetInt();
+                }
+                auto &HeaderTableSize = limitsjson["Header Table Size"];
+                if (!HeaderTableSize.IsError()) {
+                    ptrconf->limits.HeaderTableSizeMin = HeaderTableSize[0].GetInt();
+                    ptrconf->limits.HeaderTableSizeMax = HeaderTableSize[1].GetInt();
+                }
+                auto &ConcurrentStreams = limitsjson["Concurrent Streams"];
+                if (!ConcurrentStreams.IsError()) {
+                    ptrconf->limits.ConcurrentStreamsMin = ConcurrentStreams[0].GetInt();
+                    ptrconf->limits.ConcurrentStreamsMax = ConcurrentStreams[1].GetInt();
+                }
+                auto &WindowSize = limitsjson["WINDOW SIZE"];
+                if (!WindowSize.IsError()) {
+                    ptrconf->limits.WindowsSizeMin = WindowSize[0].GetInt();
+                    ptrconf->limits.WindowsSizeMax = WindowSize[1].GetInt();
+                }
+                auto &HeaderListSize = limitsjson["HEADER LIST SIZE"];
+                if (!HeaderListSize.IsError()) {
+                    ptrconf->limits.HeaderListSizeMin = HeaderListSize[0].GetInt();
+                    ptrconf->limits.HeaderListSizeMax = HeaderListSize[1].GetInt();
+                }
 
-            auto &http2prijson = confjson["HTTP2Pri"];
-            if (!http2prijson.IsError()) {
-                ptrconf->http2pri = http2prijson.GetBool();
+            } else if (!limitsjson.IsError()) {
+                std::cerr << "Expected /configuration/http/<Conf Name>/Limits as Object containing following optional http limits configuraiton\n";
+                return false;
             }
 
             // Extracting Hander parameter and adding it to configuration.

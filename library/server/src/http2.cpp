@@ -55,7 +55,7 @@ void protocol_t::FinalizeWrite() {
 }
 
 void protocol_t::AddBase64Settings(const std::string &settings) {
-    peer_settings.parse_base64_frame( ConstStream { settings.c_str(), settings.size() });
+    peer_settings.parse_base64_frame( ConstStream { settings.c_str(), settings.size() }, &configuration->limits);
 }
 
 void protocol_t::AddSettingResponse() {
@@ -98,14 +98,15 @@ void protocol_t::Upgrade(MMS::http::request &&request) {
 void protocol_t::ProcessRead(const ConstStream &stream) {
     response_buffer.Reset();
     try {
+        MMS::http::v2::request request { dynamic_table, peer_settings };
         if (first_frame) {
             if (stream == std::string_view { MMS::http::v2::connection_preface, MMS::http::v2::connection_preface_size }) {
                 stream += MMS::http::v2::connection_preface_size;
+                request.CheckAndParseSetting(stream, response_buffer, &configuration->limits);
                 AddSettingResponse();
             }
             first_frame = false;
         }
-        MMS::http::v2::request request { dynamic_table, peer_settings };
         auto ret = request.parse(stream, response_buffer);
         if (ret != err_t::HTTP2_INITIATE_GOAWAY) {
             auto header = request.get_first_header();

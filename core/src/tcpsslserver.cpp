@@ -40,7 +40,6 @@ err_t connection_t::ProcessRead() {
 
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
-                // TODO: HOW TO HANDLE this
                 goto EXIT_LOOP;
 
             default: 
@@ -84,7 +83,6 @@ err_t connection_t::ProcessWrite() {
 
                 case SSL_ERROR_WANT_READ:
                 case SSL_ERROR_WANT_WRITE:
-                    // TODO: HOW TO HANDLE this
                     goto EXIT_LOOP;
 
                 default:

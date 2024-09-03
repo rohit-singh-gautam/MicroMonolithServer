@@ -166,4 +166,35 @@ public:
     std::string to_string() const;
 }; // response
 
+struct http_version_t {
+    bool http1 { true };
+    bool http2 { true };
+    bool http2pri { true };
+};
+
+struct http_limits_t {
+    template <std::integral T>
+    static T GetSize(T min, T max, T selected) {
+        if (selected <= min) return min;
+        if (selected >= max) return max;
+        return selected;
+    }
+    uint32_t MaxReadBuffer { 4096 };
+    uint32_t FrameSizeMin { 1024 };
+    uint32_t FrameSizeMax { 65536 };
+    uint32_t GetFrameSize(uint32_t value) const { return GetSize(FrameSizeMin, FrameSizeMax, value); }
+    uint32_t HeaderTableSizeMin { 128 };
+    uint32_t HeaderTableSizeMax { 4096 };
+    uint32_t GetHeaderTableSize(uint32_t value) const { return GetSize(HeaderTableSizeMin, HeaderTableSizeMax, value); }
+    uint32_t ConcurrentStreamsMin { 1 };
+    uint32_t ConcurrentStreamsMax { 32 };
+    uint32_t GetConcurrentStreams(uint32_t value) const { return GetSize(ConcurrentStreamsMin, ConcurrentStreamsMax, value); }
+    uint32_t WindowsSizeMin { 16384 };
+    uint32_t WindowsSizeMax { 1048576 };
+    uint32_t GetWindowsSize(uint32_t value) const { return GetSize(WindowsSizeMin, WindowsSizeMax, value); }
+    uint32_t HeaderListSizeMin { 8 };
+    uint32_t HeaderListSizeMax { 128 };
+    uint32_t GetHeaderListSize(uint32_t value) const { return GetSize(HeaderListSizeMin, HeaderListSizeMax, value); }
+};
+
 } // namespace MMS::http

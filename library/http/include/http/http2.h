@@ -18,7 +18,7 @@ namespace MMS::http::v2 {
 
 namespace constant {
     constexpr uint32_t SETTINGS_HEADER_TABLE_SIZE = 4096;
-    constexpr bool SETTINGS_ENABLE_PUSH = false;
+    constexpr bool SETTINGS_ENABLE_PUSH = true;
     constexpr uint32_t SETTINGS_MAX_CONCURRENT_STREAMS = 100;
     constexpr uint32_t SETTINGS_INITIAL_WINDOW_SIZE = 65535;
     constexpr uint32_t SETTINGS_MAX_FRAME_SIZE = 16777215;
@@ -333,26 +333,26 @@ public:
                 SETTINGS_MAX_HEADER_LIST_SIZE(constant::SETTINGS_MAX_HEADER_LIST_SIZE)
     {}
 
-    inline const auto parse_one(const ConstStream &stream) {
+    inline const auto parse_one(const ConstStream &stream, const http_limits_t *const configuration) {
         auto psettings = reinterpret_cast<const settings *>(stream.GetCurrAndIncrease(sizeof(settings)));
         switch(psettings->get_identifier()) {
         case settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE:
-            SETTINGS_HEADER_TABLE_SIZE = psettings->get_value();
+            SETTINGS_HEADER_TABLE_SIZE = configuration->GetHeaderTableSize(psettings->get_value());
             break;
         case settings::identifier_t::SETTINGS_ENABLE_PUSH:
             SETTINGS_ENABLE_PUSH = psettings->get_value() != 0;
             break;
         case settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS:
-            SETTINGS_MAX_CONCURRENT_STREAMS = psettings->get_value();
+            SETTINGS_MAX_CONCURRENT_STREAMS = configuration->GetConcurrentStreams(psettings->get_value());
             break;
         case settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE:
-            SETTINGS_INITIAL_WINDOW_SIZE = psettings->get_value();
+            SETTINGS_INITIAL_WINDOW_SIZE = configuration->GetWindowsSize(psettings->get_value());
             break;
         case settings::identifier_t::SETTINGS_MAX_FRAME_SIZE:
-            SETTINGS_MAX_FRAME_SIZE = psettings->get_value();
+            SETTINGS_MAX_FRAME_SIZE = configuration->GetFrameSize(psettings->get_value());
             break;
         case settings::identifier_t::SETTINGS_MAX_HEADER_LIST_SIZE:
-            SETTINGS_MAX_HEADER_LIST_SIZE = psettings->get_value();
+            SETTINGS_MAX_HEADER_LIST_SIZE = configuration->GetHeaderListSize(psettings->get_value());
             break;
         default:
             // Ignore this settings
@@ -360,13 +360,13 @@ public:
         }
     }
 
-    constexpr void parse_frame(const ConstStream &stream) {
+    constexpr void parse_frame(const ConstStream &stream, const http_limits_t *const configuration) {
         while(stream.remaining_buffer()) {
-            parse_one(stream);
+            parse_one(stream, configuration);
         }
     }
 
-    inline void parse_base64_frame(const ConstStream &stream) {
+    inline void parse_base64_frame(const ConstStream &stream, const http_limits_t *const configuration) {
         const size_t decode_len = base64_decode_len(stream.curr(), stream.remaining_buffer());
         auto decoded_buffer = std::make_unique<uint8_t[]>(decode_len);
         base64_decode(stream.curr(), stream.remaining_buffer(), decoded_buffer.get());
@@ -376,7 +376,7 @@ public:
         const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *decoded_stream++ : 0;
         auto frameStreamBuffer = decoded_stream.GetCurrAndIncrease(pframe->get_length());
         ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  pframe->get_length() - padded_bytes};
-        parse_frame( frameStream );
+        parse_frame( frameStream, configuration );
     }
 };
 
@@ -697,6 +697,22 @@ public:
         header_map.insert(std::make_pair(pheader->stream_identifier, pheader));
     }
 
+    void CheckAndParseSetting(const ConstStream &stream, Stream &writestream, const http_limits_t *configuration) {
+        const frame *pframe = reinterpret_cast<const frame *>(stream.curr());
+        if (pframe->get_type() == frame::type_t::SETTINGS) {
+            if (!pframe->contains(frame::flags_t::ACK)) {
+                    stream += sizeof(frame);
+                    const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
+                    const auto frame_length = pframe->get_length();
+                    auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
+                    ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
+                    peer_settings.parse_frame(frameStream, configuration);
+                    dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
+                    settings::add_ack_frame(writestream);
+                }
+        }
+    }
+
     err_t parse(const ConstStream &stream, Stream &writestream) {
         while(stream.CheckCapacity(sizeof(frame))) {
             const frame *pframe = reinterpret_cast<const frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
@@ -782,9 +798,12 @@ public:
             }
             case frame::type_t::SETTINGS: {
                 if (!pframe->contains(frame::flags_t::ACK)) {
-                    peer_settings.parse_frame(frameStream);
-                    dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
-                    settings::add_ack_frame(writestream);
+                    goaway::add_frame(
+                        writestream,
+                        max_stream,
+                        frame::error_t::PROTOCOL_ERROR,
+                        "SETTINGS must be first frame only cannot be send latter");
+                    return err_t::HTTP2_INITIATE_GOAWAY;
                 }
                 break;
             }

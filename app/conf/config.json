@@ -44,11 +44,21 @@
         },
         "HTTP" : {
             "Default" : {
-                "Max Frame Size": 16384,
-                "HTTP2": true,
-                "HTTP1": true,
-                "HTTP2Pri": true,
                 "Server Name": "Micro Monolith Server 1.0",
+                "Max Frame Size": 16384,
+                "Version" : {
+                    "HTTP2": true,
+                    "HTTP1": true,
+                    "HTTP2Pri": true,
+                },
+                "Limits" : {
+                    "Max Read Buffer": 4096,
+                    "Frame Size": [1024, 65536, 16384],
+                    "Header Table Size": [128, 4096, 2048],
+                    "Concurrent Streams": [1, 32, 10],
+                    "WINDOW SIZE": [16384, 1048576, 1048576],
+                    "HEADER LIST SIZE": [8, 128, 48] 
+                },
                 "Handlers" : {
                     "/": { "Type": "File Handler", "File Path": "conf/www1" },
                     "/1": { "Type": "File Handler", "File Path": "conf/www" },

@@ -39,9 +39,8 @@ struct configuration_t {
     std::unordered_map<std::string, std::string> mimemap { };
     std::vector<std::string> defaultlist { };
     uint32_t max_frame_size { 16384 };
-    bool http1 { true };
-    bool http2 { true };
-    bool http2pri { true };
+    MMS::http::http_version_t version { };
+    MMS::http::http_limits_t limits { };
     configuration_t(const std::string &ServerName) : ServerName { ServerName } { }
     configuration_t(configuration_t &&configuration) 
         : ServerName { std::move(configuration.ServerName) }, handlermap { std::move(configuration.handlermap) }, 
