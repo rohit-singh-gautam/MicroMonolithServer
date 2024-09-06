@@ -5,29 +5,16 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include <mms/net/base.h>
-
-namespace MMS::server {
-
-class echo_t : public net::protocol_t {
-public:
-    using net::protocol_t::protocol_t;
-
-    void ProcessRead(const ConstStream &stream) override {
-        Write(stream);
-    }
-};
-
-class echocreator_t : public net::protocol_creator_t {
-
-public:
-
-    net::protocol_t *create_protocol(int, const std::string_view &) override {
-        return new echo_t();
-    }
-
-};
+#include <mms/base/stream.h>
+#include <gtest/gtest.h>
 
 
-};
+TEST(StreamTest, Stream) {
+    std::string text { "This is a test for Stream" };
+    MMS::Stream stream { text };
+
+    EXPECT_TRUE(stream.remaining_buffer() == text.size());
+    stream += 5;
+    EXPECT_TRUE(reinterpret_cast<uint8_t *>(text.data()) + 5 == stream.curr());
+    
+}

@@ -71,8 +71,8 @@ EXIT_LOOP:
 err_t connection_t::ProcessWrite() {
     while(!pending_wirte.empty()) {
         auto &currentbuffer = pending_wirte.front();
-        while(!currentbuffer.Completed()) {
-            auto [buffer, size] = currentbuffer.GetBuffer<void *>();
+        while(!currentbuffer.full()) {
+            auto [buffer, size] = currentbuffer.GetRawCurrentBuffer();
             size_t actualwritten { };
             auto ret = SSL_write_ex(ssl, buffer, size, &actualwritten);
             if (!ret) {
@@ -92,11 +92,11 @@ err_t connection_t::ProcessWrite() {
                     return err_t::BAD_FILE_DESCRIPTOR;
                 }
             }
-            currentbuffer.AddOffset(static_cast<size_t>(actualwritten));
+            currentbuffer += actualwritten;
             if (static_cast<size_t>(actualwritten) < size)  return err_t::SOCKET_RETRY;
         }
 EXIT_LOOP:
-        if (!currentbuffer.Completed()) break;
+        if (!currentbuffer.full()) break;
         pending_wirte.pop();
     }
     return err_t::SUCCESS;

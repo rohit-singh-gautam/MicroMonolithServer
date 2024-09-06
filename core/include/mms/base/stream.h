@@ -25,6 +25,7 @@ public:
     constexpr Stream(auto *_begin, auto *_end) : _curr { reinterpret_cast<uint8_t *>(_begin) }, _end { reinterpret_cast<uint8_t *>(_end) } { }
     constexpr Stream(auto *_begin, size_t size) : _curr { reinterpret_cast<uint8_t *>(_begin) }, _end { _curr + size } { }
     constexpr Stream(Stream &&stream) : _curr { stream._curr }, _end { stream._end } { stream._curr = stream._end = nullptr; }
+    constexpr Stream(std::string &string) : _curr { reinterpret_cast<uint8_t *>(string.data()) }, _end { _curr + string.size() } { }
     Stream(const Stream &stream) : _curr { stream._curr }, _end { stream._end } { }
     virtual ~Stream() = default;
 
@@ -95,7 +96,7 @@ public:
     constexpr ConstStream(const auto *_begin, const auto *_end) : _curr { reinterpret_cast<const uint8_t *>(_begin) }, _end { reinterpret_cast<const uint8_t *>(_end) } { }
     constexpr ConstStream(const auto *_begin, size_t size) : _curr { reinterpret_cast<const uint8_t *>(_begin) }, _end { reinterpret_cast<const uint8_t *>(_begin) + size } { }
     constexpr ConstStream(Stream &&stream) : _curr { stream._curr }, _end { stream._end } { stream._curr = stream._end = nullptr; }
-    constexpr ConstStream(const std::string &string) : _curr { reinterpret_cast<const uint8_t *>(string.c_str()) }, _end { _curr + string.size() } { }
+    constexpr ConstStream(const std::string &string) : _curr { reinterpret_cast<const uint8_t *>(string.data()) }, _end { _curr + string.size() } { }
     ConstStream(const Stream &stream) : _curr { stream._curr }, _end { stream._end } { }
     ConstStream(const ConstStream &stream) : _curr { stream._curr }, _end { stream._end } { }
     virtual ~ConstStream() = default;
@@ -130,7 +131,6 @@ public:
     virtual constexpr inline const ConstStream &operator++() const { ++_curr; return *this; }
     virtual constexpr inline const ConstStream &operator--() const { --_curr; return *this;}
 
-    virtual constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) { auto temp = _curr; _curr += len; return temp; }
     virtual constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const { auto temp = _curr; _curr += len; return temp; }
 
     size_t GetSizeFrom(const auto *start) const { return static_cast<size_t>(_curr - reinterpret_cast<const uint8_t *>(start)); }
@@ -211,6 +211,11 @@ public:
     bool empty() { return _curr == _begin; }
 };
 
+class StreamAutoFree : public FullStream {
+public:
+    ~StreamAutoFree() { free(_begin); }
+};
+
 class ConstFullStream : public ConstStream {
 protected:
     const uint8_t * _begin;
@@ -257,7 +262,7 @@ public:
     #pragma GCC diagnostic pop
 };
 
-class ConstFullStreamChecked : public ConstFullStream {
+class ConstFullStreamAccessChecked : public ConstFullStream {
 public:
     using ConstFullStream::ConstFullStream;
     constexpr inline uint8_t operator*() const override { CheckOverflow(); return *_curr; }
@@ -266,6 +271,25 @@ public:
     constexpr inline ConstStream &operator--() override { CheckUnderflow(); --_curr; return *this;}
     constexpr inline const ConstStream &operator--() const override { CheckUnderflow(); --_curr; return *this;}
     constexpr inline const uint8_t *operator--(int) const override { CheckUnderflow(); const uint8_t *temp = _curr; --_curr; return temp; };
+    #pragma GCC diagnostic pop
+};
+
+class ConstFullStreamLimitChecked : public ConstFullStream {
+public:
+    using ConstFullStream::ConstFullStream;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Weffc++"
+    constexpr inline ConstStream &operator--() override { CheckUnderflow(); --_curr; return *this;}
+    constexpr inline const ConstStream &operator--() const override { CheckUnderflow(); --_curr; return *this;}
+    constexpr inline const uint8_t *operator--(int) const override { CheckUnderflow(); const uint8_t *temp = _curr; --_curr; return temp; };
+
+    ConstStream operator+(size_t len) override { _curr += len; CheckOverflow(); return *this; }
+    const ConstStream operator+(size_t len) const override { _curr += len; CheckOverflow(); return *this; }
+    ConstStream &operator+=(size_t len) override { _curr += len; CheckOverflow(); return *this; }
+    const ConstStream &operator+=(size_t len) const override { _curr += len; CheckOverflow(); return *this; }
+    constexpr inline ConstStream &operator++() override { ++_curr; CheckOverflow(); return *this; }
+    constexpr inline const ConstStream &operator++() const override { ++_curr; CheckOverflow(); return *this; }
+    constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const override { auto temp = _curr; CheckOverflow(); _curr += len; return temp; }
     #pragma GCC diagnostic pop
 };
 
@@ -326,6 +350,14 @@ public:
         return stream;
     }
 };
+
+namespace typecheck {
+template <typename T>
+concept ConstStream = std::is_base_of_v<MMS::ConstStream, T>;
+
+template <typename T>
+concept Stream = std::is_base_of_v<MMS::Stream, T>;
+} // namespace typecheck
 
 
 } // namespace MMS

@@ -28,7 +28,7 @@ set(CTEST_OUTPUT_ON_FAILURE 1)
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 
-add_executable(core_test src/coretest.cpp)
+add_executable(core_test test/coretest.cpp test/streamtest.cpp)
 target_link_libraries(core_test PRIVATE GTest::gtest_main)
 
 add_test(core_test core_test)

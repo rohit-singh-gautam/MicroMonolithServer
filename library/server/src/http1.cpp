@@ -113,13 +113,12 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
 
 void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
     auto response = response::CreateBasicResponse(code);
-    auto [bodybuffer, bodysize] = bodystream.GetRawCurrentBuffer();
     std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
     response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
-    response.add_field(FIELD::Content_Length, bodysize);
+    response.add_field(FIELD::Content_Length, bodystream.remaining_buffer());
     Write(
-        listener::write_entry_const { response.to_string()},
-        listener::write_entry_const { bodybuffer, bodysize });
+        ConstStream { response.to_string() },
+        ConstStream { bodystream });
 }
 
 void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) {

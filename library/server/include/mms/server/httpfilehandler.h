@@ -15,7 +15,7 @@
 
 namespace MMS::server {
 
-constexpr size_t etag_size = to_string64_hash<uint64_t>();
+constexpr size_t etag_size = to_string64_hash<uint64_t, false>();
 
 inline uint64_t get_etag(int fd) {
     struct stat statbuf;
@@ -126,26 +126,42 @@ public:
         }
     }
 
-    bool match_etag(const std::string &etag_match_list, const char *etag) {
-        bool ignore = false;
-        size_t index = 0;
+    static constexpr inline bool match_etag(const std::string &etag_match_list, const char *etag) {
+        auto listitr = std::begin(etag_match_list);
+        const auto listend = std::end(etag_match_list);
+        if (listitr == listend) return false;
 
-        for(const auto ch: etag_match_list) {
-            if (ch == ' ' || ch == ',' || ch == '"') {
-                if (index == etag_size && !ignore) return true;
-                ignore = false;
-                index = 0;
-                continue;
+        for(;;) {
+            auto ch = *listitr;
+            while(ch == ' ' || ch == '\t' || ch == ',' || ch == '"') {
+                listitr = std::next(listitr);
+                if (listitr == listend) return false;
+                ch = *listitr;
             }
-            if (ignore) continue;
+
+            auto remaining_size = listend - listitr;
+            if (static_cast<size_t>(remaining_size) < etag_size) return false;
+
+            size_t index { 0 };
+            for(; index < etag_size; ++index) {
+                if (*listitr != etag[index]) break;
+                listitr = std::next(listitr);
+            }
+
             if (index == etag_size) {
-                ignore = true;
-                continue;
+                if (listitr == listend) return true;
+                ch = *listitr;
+                if (ch == ' ' || ch == '\t' || ch == ',' || ch == '"') return true;
             }
-            if (ch != etag[index++]) ignore = true;
-        }
-        if (index == etag_size && !ignore) return true;
 
+            while(ch != ' ' && ch != '\t' && ch != ',' && ch != '"') {
+                listitr = std::next(listitr);
+                if (listitr == listend) return false;
+                ch = *listitr;
+            }
+        }
+
+        // Non rechable code
         return false;
     }
 

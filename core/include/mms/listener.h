@@ -18,100 +18,47 @@
 
 namespace MMS::listener {
 using namespace std::chrono_literals;
-
-struct write_entry_const {
-    const uint8_t *buffer;
-    size_t size;
-    size_t offset;
-    template <typename buffertype>
-    constexpr write_entry_const(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer) }, size { bytesize }, offset { byteoffset } { }
-    constexpr write_entry_const(const std::string &buffer, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer.c_str()) }, size { buffer.size() }, offset { byteoffset } { }
-    constexpr write_entry_const(const std::string_view &buffer, size_t byteoffset = 0) : buffer { reinterpret_cast<const uint8_t *>(buffer.data()) }, size { buffer.size() }, offset { byteoffset } { }
-};
-
-struct write_entry {
-private:
-    uint8_t *buffer;
-    size_t size;
-    size_t offset;
-public:
-    template <typename buffertype>
-    constexpr write_entry(buffertype buffer, size_t bytesize, size_t byteoffset = 0) : buffer { reinterpret_cast<uint8_t *>(buffer) }, size { bytesize }, offset { byteoffset } { }
-    ~write_entry() {
-        // No check is require before free as
-        // Empty write_entry is not allowed.
-        free(buffer);
-    }
-
-    constexpr write_entry(const write_entry &) = delete;
-    constexpr write_entry &operator=(const write_entry &) = delete;
-
-    template <typename type>
-    constexpr auto GetBufferBase() { return reinterpret_cast<type>(buffer); }
-
-    template <typename type>
-    constexpr auto GetBuffer() { 
-        auto newbuffer = buffer + offset;
-        const auto newsize = size - offset;
-        return std::make_pair(reinterpret_cast<type>(newbuffer), newsize);
-    }
-
-    constexpr auto AddOffset(const size_t offset) {
-        this->offset += offset;
-    }
-
-    constexpr auto RemainingBuffer() const {
-        return size - offset;
-    }
-
-    constexpr auto Completed() const { return offset >= size; }
-    constexpr auto Pending() const { return offset < size; }
-};
-
-
-namespace typecheck {
-template <typename T>
-concept write_entry_const = std::is_same_v<T, MMS::listener::write_entry_const>;
-} // namespace typecheck
-
 class writer_t {
-protected:
-    // Buffer will be deleted once it is used.
-    // All buffer must be created using malloc
-    virtual void WriteNoCopy(uint8_t*, size_t, size_t) { };
-    
-    inline void WriteWithCopy(const uint8_t* buffer, size_t bytesize, size_t byteoffset = 0) {
-        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(bytesize));
-        std::copy(buffer, buffer + bytesize, newbuffer);
-        WriteNoCopy(newbuffer, bytesize, byteoffset);
-    }
-
 public:
     virtual ~writer_t() = default;
 
-    template <bool CopyBuffer = true, typename buffertype>
-    inline void Write(buffertype buffer, size_t bytesize, size_t byteoffset = 0) {
-        if constexpr (CopyBuffer) WriteWithCopy(reinterpret_cast<const uint8_t *>(buffer), bytesize, byteoffset);
-        else WriteNoCopy(buffer, bytesize, byteoffset);
+    // Buffer will be deleted once it is used.
+    // All buffer must be created using malloc
+    virtual void WriteNoCopy(Stream &&) { };
+    
+    inline void WriteWithCopy(const ConstStream &stream) {
+        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(stream.remaining_buffer()));
+        std::copy(stream.curr(), stream.end(), newbuffer);
+        WriteNoCopy(FullStream {newbuffer, stream.remaining_buffer()});
+    }
+
+    inline void WriteWithCopy(const Stream &stream) {
+        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(stream.remaining_buffer()));
+        std::copy(stream.curr(), stream.end(), newbuffer);
+        WriteNoCopy(FullStream {newbuffer, stream.remaining_buffer()});
     }
 
     inline void Write(const std::string &buffer) {
-        WriteWithCopy(reinterpret_cast<const uint8_t*>(buffer.c_str()), buffer.size(), 0);
+        auto newbuffer = reinterpret_cast<char *>(malloc(buffer.size()));
+        std::copy(std::begin(buffer), std::end(buffer), newbuffer);
+        WriteNoCopy(FullStream {newbuffer, buffer.size()});
     }
 
     inline void Write(const std::string_view &buffer) {
-        WriteWithCopy(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), 0);
+        auto newbuffer = reinterpret_cast<char *>(malloc(buffer.size()));
+        std::copy(std::begin(buffer), std::end(buffer), newbuffer);
+        WriteNoCopy(FullStream {newbuffer, buffer.size()});
     }
 
 
-    template <typecheck::write_entry_const... buffertype>
+    template <typecheck::ConstStream... buffertype>
     inline void Write(const buffertype&... buffer) {
-        auto buffersize = ((buffer.size - buffer.offset) + ...);
+        auto buffersize = ((buffer.remaining_buffer()) + ...);
         auto newbuffer = reinterpret_cast<uint8_t *>(malloc(buffersize));
         auto outputitr = newbuffer;
 
-        ((outputitr = std::copy(buffer.buffer + buffer.offset, buffer.buffer + buffer.size, outputitr)), ...);
-        WriteNoCopy(newbuffer, buffersize, 0);
+        ((outputitr = std::copy(buffer.curr(), buffer.end(), outputitr)), ...);
+        WriteNoCopy(FullStream {newbuffer, buffersize});
     }
 };
 

@@ -17,9 +17,11 @@ namespace MMS::net::tcp {
 class connection_base_t : public listener::processor_t {
 protected:
     std::unique_ptr<protocol_t> protocol_implementation;
-    std::queue<listener::write_entry> pending_wirte { };
+    std::queue<Stream> pending_wirte { };
 
     static constexpr size_t initial_buffer_size { 256 };
+
+    // This is tempbuffer per thread allocation
     static thread_local FullStreamAutoAlloc tempbuffer;
 
 public:
@@ -33,7 +35,7 @@ public:
         protocol_implementation.reset(protocol);
     }
 
-    void WriteNoCopy(uint8_t* buffer, size_t bytesize, size_t byteoffset) override;
+    void WriteNoCopy(Stream &&stream) override;
 
     auto get_peer_ipv6_addr() const { return MMS::net::get_peer_ipv6_addr(GetFD()); }
 }; // connection_base_t
