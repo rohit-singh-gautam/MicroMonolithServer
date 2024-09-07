@@ -9,7 +9,7 @@
 #include <mms/net/base.h>
 
 namespace MMS::server {
-
+// Defined by RFC: https://datatracker.ietf.org/doc/html/rfc862
 class echo_t : public net::protocol_t {
 public:
     using net::protocol_t::protocol_t;

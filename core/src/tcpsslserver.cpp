@@ -25,10 +25,8 @@ const std::string_view server_t::get_protocol(SSL *ssl) {
 }
 
 err_t connection_t::ProcessRead() {
-    tempbuffer.Reset();
     while(true) {
-        tempbuffer.Reserve(connection_base_t::initial_buffer_size);
-        auto [buffer, buffer_size] = tempbuffer.GetRawCurrentBuffer();
+        auto [buffer, buffer_size] = readbuffer.GetRawCurrentBuffer();
         size_t actualread { };
         auto ret = SSL_read_ex(ssl, buffer, buffer_size, &actualread);
         switch(ret) {
@@ -53,15 +51,15 @@ err_t connection_t::ProcessRead() {
         case 0:
         default:
             if (actualread == 0) goto EXIT_LOOP;
-            tempbuffer += actualread;
+            readbuffer += actualread;
             break;
         }
     }
 
 EXIT_LOOP:
-    if (tempbuffer.index()) {
-        protocol_implementation->ProcessRead(ConstStream {tempbuffer.begin(), tempbuffer.curr()});
-        log<log_t::TCP_CONNECTION_READ>(GetFD(), tempbuffer.index());
+    if (readbuffer.index()) {
+        protocol_implementation->ProcessRead(ConstStream {readbuffer.begin(), readbuffer.curr()});
+        log<log_t::TCP_CONNECTION_READ>(GetFD(), readbuffer.index());
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
 
@@ -114,7 +112,7 @@ err_t server_t::ProcessRead() {
     }
     log<log_t::TCP_SOCKET_ACCEPT_SUCCESS>(GetFD(), peer_id);
 
-    SSL *ssl = SSL_new(ssl_common.GetContext());
+    SSL *ssl = SSL_new(ssl_common->GetContext());
     if (ssl == nullptr) {
         log<log_t::TCP_SSL_CREATION_FAILED>(GetFD(), peer_id);
         close(peer_id);

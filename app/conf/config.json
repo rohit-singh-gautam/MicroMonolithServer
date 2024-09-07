@@ -1,23 +1,24 @@
 {
     "System": {
         "Thread Count" : 1,
+        "Read Buffer": [1024, 8192]
     },
     "Servers" : {
         "TCP HTTP" : {
             "Transport": "TCP",
-            "Protocol": "HTTPv1",
+            "Protocol": "HTTPv2",
             "Port": 80,
         },
         "TCP HTTP SSL" : {
             "Transport": "TCPSSL",
             "SSL": "Default",
-            "Protocol": "HTTPv1",
+            "Protocol": "HTTPv2",
             "Port": 443,
         },
         "TCP ECHO" : {
             "Transport": "TCP",
             "Protocol": "echo",
-            "Port": 8882,
+            "Port": 7,
         },
         "TCP ECHO SSL" : {
             "Transport": "TCPSSL",
@@ -27,8 +28,8 @@
         }
     },
     "Protocols": {
-        "HTTPv1": {
-            "Type": "HTTPv1",
+        "HTTPv2": {
+            "Type": "HTTP",
             "Configuration": "Default",
         },
         "echo": {
@@ -52,7 +53,7 @@
                     "HTTP2Pri": true,
                 },
                 "Limits" : {
-                    "Max Read Buffer": 4096,
+                    "Max Read Buffer": 8192,
                     "Frame Size": [1024, 65536, 16384],
                     "Header Table Size": [128, 4096, 2048],
                     "Concurrent Streams": [1, 32, 10],

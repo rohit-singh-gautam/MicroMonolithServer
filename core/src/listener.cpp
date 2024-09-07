@@ -13,6 +13,10 @@
 
 namespace MMS::listener {
 
+streamlimit_t processor_t::readlimits { };
+
+thread_local FullStreamAutoAllocLimits processor_t::readbuffer { &readlimits };
+
 static int CreateSignalFD() {
     sigset_t sigmaskignore { };
     sigemptyset(&sigmaskignore);
@@ -176,6 +180,7 @@ void listener_t::loop() {
                         // EPOLLHUP | EPOLLERR
                         // recv() will return 0 for EPOLLHUP and -1 for EPOLLERR
                         // recv() 0 means end of file.
+                        processor->readbuffer.Reset();
                         ret = processor->ProcessRead();
                         if (ret == err_t::SOCKET_RETRY) {
                             event.events |= EPOLLOUT;

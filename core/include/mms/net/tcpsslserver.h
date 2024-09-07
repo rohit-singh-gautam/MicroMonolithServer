@@ -37,13 +37,12 @@ class server_t : public listener::processor_t {
     static constexpr int socket_backlog { 5 };
     protocol_creator_t &protocol_creator;
     listener::listener_t *listener;
-
-    MMS::net::ssl::common &ssl_common;
+    MMS::net::ssl::common *const ssl_common;
 
 
 public:
-    server_t(const int port, MMS::net::ssl::common &ssl_common, protocol_creator_t &protocol_creator, listener::listener_t *listener)
-        : listener::processor_t { CreateServerSocket(port) }, protocol_creator { protocol_creator }, listener { listener }, ssl_common { ssl_common } 
+    server_t(const int port, protocol_creator_t &protocol_creator, listener::listener_t *listener, MMS::net::ssl::common *ssl_common)
+        : listener::processor_t { CreateServerSocket(port) }, protocol_creator { protocol_creator }, listener { listener }, ssl_common { ssl_common }
     { }
 
     server_t(const server_t &) = default;

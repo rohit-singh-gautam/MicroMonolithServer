@@ -71,6 +71,11 @@ protected:
 
     processor_t(int fd) : fd { fd } { }
 
+    static streamlimit_t readlimits;
+
+    // This is tempbuffer per thread allocation
+    static thread_local FullStreamAutoAllocLimits readbuffer;
+
 public:
     virtual ~processor_t() {
         if (fd) {
@@ -90,6 +95,8 @@ public:
         ::close(fd);
         fd = 0;
     }
+
+    auto GetAndRenewReadBuffer() { return readbuffer.ReturnOldAndAlloc(); }
 };
 
 class terminate_t : public processor_t {
@@ -221,6 +228,8 @@ public:
     }
 
     void ForceTerminateLogThread() { IsTerminated = false; }
+
+    void SetReadBufferLimits(const streamlimit_t &limits) { processor_t::readlimits = limits; }
 };
 
 } // namespace MMS::listener

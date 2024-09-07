@@ -40,7 +40,7 @@ bool Container::ReadProtocolConfiguration() {
             if (type_name == "ECHO") {
                 auto proto = new MMS::server::echocreator_t { };
                 protocols.emplace(protoname, proto);
-            } else if (type_name == "HTTPv1") {
+            } else if (type_name == "HTTP") {
                 const auto &confname = protoconf["Configuration"].GetString();
                 if (!httpconfigurations.contains(confname)) {
                     std::cerr << "Not able to find configuration with name "  << confname << std::endl;
@@ -264,8 +264,8 @@ bool Container::ReadServerConfiguration() {
                     std::cerr << "SSL Configuration must be present\n";
                     return false;
                 }
-                auto &sslconf = *ssl_conf_itr->second;
-                server = new net::tcp::ssl::server_t { port, sslconf, proto, listener };
+                auto sslconf = ssl_conf_itr->second.get();
+                server = new net::tcp::ssl::server_t { port, proto, listener, sslconf };
             } else if (transport_name == "TCP") {
                 server = new net::tcp::server_t { port, proto, listener };
             } else {
@@ -290,6 +290,20 @@ bool Container::ReadSystemConfiguration() {
         if (threadcountjson.IsError()) return true;
         auto threadcount = static_cast<size_t>(threadcountjson.GetInt());
         listener->SetThreadCount(threadcount);
+
+        
+        streamlimit_t limits { };
+        auto &readlimit = json["Read Buffer"];
+        if (!readlimit.IsError()) {
+            if (!readlimit.IsArray()) {
+                std::cerr << "Read Buffer must be an array with two elements\n";
+                return false;
+            }
+            limits.MinReadBuffer = readlimit[0].GetInt();
+            limits.MaxReadBuffer = readlimit[1].GetInt();
+            listener->SetReadBufferLimits(limits);
+        }
+
     } catch(rohit::json::Exception &e) {
         std::cerr << "Json error: " << e.what() << std::endl;
         return false;

@@ -351,6 +351,87 @@ public:
     }
 };
 
+struct streamlimit_t {
+    size_t MinReadBuffer { 1024 };
+    size_t MaxReadBuffer { 8192 };
+};
+
+class FullStreamAutoAllocLimits : public FullStream {
+    const streamlimit_t *limits { nullptr };
+
+    constexpr inline void CheckResize() {
+        if (_curr == _end) {
+            auto curr_index = index();
+            auto new_capacity = capacity() * 2;
+            if (new_capacity > limits->MaxReadBuffer) throw StreamOverflowException { };
+            _begin = reinterpret_cast<uint8_t *>(realloc(reinterpret_cast<void *>(_begin), new_capacity));
+            if (_begin == nullptr) throw MemoryAllocationException { };
+            _end = _begin + new_capacity;
+            _curr = _begin + curr_index;
+        }
+    }
+
+    constexpr inline void CheckResize(const size_t len) {
+        if (_curr + len > _end) {
+            auto curr_index = index();
+            auto new_capacity = capacity() * 2;
+            while(curr_index + len > new_capacity) new_capacity += capacity();
+            if (new_capacity > limits->MaxReadBuffer) throw StreamOverflowException { };
+            _begin = reinterpret_cast<uint8_t *>(realloc(reinterpret_cast<void *>(_begin), new_capacity));
+            if (_begin == nullptr) throw MemoryAllocationException { };
+            _end = _begin + new_capacity;
+            _curr = _begin + curr_index;
+        }
+    }
+
+    constexpr inline void SetMinBuffer() {
+        auto current_buffer_size = static_cast<size_t>(_end - _begin);
+        if (current_buffer_size < limits->MinReadBuffer) {
+            auto curr_index = index();
+            _begin = reinterpret_cast<uint8_t *>(realloc(reinterpret_cast<void *>(_begin), limits->MinReadBuffer));
+            if (_begin == nullptr) throw MemoryAllocationException { };
+            _end = _begin + limits->MinReadBuffer;
+            _curr = _begin + curr_index;
+        }
+    }
+
+public:
+    using FullStream::FullStream;
+    FullStreamAutoAllocLimits(const streamlimit_t *limits) : FullStream { reinterpret_cast<uint8_t *>(malloc(limits->MinReadBuffer)), limits->MinReadBuffer }, limits { limits } { if (_begin == nullptr) throw MemoryAllocationException { }; }
+    FullStreamAutoAllocLimits() : FullStream { } { }
+    FullStreamAutoAllocLimits(const FullStreamAutoAllocLimits &) = delete;
+    FullStreamAutoAllocLimits &operator=(const FullStreamAutoAllocLimits &) = delete;
+
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Weffc++"
+    constexpr inline Stream &operator--() override { CheckUnderflow(); --_curr; return *this;}
+    constexpr inline const Stream &operator--() const override { CheckUnderflow(); --_curr; return *this;}
+    constexpr inline Stream &operator++() override { CheckResize(); ++_curr; return *this; }
+    constexpr inline const Stream &operator++() const override { CheckOverflow(); ++_curr; return *this; }
+    constexpr inline uint8_t *operator++(int) override { CheckResize(); uint8_t *temp = _curr; ++_curr; return temp; };
+    constexpr inline const uint8_t *operator++(int) const override { CheckOverflow(); uint8_t *temp = _curr; ++_curr; return temp; };
+    constexpr inline Stream operator+(size_t len) override { CheckResize(len); _curr += len; return *this; }
+    constexpr inline  const Stream operator+(size_t len) const override { _curr += len; CheckOverflow(); return *this; }
+    constexpr inline Stream &operator+=(size_t len) override { CheckResize(len); _curr += len; return *this; }
+    constexpr inline const Stream &operator+=(size_t len) const override { _curr += len; CheckOverflow(); return *this; }
+    #pragma GCC diagnostic pop
+
+
+    constexpr inline void Reserve(const size_t len) override { CheckResize(len); }
+
+    constexpr inline uint8_t *GetCurrAndIncrease(const size_t len) override { CheckResize(len); auto temp = _curr; _curr += len; return temp; }
+    constexpr inline const uint8_t *GetCurrAndIncrease(const size_t len) const override { auto temp = _curr; _curr += len; CheckOverflow(); return temp; }
+
+    auto ReturnOldAndAlloc() { 
+        FullStream stream { _begin, _end, _curr };
+        _begin = reinterpret_cast<uint8_t *>(malloc(limits->MinReadBuffer));
+        if (_begin == nullptr) throw MemoryAllocationException { }; 
+        _curr = _begin;
+        _end = _begin + limits->MinReadBuffer;
+        return stream;
+    }
+};
+
 namespace typecheck {
 template <typename T>
 concept ConstStream = std::is_base_of_v<MMS::ConstStream, T>;

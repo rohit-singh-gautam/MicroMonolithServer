@@ -19,11 +19,6 @@ protected:
     std::unique_ptr<protocol_t> protocol_implementation;
     std::queue<Stream> pending_wirte { };
 
-    static constexpr size_t initial_buffer_size { 256 };
-
-    // This is tempbuffer per thread allocation
-    static thread_local FullStreamAutoAlloc tempbuffer;
-
 public:
     connection_base_t(int fd, protocol_t *protocol_implementation)
         : processor_t { fd }, protocol_implementation { protocol_implementation } { }

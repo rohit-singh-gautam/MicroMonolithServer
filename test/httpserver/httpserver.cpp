@@ -49,8 +49,8 @@ int main(int, char *[]) {
     MMS::server::http::v1::creator_t httpcretor { &configuration };
     
     MMS::listener::listener_t locallistener { filename };
-    locallistener.add(new MMS::net::tcp::server_t { 80, httpcretor, &locallistener });
-    locallistener.add(new MMS::net::tcp::ssl::server_t { 443, ssl_common, httpcretor, &locallistener });
+    locallistener.add(new MMS::net::tcp::server_t { 80, httpcretor, &locallistener, });
+    locallistener.add(new MMS::net::tcp::ssl::server_t { 443, httpcretor, &locallistener, &ssl_common });
     locallistener.multithread_loop();
     locallistener.wait();
 

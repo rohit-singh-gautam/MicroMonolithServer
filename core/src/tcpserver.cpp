@@ -9,13 +9,9 @@
 
 namespace MMS::net::tcp {
 
-thread_local FullStreamAutoAlloc connection_base_t::tempbuffer { connection_base_t::initial_buffer_size };
-
 err_t connection_t::ProcessRead() {
-    tempbuffer.Reset();
     while(true) {
-        tempbuffer.Reserve(connection_base_t::initial_buffer_size);
-        auto [buffer, buffer_size] = tempbuffer.GetRawCurrentBuffer();
+        auto [buffer, buffer_size] = readbuffer.GetRawCurrentBuffer();
         auto ret = ::recv(GetFD(), buffer, buffer_size, MSG_DONTWAIT);
         switch(ret) {
         case 0:
@@ -46,15 +42,15 @@ err_t connection_t::ProcessRead() {
             break;
 
         default:
-            tempbuffer += ret;
+            readbuffer += ret;
             break;
         }
     }
 
 EXIT_LOOP:
-    if (tempbuffer.index()) {
-        protocol_implementation->ProcessRead(ConstStream {tempbuffer.begin(), tempbuffer.curr()});
-        log<log_t::TCP_CONNECTION_READ>(GetFD(), tempbuffer.index());
+    if (readbuffer.index()) {
+        protocol_implementation->ProcessRead(ConstStream {readbuffer.begin(), readbuffer.curr()});
+        log<log_t::TCP_CONNECTION_READ>(GetFD(), readbuffer.index());
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
 
