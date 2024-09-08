@@ -31,6 +31,17 @@ class handler_t {
 public:
     virtual ~handler_t() = default;
     virtual void ProcessRead(const MMS::http::request &request, const std::string &relative_path, protocol_t *writer) = 0;
+
+    // This is expected to return static list hence return type is const reference
+    // Following must not be added to list PRI and OPTION
+    virtual const std::vector<METHOD> &GetSupportedMethod() = 0;
+    virtual bool IsSupported(const http::METHOD method) {
+        auto &methods = GetSupportedMethod();
+        for(auto methodentry: methods) {
+            if (methodentry == method) return true;
+        }
+        return false;
+    }
 };
 
 struct configuration_t {
@@ -85,6 +96,23 @@ public:
     inline void Write(const CODE code, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
         Write(code, fields);
+    }
+
+    static constexpr void CreateSupportedMethodString(std::string str, const std::vector<METHOD> &supportedmethods, const auto ...AdditionalMethod) {
+        for(auto supportedmethod: supportedmethods) {
+            str += to_string(supportedmethod);
+            str += ',';
+        }
+        ((str += to_string(AdditionalMethod) + ','), ... );
+        str.pop_back();
+    }
+
+    static constexpr std::string CreateSupportedMethodErrorString(const METHOD requestmethod, const std::vector<METHOD> &supportedmethods, const auto ...AdditionalMethod) {
+        std::string errmsg { "Method: " };
+        errmsg += to_string(requestmethod);
+        errmsg += " not allowed, follow methods are supported:";
+        CreateSupportedMethodString(errmsg, supportedmethods, AdditionalMethod...);
+        return errmsg;
     }
 };
 

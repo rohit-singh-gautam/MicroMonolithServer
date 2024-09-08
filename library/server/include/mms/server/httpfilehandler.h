@@ -166,6 +166,17 @@ public:
     }
 
     void ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) override;
+
+    constexpr const std::vector<http::METHOD> &GetSupportedMethod() override {
+        static const std::vector<http::METHOD> supported_methods {
+            http::METHOD::GET,
+            http::METHOD::HEAD
+        };
+        return supported_methods;
+    }
+    constexpr bool IsSupported(const http::METHOD method) override {
+        return method == http::METHOD::GET || method == http::METHOD::HEAD;
+    }
 };
 
 } // namespace MMS::server

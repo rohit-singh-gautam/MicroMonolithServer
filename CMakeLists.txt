@@ -15,4 +15,5 @@ add_subdirectory(core)
 add_subdirectory(library)
 add_subdirectory(test)
 add_subdirectory(app)
+add_subdirectory(tools)
 

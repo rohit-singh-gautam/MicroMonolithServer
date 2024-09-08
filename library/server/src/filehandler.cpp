@@ -14,10 +14,15 @@ const filecacheentry filecache::empty { };
 
 void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) {
     auto method = request.GetMethod();
-    if (method != http::METHOD::GET) {
-        writer->WriteError(http::CODE::_403, std::format("Method {} not allowed", to_string(method)));
+
+#if defined(DEBUG) || defined(NDEBUG)
+// This check is already present at caller of this function
+// Additional check will be only in debug mode
+    if (!IsSupported(method)) {
+        writer->WriteError(http::CODE::_405, std::format("Method {} not allowed", to_string(method)));
         return;
     }
+#endif
     std::filesystem::path fullpath = rootpath;
     fullpath /= relative_path;
 
@@ -63,12 +68,20 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         writer->WriteError(http::CODE::_404, errortext);
         return;
     }
-    ConstStream stream { filecacheentry.buffer, filecacheentry.size };
-    writer->Write(http::CODE::_200, stream, 
-        std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
-        std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
-        std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } }
-    );
+    if (method == http::METHOD::GET) {
+        ConstStream stream { filecacheentry.buffer, filecacheentry.size };
+        writer->Write(http::CODE::_200, stream, 
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } }
+        );
+    } else { // if (method == http::METHOD::HEAD)
+        writer->Write(http::CODE::_200, 
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } }
+        );
+    }
 
 }
 

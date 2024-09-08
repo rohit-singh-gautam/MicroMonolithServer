@@ -606,7 +606,6 @@ public:
             }
         }
 
-        // TODO: Update Method
         // Update version
         version = VERSION::VER_2;
         auto method_itr = fields.find(FIELD::Method);

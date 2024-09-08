@@ -92,7 +92,20 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
         }
         else {
             current_request = &request;
-            handler->ProcessRead(request, newpath, this);
+            auto method = request.GetMethod();
+            if (handler->IsSupported(method)) {
+                handler->ProcessRead(request, newpath, this);
+            } else if (method == METHOD::OPTIONS) {
+                std::string optionsstr {};
+                CreateSupportedMethodString(optionsstr, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+                std::vector<std::pair<FIELD, std::string>> fields {
+                    std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
+                };
+                Write(http::CODE::_204, fields);
+            } else {
+                const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+                WriteError(http::CODE::_405, errstr);
+            }
             current_request = nullptr;
         }
     }

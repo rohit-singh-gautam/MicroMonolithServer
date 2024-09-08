@@ -62,10 +62,12 @@ void protocol_t::AddSettingResponse() {
     if (!settings_responded) {
         // TODO: Pull setting range from configurations
         MMS::http::v2::settings::add_frame(response_buffer,
-            MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, 0,
-            MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, 10,
-            MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, 1048576,
-            MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, 2048
+            MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, peer_settings.SETTINGS_ENABLE_PUSH,
+            MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, peer_settings.SETTINGS_MAX_CONCURRENT_STREAMS,
+            MMS::http::v2::settings::identifier_t::SETTINGS_INITIAL_WINDOW_SIZE, peer_settings.SETTINGS_INITIAL_WINDOW_SIZE,
+            MMS::http::v2::settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE, peer_settings.SETTINGS_HEADER_TABLE_SIZE,
+            MMS::http::v2::settings::identifier_t::SETTINGS_MAX_HEADER_LIST_SIZE, peer_settings.SETTINGS_MAX_HEADER_LIST_SIZE,
+            MMS::http::v2::settings::identifier_t::SETTINGS_MAX_FRAME_SIZE, peer_settings.SETTINGS_MAX_FRAME_SIZE
         );
         settings_responded = true;
     }
@@ -118,7 +120,21 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
                     WriteError(CODE::_404,  std::format("Path {} not found", header->GetPath()));
                 }
                 else {
-                    handler->ProcessRead(*header, newpath, this);
+                    auto method = header->GetMethod();
+                    if (handler->IsSupported(method)) {
+                        handler->ProcessRead(*header, newpath, this);
+                    }
+                    else if (method == METHOD::OPTIONS) {
+                        std::string optionsstr {};
+                        CreateSupportedMethodString(optionsstr, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+                        std::vector<std::pair<FIELD, std::string>> fields {
+                            std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
+                        };
+                        Write(http::CODE::_204, fields);
+                    } else {
+                        const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+                        WriteError(http::CODE::_405, errstr);
+                    }
                 }
                 header = header->get_next();
             }
