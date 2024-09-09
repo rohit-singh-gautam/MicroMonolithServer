@@ -18,15 +18,12 @@ net::protocol_t *creator_t::create_protocol(int logid, const std::string_view &p
         if (configuration->version.http2 || configuration->version.http2pri) {
             return new MMS::server::http::v2::protocol_t(configuration);
         }
-
-        // TODO:: HTTP_1_1_REQUIRED  must be returnedd from here
         log<log_t::HTTP2_UNSUPPORTED>(logid);
     } else if (protoname == "http/1.1") {
         if (configuration->version.http1) {
             return new protocol_t { configuration };
         }
 
-        // TODO: Return appropriate errors
         log<log_t::HTTP1_UNSUPPORTED>(logid);
     } else if (protoname.empty()) {
         // This path is for non SSL
@@ -37,8 +34,6 @@ net::protocol_t *creator_t::create_protocol(int logid, const std::string_view &p
     return nullptr;
 }
 
-protocol_t::~protocol_t() { if(http2_upgrade) delete http2_upgrade; }
-
 void protocol_t::ProcessRead(const ConstStream &stream) {
     try {
         // Check for HTTP 2.0 Pri
@@ -46,24 +41,17 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
             if (stream == std::string_view { MMS::http::v2::connection_preface, MMS::http::v2::connection_preface_size }) {
                 log<log_t::HTTP2_PRI_KNOWLEDGE>(GetFD());
                 // Move to http2
-                if (!http2_upgrade) {
-                    http2_upgrade = new v2::protocol_t { configuration };
-                    http2_upgrade->SetProcessor(processor);
-                }
+                auto http2_upgrade = new v2::protocol_t { configuration };
+                http2_upgrade->SetProcessor(processor);
                 http2_upgrade->ProcessRead(stream);
                 auto connection = dynamic_cast<MMS::net::tcp::connection_base_t *>(processor);
                 assert(connection);
                 /* -------------------IMP------------------------*/
                 // This will free up current running class. Hence no class variable must be used beyond this point.
-                auto temp_http2_upgrade = http2_upgrade;
-                http2_upgrade = nullptr;
-                connection->SetProtocol(temp_http2_upgrade);
+                connection->SetProtocol(http2_upgrade);
                 /* -------------------IMP------------------------*/
                 return;
             }
-        } else if (http2_upgrade) {
-            // TODO:: Return protocol error
-            log<log_t::HTTP2_UPGRADE_NO_PRI>(GetFD());
         }
 
         if (!configuration->version.http1) {
@@ -77,10 +65,16 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
                 auto settingbase64 = request.GetField(FIELD::HTTP2_Settings);
                 if (!settingbase64.empty())  {
                     // Time to move to HTTP2.
-                    http2_upgrade = new v2::protocol_t { configuration };
+                    auto http2_upgrade = new v2::protocol_t { configuration };
                     http2_upgrade->AddBase64Settings(settingbase64);
                     http2_upgrade->SetProcessor(processor);
                     http2_upgrade->Upgrade(std::move(request));
+                    /* -------------------IMP------------------------*/
+                    // This will free up current running class. Hence no class variable must be used beyond this point.
+                    auto connection = dynamic_cast<MMS::net::tcp::connection_base_t *>(processor);
+                    assert(connection);
+                    connection->SetProtocol(http2_upgrade);
+                    /* -------------------IMP------------------------*/
                     return;
                 }
             }

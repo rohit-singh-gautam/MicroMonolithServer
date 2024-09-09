@@ -22,10 +22,8 @@ namespace MMS::server::http::v1 {
 class creator_t;
 class protocol_t : public MMS::server::http::protocol_t {
     MMS::http::request *current_request { nullptr };
-    MMS::server::http::v2::protocol_t *http2_upgrade { nullptr };
 
 public:
-    ~protocol_t();
     using MMS::server::http::protocol_t::protocol_t;
     protocol_t(const protocol_t &) = delete;
     protocol_t &operator=(const protocol_t &) = delete;

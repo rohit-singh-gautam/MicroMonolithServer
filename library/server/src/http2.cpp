@@ -61,7 +61,6 @@ void protocol_t::AddBase64Settings(const std::string &settings) {
 
 void protocol_t::AddSettingResponse() {
     if (!settings_responded) {
-        // TODO: Pull setting range from configurations
         MMS::http::v2::settings::add_frame(response_buffer,
             MMS::http::v2::settings::identifier_t::SETTINGS_ENABLE_PUSH, peer_settings.SETTINGS_ENABLE_PUSH,
             MMS::http::v2::settings::identifier_t::SETTINGS_MAX_CONCURRENT_STREAMS, peer_settings.SETTINGS_MAX_CONCURRENT_STREAMS,

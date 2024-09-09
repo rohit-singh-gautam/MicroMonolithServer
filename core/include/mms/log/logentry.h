@@ -135,7 +135,6 @@ namespace MMS {
     \
     LOGGER_ENTRY(HTTP2_PRI_KNOWLEDGE, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol created with prior knowledge") \
     LOGGER_ENTRY(HTTP2_UPGRADE, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol upgrade from HTTP 1.1") \
-    LOGGER_ENTRY(HTTP2_UPGRADE_NO_PRI, INFO, HTTPSERVER, "FD %i: HTTP 2 Protocol upgrade expecting HTTP Magic as first packet") \
     \
     LOGGER_ENTRY(TEST_GUID_LOG, INFO, TEST, "IOT Error '%vg' caps '%vG'") \
     LOGGER_ENTRY(TEST_FLOAT_LOGS, INFO, TEST, "Test float %%%hf, double %f") \
