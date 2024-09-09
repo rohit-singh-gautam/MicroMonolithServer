@@ -24,41 +24,29 @@ public:
 
     // Buffer will be deleted once it is used.
     // All buffer must be created using malloc
-    virtual void WriteNoCopy(Stream &&) { };
-    
-    inline void WriteWithCopy(const ConstStream &stream) {
-        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(stream.remaining_buffer()));
-        std::copy(stream.curr(), stream.end(), newbuffer);
-        WriteNoCopy(FullStream {newbuffer, stream.remaining_buffer()});
-    }
-
-    inline void WriteWithCopy(const Stream &stream) {
-        auto newbuffer = reinterpret_cast<uint8_t *>(malloc(stream.remaining_buffer()));
-        std::copy(stream.curr(), stream.end(), newbuffer);
-        WriteNoCopy(FullStream {newbuffer, stream.remaining_buffer()});
-    }
+    virtual void WriteNoCopy(FixedBuffer &&) { };
 
     inline void Write(const std::string &buffer) {
         auto newbuffer = reinterpret_cast<char *>(malloc(buffer.size()));
         std::copy(std::begin(buffer), std::end(buffer), newbuffer);
-        WriteNoCopy(FullStream {newbuffer, buffer.size()});
+        WriteNoCopy(FixedBuffer {newbuffer, buffer.size()});
     }
 
     inline void Write(const std::string_view &buffer) {
         auto newbuffer = reinterpret_cast<char *>(malloc(buffer.size()));
         std::copy(std::begin(buffer), std::end(buffer), newbuffer);
-        WriteNoCopy(FullStream {newbuffer, buffer.size()});
+        WriteNoCopy(FixedBuffer {newbuffer, buffer.size()});
     }
 
 
-    template <typecheck::ConstStream... buffertype>
+    template <typecheck::WriteStream... buffertype>
     inline void Write(const buffertype&... buffer) {
         auto buffersize = ((buffer.remaining_buffer()) + ...);
         auto newbuffer = reinterpret_cast<uint8_t *>(malloc(buffersize));
         auto outputitr = newbuffer;
 
         ((outputitr = std::copy(buffer.curr(), buffer.end(), outputitr)), ...);
-        WriteNoCopy(FullStream {newbuffer, buffersize});
+        WriteNoCopy(FixedBuffer {newbuffer, buffersize});
     }
 };
 

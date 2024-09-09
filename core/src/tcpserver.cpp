@@ -60,8 +60,9 @@ EXIT_LOOP:
 err_t connection_t::ProcessWrite() {
     while(!pending_wirte.empty()) {
         auto &currentbuffer = pending_wirte.front();
-        while(!currentbuffer.full()) {
-            auto [buffer, size] = currentbuffer.GetRawCurrentBuffer();
+        while(writeoffset != currentbuffer.size()) {
+            const auto buffer = currentbuffer.begin() + writeoffset;
+            size_t size = currentbuffer.size() - writeoffset;
             auto ret = ::send(GetFD(), buffer, size, MSG_DONTWAIT );
             if (ret <= -1) {
                 switch(ret) {
@@ -88,18 +89,18 @@ err_t connection_t::ProcessWrite() {
                     return err_t::BAD_FILE_DESCRIPTOR;
                 }
             }
-            currentbuffer += ret;
+            writeoffset += ret;
             if (static_cast<size_t>(ret) < size) return err_t::SOCKET_RETRY;
         }
 
-        if (!currentbuffer.full()) break;
+        writeoffset = 0;
         pending_wirte.pop();
     }
     return err_t::SUCCESS;
 }
 
-void connection_base_t::WriteNoCopy(Stream &&stream) {
-    pending_wirte.emplace(std::move(stream));
+void connection_base_t::WriteNoCopy(FixedBuffer &&buffer) {
+    pending_wirte.emplace(std::move(buffer));
 }
 
 err_t server_t::ProcessRead() {

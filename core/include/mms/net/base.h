@@ -47,9 +47,7 @@ public:
 
     virtual void ProcessRead(const ConstStream &stream) = 0;
 
-    void WriteNoCopy(Stream &&stream) { processor->WriteNoCopy(std::move(stream)); };
-    inline void WriteWithCopy(const ConstStream &stream) { processor->WriteWithCopy(stream); }
-    inline void WriteWithCopy(const Stream &stream) { processor->WriteWithCopy(stream); }
+    void WriteNoCopy(FixedBuffer &&buffer) { processor->WriteNoCopy(std::move(buffer)); };
 
     inline void Write(const std::string &buffer) {
         processor->Write(buffer);
@@ -59,7 +57,7 @@ public:
         processor->Write(buffer);
     }
 
-    template <typecheck::ConstStream... buffertype>
+    template <typecheck::WriteStream... buffertype>
     inline void Write(const buffertype&... buffer) {
         processor->Write<buffertype...>(buffer...);
     }

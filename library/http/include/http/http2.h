@@ -366,17 +366,12 @@ public:
         }
     }
 
-    inline void parse_base64_frame(const ConstStream &stream, const http_limits_t *const configuration) {
+    inline void parse_base64(const ConstStream &stream, const http_limits_t *const configuration) {
         const size_t decode_len = base64_decode_len(stream.curr(), stream.remaining_buffer());
         auto decoded_buffer = std::make_unique<uint8_t[]>(decode_len);
         base64_decode(stream.curr(), stream.remaining_buffer(), decoded_buffer.get());
-
         ConstStream decoded_stream { decoded_buffer.get(), decode_len };
-        const frame *pframe = reinterpret_cast<const frame *>(decoded_stream.GetCurrAndIncrease(sizeof(frame)));
-        const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *decoded_stream++ : 0;
-        auto frameStreamBuffer = decoded_stream.GetCurrAndIncrease(pframe->get_length());
-        ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  pframe->get_length() - padded_bytes};
-        parse_frame( frameStream, configuration );
+        parse_frame( decoded_stream, configuration );
     }
 };
 
@@ -696,20 +691,21 @@ public:
         header_map.insert(std::make_pair(pheader->stream_identifier, pheader));
     }
 
-    void CheckAndParseSetting(const ConstStream &stream, Stream &writestream, const http_limits_t *configuration) {
+    bool CheckAndParseSetting(const ConstStream &stream, const http_limits_t *configuration) {
         const frame *pframe = reinterpret_cast<const frame *>(stream.curr());
         if (pframe->get_type() == frame::type_t::SETTINGS) {
             if (!pframe->contains(frame::flags_t::ACK)) {
-                    stream += sizeof(frame);
-                    const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
-                    const auto frame_length = pframe->get_length();
-                    auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
-                    ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
-                    peer_settings.parse_frame(frameStream, configuration);
-                    dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
-                    settings::add_ack_frame(writestream);
-                }
+                stream += sizeof(frame);
+                const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
+                const auto frame_length = pframe->get_length();
+                auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
+                ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
+                peer_settings.parse_frame(frameStream, configuration);
+                dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
+                return true;
+            }
         }
+        return false;
     }
 
     err_t parse(const ConstStream &stream, Stream &writestream) {

@@ -20,7 +20,8 @@ namespace MMS::net::tcp::ssl {
 class connection_t : public connection_base_t {
 protected:
     SSL *ssl;
-
+    size_t writeoffset { 0 };
+    
 public:
     connection_t(int fd, SSL *ssl, protocol_t *protocol_implementation)
         : connection_base_t { fd, protocol_implementation }, ssl { ssl } { }

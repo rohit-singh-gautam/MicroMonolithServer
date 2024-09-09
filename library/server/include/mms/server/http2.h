@@ -40,6 +40,7 @@ public:
     void AddSettingResponse();
     void AddBase64Settings(const std::string &settings);
     void Upgrade(MMS::http::request &&);
+    void ProcessRequest();
 
     void ProcessRead(const ConstStream &stream) override;
     void WriteError(const CODE code, const std::string &errortext) override;

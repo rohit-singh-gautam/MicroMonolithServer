@@ -13,6 +13,7 @@ namespace MMS {
 class ConstStream;
 class Stream {
 protected:
+    friend class FixedBuffer;
     friend class ConstStream;
     mutable uint8_t *_curr;
     uint8_t * _end;
@@ -179,6 +180,7 @@ public:
 
 class FullStream : public Stream {
 protected:
+    friend class FixedBuffer;
     uint8_t * _begin;
 
     void CheckUnderflow() const { if (_curr == _begin) throw StreamUnderflowException { }; }
@@ -432,12 +434,45 @@ public:
     }
 };
 
+class FixedBuffer {
+    uint8_t *_begin;
+    uint8_t *_end;
+
+public:
+    FixedBuffer(auto *_begin, auto *_end) : _begin { reinterpret_cast<uint8_t *>(_begin) }, _end { reinterpret_cast<uint8_t *>(_end) } { }
+    FixedBuffer(auto *_begin, size_t size) : _begin { reinterpret_cast<uint8_t *>(_begin) }, _end { reinterpret_cast<uint8_t *>(_begin) + size } { }
+    FixedBuffer(FixedBuffer &&buffer) : _begin { buffer._begin }, _end { buffer._end } { buffer._begin = buffer._end = nullptr;}
+    FixedBuffer(FullStream &&stream) : _begin { stream._begin }, _end { stream._curr } { stream._begin = stream._curr = stream._end = nullptr;}
+    FixedBuffer(const FixedBuffer &) = delete;
+    ~FixedBuffer() { if (_begin) free(_begin); }
+
+    FixedBuffer &operator=(const FixedBuffer &) = delete;
+
+    auto begin() { return _begin; }
+    const auto begin() const { return _begin; }
+
+    // Curr is require for making this compatible with Stream and ConstStream
+    auto curr() { return _begin; }
+    const auto curr() const { return _begin; }
+
+    auto end() { return _end; }
+    const auto end() const { return _end; }
+
+    auto size() const { return static_cast<size_t>(_end - _begin); }
+
+};
+
+
 namespace typecheck {
 template <typename T>
 concept ConstStream = std::is_base_of_v<MMS::ConstStream, T>;
 
 template <typename T>
 concept Stream = std::is_base_of_v<MMS::Stream, T>;
+
+template <typename T>
+concept WriteStream = std::is_base_of_v<MMS::ConstStream, T> || std::is_base_of_v<MMS::Stream, T> || std::is_base_of_v<MMS::FixedBuffer, T>;
+
 } // namespace typecheck
 
 

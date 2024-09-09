@@ -69,8 +69,9 @@ EXIT_LOOP:
 err_t connection_t::ProcessWrite() {
     while(!pending_wirte.empty()) {
         auto &currentbuffer = pending_wirte.front();
-        while(!currentbuffer.full()) {
-            auto [buffer, size] = currentbuffer.GetRawCurrentBuffer();
+        while(writeoffset != currentbuffer.size()) {
+            const auto buffer = currentbuffer.begin() + writeoffset;
+            size_t size = currentbuffer.size() - writeoffset;
             size_t actualwritten { };
             auto ret = SSL_write_ex(ssl, buffer, size, &actualwritten);
             if (!ret) {
@@ -80,8 +81,10 @@ err_t connection_t::ProcessWrite() {
                     return err_t::ORDERLY_SHUTDOWN;
 
                 case SSL_ERROR_WANT_READ:
+                    return err_t::SUCCESS;
+
                 case SSL_ERROR_WANT_WRITE:
-                    goto EXIT_LOOP;
+                    return err_t::SOCKET_RETRY;
 
                 default:
                     // Close will take care of termination
@@ -90,11 +93,9 @@ err_t connection_t::ProcessWrite() {
                     return err_t::BAD_FILE_DESCRIPTOR;
                 }
             }
-            currentbuffer += actualwritten;
+            writeoffset += actualwritten;
             if (static_cast<size_t>(actualwritten) < size)  return err_t::SOCKET_RETRY;
         }
-EXIT_LOOP:
-        if (!currentbuffer.full()) break;
         pending_wirte.pop();
     }
     return err_t::SUCCESS;

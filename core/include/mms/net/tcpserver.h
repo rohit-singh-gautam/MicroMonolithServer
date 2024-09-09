@@ -15,6 +15,9 @@
 namespace MMS::net::tcp {
 
 class connection_t : public connection_base_t {
+protected:
+    size_t writeoffset { 0 };
+
 public:
     using connection_base_t::connection_base_t;
     connection_t(const connection_t&) = delete;

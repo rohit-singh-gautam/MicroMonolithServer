@@ -79,6 +79,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         writer->Write(http::CODE::_200, 
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
+            std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Length, std::to_string(filecacheentry.size) },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } }
         );
     }

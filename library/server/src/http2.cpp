@@ -50,12 +50,13 @@ void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string
 void protocol_t::FinalizeWrite() {
     if (!response_buffer.empty()) {
         auto writestream = response_buffer.ReturnOldAndAlloc(response_buffe_initial_size);
-        WriteNoCopy(std::move(writestream));
+        FixedBuffer writebuffer { std::move(writestream) };
+        WriteNoCopy(std::move(writebuffer));
     }
 }
 
 void protocol_t::AddBase64Settings(const std::string &settings) {
-    peer_settings.parse_base64_frame( ConstStream { settings.c_str(), settings.size() }, &configuration->limits);
+    peer_settings.parse_base64( ConstStream { settings.c_str(), settings.size() }, &configuration->limits);
 }
 
 void protocol_t::AddSettingResponse() {
@@ -78,23 +79,40 @@ void protocol_t::Upgrade(MMS::http::request &&request) {
         response_buffer.Copy(MMS::http::v2::connection_upgrade, MMS::http::v2::connection_upgrade_size);
         AddSettingResponse();
         MMS::http::v2::settings::add_ack_frame(response_buffer);
-        std::string newpath { };
-        auto &handler = configuration->handlermap.search(request.GetPath(), newpath);
-        if (handler == nullptr) {
-            WriteError(CODE::_404,  std::format("Path {} not found", request.GetPath()));
-        }
-        else {
-            MMS::http::v2::header_request newreq { std::move(request) };
-            header_request = &newreq;
-            handler->ProcessRead(newreq, newpath, this);
-            header_request = nullptr;
-        }
+        MMS::http::v2::header_request newreq { std::move(request) };
+        header_request = &newreq;
+        ProcessRequest();
+        header_request = nullptr;
     }
     catch(http_parser_failed_t &parser_failed) {
         WriteError(CODE::_400, parser_failed.to_string());
     }
-    
     FinalizeWrite();
+}
+
+void protocol_t::ProcessRequest() {
+    std::string newpath { };
+    auto &handler = configuration->handlermap.search(header_request->GetPath(), newpath);
+    if (handler == nullptr) {
+        WriteError(CODE::_404,  std::format("Path {} not found", header_request->GetPath()));
+    }
+    else {
+        auto method = header_request->GetMethod();
+        if (handler->IsSupported(method)) {
+            handler->ProcessRead(*header_request, newpath, this);
+        }
+        else if (method == METHOD::OPTIONS) {
+            std::string optionsstr {};
+            CreateSupportedMethodString(optionsstr, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+            std::vector<std::pair<FIELD, std::string>> fields {
+                std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
+            };
+            Write(http::CODE::_204, fields);
+        } else {
+            const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
+            WriteError(http::CODE::_405, errstr);
+        }
+    }
 }
 
 void protocol_t::ProcessRead(const ConstStream &stream) {
@@ -104,39 +122,18 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
         if (first_frame) {
             if (stream == std::string_view { MMS::http::v2::connection_preface, MMS::http::v2::connection_preface_size }) {
                 stream += MMS::http::v2::connection_preface_size;
-                request.CheckAndParseSetting(stream, response_buffer, &configuration->limits);
+                auto acksettings = request.CheckAndParseSetting(stream, &configuration->limits);
                 AddSettingResponse();
+                if (acksettings) MMS::http::v2::settings::add_ack_frame(response_buffer);
             }
             first_frame = false;
         }
         auto ret = request.parse(stream, response_buffer);
         if (ret != err_t::HTTP2_INITIATE_GOAWAY) {
-            auto header = request.get_first_header();
-            while(header) {
-                header_request = header;
-                std::string newpath { };
-                auto &handler = configuration->handlermap.search(header->GetPath(), newpath);
-                if (handler == nullptr) {
-                    WriteError(CODE::_404,  std::format("Path {} not found", header->GetPath()));
-                }
-                else {
-                    auto method = header->GetMethod();
-                    if (handler->IsSupported(method)) {
-                        handler->ProcessRead(*header, newpath, this);
-                    }
-                    else if (method == METHOD::OPTIONS) {
-                        std::string optionsstr {};
-                        CreateSupportedMethodString(optionsstr, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
-                        std::vector<std::pair<FIELD, std::string>> fields {
-                            std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
-                        };
-                        Write(http::CODE::_204, fields);
-                    } else {
-                        const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
-                        WriteError(http::CODE::_405, errstr);
-                    }
-                }
-                header = header->get_next();
+            header_request = request.get_first_header();
+            while(header_request) {
+                ProcessRequest();
+                header_request = header_request->get_next();
             }
         }
     }

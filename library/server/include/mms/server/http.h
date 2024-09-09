@@ -98,12 +98,13 @@ public:
         Write(code, fields);
     }
 
-    static constexpr void CreateSupportedMethodString(std::string str, const std::vector<METHOD> &supportedmethods, const auto ...AdditionalMethod) {
+    static constexpr void CreateSupportedMethodString(std::string &str, const std::vector<METHOD> &supportedmethods, const auto ...AdditionalMethod) {
         for(auto supportedmethod: supportedmethods) {
             str += to_string(supportedmethod);
-            str += ',';
+            str += ", ";
         }
-        ((str += to_string(AdditionalMethod) + ','), ... );
+        ((str += to_string(AdditionalMethod) + ", "), ... );
+        str.pop_back();
         str.pop_back();
     }
 
