@@ -253,6 +253,10 @@ namespace MMS::http {
     HTTP_FIELD_ENTRY(X_Device_User_Agent, "X-Device-User-Agent") \
     /* Others */ \
     HTTP_FIELD_ENTRY(Refresh, "Refresh") \
+    HTTP_FIELD_ENTRY(Purpose, "Purpose") \
+    HTTP_FIELD_ENTRY(Content_Security_Policy, "Content-Security-Policy") \
+    HTTP_FIELD_ENTRY(Upgrade_Insecure_Requests, "Upgrade-Insecure-Requests") \
+    HTTP_FIELD_ENTRY(X_XSS_Protection, "X-XSS-Protection") \
     /* Do not use */ \
     HTTP_FIELD_ENTRY(IGNORE_THIS, "IGNORE THIS") \
     LIST_DEFINITION_END // HTTP_FIELD_LIST
