@@ -15,7 +15,7 @@
 namespace MMS {
 
 namespace net {
-int CreateServerSocket(int port) {
+int CreateTCPServerSocket(int port) {
     const int socket_id = socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, IPPROTO_TCP);
     int enable = 1;
     if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
@@ -43,6 +43,31 @@ int CreateServerSocket(int port) {
 
     return socket_id;
 }
+
+int CreateUDPServerSocket(int port) {
+    const int socket_id = socket(AF_INET6, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, IPPROTO_UDP);
+    int enable = 1;
+    if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&enable,sizeof(enable)) < 0) {
+        ::close(socket_id); 
+        throw setsockopt_fail_t(error_helper_t::sockopt_ret());
+    }
+
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_port = htons(port);
+    addr.sin6_addr = in6addr_any;
+
+    if (bind(socket_id, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        ::close(socket_id);
+        throw bind_fail_t { };
+    }
+    log<log_t::UDP_SOCKET_BIND_SUCCESS>(socket_id, port);
+
+    return socket_id;
+}
+
+
 } // namespace net
 
 ipv6_socket_addr_t::operator sockaddr_in6() const {

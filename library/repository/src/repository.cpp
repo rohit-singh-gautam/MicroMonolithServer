@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <mms/listener.h>
+#include <mms/net/udpserversimple.h>
 
 namespace MMS::repository {
 
@@ -268,6 +269,8 @@ bool Container::ReadServerConfiguration() {
                 server = new net::tcp::ssl::server_t { port, proto, listener, sslconf };
             } else if (transport_name == "TCP") {
                 server = new net::tcp::server_t { port, proto, listener };
+            } else if (transport_name == "UDP") {
+                server = new net::udp::server_t { port, proto, listener };
             } else {
                 std::cerr << "Unknown transport name " << transport_name << std::endl;
             }

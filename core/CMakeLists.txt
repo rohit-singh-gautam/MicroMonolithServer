@@ -14,6 +14,7 @@ add_library(corelib
     src/tcpserver.cpp
     src/tcpsslserver.cpp
     src/sslcommon.cpp
+    src/udpserversimple.cpp
 )
 
 include_directories(${GLOBAL_INCLUDE})

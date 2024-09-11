@@ -182,11 +182,10 @@ void listener_t::loop() {
                         // recv() 0 means end of file.
                         processor->readbuffer.Reset();
                         ret = processor->ProcessRead();
-                        if (ret == err_t::SOCKET_RETRY) {
-                            event.events |= EPOLLOUT;
+                        if (ret == err_t::SUCCESS) {
+                            ret = processor->ProcessWrite();
                         }
-                    }
-                    if ((event.events & EPOLLOUT)) {
+                    } else if ((event.events & EPOLLOUT)) {
                         ret = processor->ProcessWrite();
                     }
 

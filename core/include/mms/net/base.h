@@ -12,7 +12,8 @@
 
 namespace MMS::net {
 constexpr int socket_backlog { 5 };
-int CreateServerSocket(int port);
+int CreateTCPServerSocket(int port);
+int CreateUDPServerSocket(int port);
 
 inline const ipv6_socket_addr_t get_peer_ipv6_addr(const int socket_id) {
     sockaddr_in6 addr;

@@ -25,7 +25,12 @@
             "SSL": "Default",
             "Protocol": "echo",
             "Port": 8883,
-        }
+        },
+        "UDP ECHO" : {
+            "Transport": "UDP",
+            "Protocol": "echo",
+            "Port": 7,
+        },
     },
     "Protocols": {
         "HTTPv2": {

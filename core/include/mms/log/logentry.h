@@ -80,6 +80,7 @@ namespace MMS {
     LOGGER_ENTRY(TCP_SOCKET_BIND_SUCCESS, DEBUG, SOCKET, "TCP Socket %i, port %i bind success") \
     LOGGER_ENTRY(TCP_SOCKET_LISTEN_SUCCESS, DEBUG, SOCKET, "TCP Socket %i, port %i listen success") \
     LOGGER_ENTRY(TCP_SOCKET_ACCEPT_SUCCESS, DEBUG, SOCKET, "TCP Socket %i accept success, new socket created %i") \
+    LOGGER_ENTRY(UDP_SOCKET_BIND_SUCCESS, DEBUG, SOCKET, "UDP Socket %i, port %i bind success") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_FAILED, ALERT, SYSTEM, "FAILED: Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL, ALERT, SYSTEM, "Setting Log level %vl for module %vm") \
     LOGGER_ENTRY(SETTING_LOG_LEVEL_ALL, ALERT, SYSTEM, "Setting Log level %vl for all modules") \
@@ -121,6 +122,8 @@ namespace MMS {
     \
     LOGGER_ENTRY(TCP_CONNECTION_EMPTY_READ, DEBUG, TCP_SERVER, "FD %i: TCP empty read") \
     LOGGER_ENTRY(TCP_CONNECTION_READ, DEBUG, TCP_SERVER, "FD %i: TCP read %lu bytes") \
+    LOGGER_ENTRY(UDP_CONNECTION_EMPTY_READ, DEBUG, TCP_SERVER, "FD %i: UDP empty read") \
+    LOGGER_ENTRY(UDP_CONNECTION_READ, DEBUG, TCP_SERVER, "FD %i: UDP read %lu bytes") \
     \
     LOGGER_ENTRY(TCP_SSL_CREATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server is unable to create SSL for peer %i") \
     LOGGER_ENTRY(TCP_SSL_INITIALIZATION_FAILED, ERROR, TCP_SERVER, "FD %i: SSL TCP Server unable to initialize peer %i, failed with error %vc") \

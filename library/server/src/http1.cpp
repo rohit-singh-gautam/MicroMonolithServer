@@ -13,23 +13,23 @@
 
 namespace MMS::server::http::v1 {
 
-net::protocol_t *creator_t::create_protocol(int logid, const std::string_view &protoname) { 
+net::protocol_t *creator_t::create_protocol(int fd, const std::string_view &protoname) { 
     if (protoname == "h2") {
         if (configuration->version.http2 || configuration->version.http2pri) {
             return new MMS::server::http::v2::protocol_t(configuration);
         }
-        log<log_t::HTTP2_UNSUPPORTED>(logid);
+        log<log_t::HTTP2_UNSUPPORTED>(fd);
     } else if (protoname == "http/1.1") {
         if (configuration->version.http1) {
             return new protocol_t { configuration };
         }
 
-        log<log_t::HTTP1_UNSUPPORTED>(logid);
+        log<log_t::HTTP1_UNSUPPORTED>(fd);
     } else if (protoname.empty()) {
         // This path is for non SSL
         return new protocol_t { configuration };
     } else {
-        log<log_t::HTTP_UNSUPPORTED_PROTOCOL>(logid);
+        log<log_t::HTTP_UNSUPPORTED_PROTOCOL>(fd);
     }
     return nullptr;
 }

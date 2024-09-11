@@ -11,33 +11,30 @@
 #include <mms/net/socket.h>
 #include <mms/net/base.h>
 #include <mms/net/tcpcommon.h>
+#include <sys/socket.h>
 
-namespace MMS::net::tcp {
+namespace MMS::net::udp {
 
-class connection_t : public connection_base_t {
-protected:
-    size_t writeoffset { 0 };
-
-public:
-    using connection_base_t::connection_base_t;
-    connection_t(const connection_t&) = delete;
-    connection_t& operator=(const connection_t&) = delete;
-
-    err_t ProcessRead() override;
-    err_t ProcessWrite() override;
-}; // connection_t
 
 class server_t : public listener::processor_t {
-    protocol_creator_t &protocol_creator;
-    listener::listener_t *listener;
+    std::unique_ptr<protocol_t> protocol_implementation;
+    std::queue<std::pair<sockaddr_in6, FixedBuffer>> pending_wirte { };
+
+    sockaddr_in6 *current_client_addr { nullptr };
 
 public:
-    server_t(const int port, protocol_creator_t &protocol_creator, listener::listener_t *listener)
-        : listener::processor_t { CreateTCPServerSocket(port) }, 
-            protocol_creator { protocol_creator }, listener { listener } { }
+    server_t(const int port, protocol_creator_t &protocol_creator, listener::listener_t *)
+        : listener::processor_t { CreateUDPServerSocket(port) }, 
+            protocol_implementation { protocol_creator.create_protocol(GetFD(), { }) }
+    {
+        protocol_implementation->SetProcessor(this);
+    }
+    virtual ~server_t() = default;
     server_t(const server_t &) = default;
     server_t &operator=(const server_t &) = default;
     err_t ProcessRead() override;
+    err_t ProcessWrite() override;
+    void WriteNoCopy(FixedBuffer &&) override;
 }; // server_t
 
 } // namespace MMS::net::tcp

@@ -54,7 +54,7 @@ EXIT_LOOP:
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());
 
-    return pending_wirte.empty() ? err_t::SUCCESS : err_t::SOCKET_RETRY;
+    return err_t::SUCCESS;
 }
 
 err_t connection_t::ProcessWrite() {
