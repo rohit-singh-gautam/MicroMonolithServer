@@ -101,4 +101,6 @@ const static_table_t static_table = {
 #undef HTTP2_STATIC_TABLE_ENTRY
 };
 
+const std::pair<FIELD, std::string> map_table_t::empty { FIELD::IGNORE_THIS, {}};
+
 } // namespace MMS::http::hpack

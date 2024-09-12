@@ -551,15 +551,16 @@ public:
         this->stream_identifier = stream_identifier;
         while(stream.remaining_buffer()) {
             if ((*stream & 0x80) == 0x80) {
+                // TODO: Check for voilation
                 // rfc7541 # 6.1 Indexed Header Field Representation
                 uint32_t index = hpack::decode_integer<7>(stream);
                 // Dynamic table check is internal
-                auto header = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
+                auto &header = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
                 add_field(header);
             } else if (*stream == 0x40) {
                 ++stream;
                 auto field = hpack::get_header_field(stream);
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(field, value);
                 dynamic_table.insert(header);
                 add_field(header);
@@ -567,32 +568,32 @@ public:
                 // rfc7541 # 6.2.1 Literal Header Field with Incremental Indexing
                 uint32_t index = hpack::decode_integer<6>(stream);
                 auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 dynamic_table.insert(header);
                 add_field(header);
             } else if (*stream == 0x00) {
                 ++stream;
                 auto field = hpack::get_header_field(stream);
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
             } else if ((*stream & 0xf0) == 0x00) {
                 uint32_t index = hpack::decode_integer<4>(stream);
                 auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
             } else if (*stream == 0x10) {
                 ++stream;
                 auto field = hpack::get_header_field(stream);
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
             } else if ((*stream & 0xf0) == 0x10) {
                 uint32_t index = hpack::decode_integer<4>(stream);
                 auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
-                auto value = hpack::get_header_string(stream);
+                auto value = hpack::get_header_string<8>(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
             } else if ((*stream &0xe0) == 0x20) {

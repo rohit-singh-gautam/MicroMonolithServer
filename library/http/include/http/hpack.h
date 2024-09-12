@@ -39,6 +39,8 @@ private:
     // Count will be used for dynamic to cleanup
     std::unordered_map<FIELD, std::pair<size_t, size_t>> entry_map { };
 
+    static const std::pair<FIELD, std::string> empty;
+
 public:
     inline map_table_t() { }
     inline map_table_t(const std::initializer_list<std::pair<FIELD, std::string>> &list) {
@@ -49,9 +51,9 @@ public:
     map_table_t(const map_table_t &) = delete;
     map_table_t &operator=(const map_table_t &) = delete;
 
-    inline auto operator[](const size_t index) const {
+    inline const auto &operator[](const size_t index) const {
         if (index >= entries.size()) {
-            return std::make_pair(FIELD::IGNORE_THIS, std::string {""});
+            return empty;
         } else {
             return entries[index];
         }
@@ -343,10 +345,21 @@ extern const node *huffman_root;
 
 std::string get_huffman_string(const Stream &stream);
 
+//! N must include H
+// +---+---------------------------+
+// | H |     Value Length (7+)     |
+// +---+---------------------------+
+// N must be 8 for above example
+//  +---+---+---+---+---+---+---+---+
+// | 0 | 0 | 1 | N | H |NameLen(3+)|
+// +---+---+---+---+---+-----------+
+// N must be 4 for above example
+template <uint32_t N>
 inline auto get_header_string(const Stream &stream) {
-    size_t len = *stream & 0x7f;
+    size_t len = hpack::decode_integer<N - 1>(stream);
+    bool H = *stream & (1 << (N - 1));
     ++stream;
-    std::string value = *stream & 0x80 ? get_huffman_string(stream.GetSimpleStream()) : std::string {reinterpret_cast<const char *>(stream.curr()), len };
+    std::string value = H ? get_huffman_string(stream.GetSimpleStream()) : std::string {reinterpret_cast<const char *>(stream.curr()), len };
     stream += len;
     return value;
 }
@@ -374,7 +387,7 @@ inline auto add_header_string(Stream &stream, const std::string &value) {
 }
 
 inline auto get_header_field(const Stream &stream) {
-    auto header_string = get_header_string(stream);
+    auto header_string = get_header_string<8>(stream);
     return to_field(header_string);
 }
 

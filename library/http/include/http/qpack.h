@@ -23,9 +23,14 @@ using MMS::http::FIELD;
 using MMS::http::METHOD;
 using MMS::http::CODE;
 
+using MMS::http::hpack::dynamic_table_t;
+using MMS::http::hpack::static_table_t;
+
 #ifndef LIST_DEFINITION_END
 #define LIST_DEFINITION_END
 #endif
+
+extern const static_table_t static_table;
 
 // https://www.rfc-editor.org/rfc/rfc9204.html#static-table
 #define QPACK_STATIC_TABLE_LIST \
@@ -130,5 +135,53 @@ using MMS::http::CODE;
     QPACK_STATIC_TABLE_ENTRY( 98, FIELD::X_Frame_Options, "sameorigin" ) \
     LIST_DEFINITION_END
 
+namespace header {
+
+    constexpr void parse(const Stream &stream, hpack::dynamic_table_t &dynamic_table, std::function<void(const std::pair<FIELD, std::string> &)> add_field) {
+        if ((*stream & 0x80)) { // 4.5.2. https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line
+            // TODO: Check for voilation
+            const bool T = *stream & 0x40;
+            uint32_t index = hpack::decode_integer<6>(stream);
+            auto &header = T ? static_table[index] : dynamic_table[index];
+            add_field(header);
+        } else if ((*stream & 0xf0) == 0x10) { // 4.5.3.  https://www.rfc-editor.org/rfc/rfc9204.html#name-indexed-field-line-with-pos
+            uint32_t index = hpack::decode_integer<4>(stream);
+            auto &header = dynamic_table[index];
+            add_field(header);
+        } else
+        // *stream cannot have 8th bit set, hence 0x40 check is sufficient
+        if ((*stream & 0x40)) { // 4.5.4. https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-nam
+            const bool N = *stream & 0x20;
+            const bool T = *stream & 0x10;
+            uint32_t index = hpack::decode_integer<4>(stream);
+            auto value = hpack::get_header_string<8>(stream);
+            auto &header_indexed = T ? static_table[index] : dynamic_table[index];
+            std::pair<FIELD, std::string> header { header_indexed.first, value };
+            // TODO: move header
+            if (N) dynamic_table.insert(header);
+            add_field(header);
+        } else if (!(*stream & 0xf0)) { // 4.5.5. https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-pos
+            const bool N = *stream & 0x08;
+            uint32_t index = hpack::decode_integer<3>(stream);
+            auto value = hpack::get_header_string<8>(stream);
+            auto &header_indexed = dynamic_table[index];
+            std::pair<FIELD, std::string> header { header_indexed.first, value };
+            // TODO: move header
+            if (N) dynamic_table.insert(header);
+            add_field(header);
+        } else
+        // *stream cannot have 8th and 7th bit set, hence 0x20 check is sufficient
+        if ((*stream & 0x20)) { // 4.5.6. https://www.rfc-editor.org/rfc/rfc9204.html#name-literal-field-line-with-lit
+            const bool N = *stream & 0x10;
+            auto name = hpack::get_header_string<4>(stream);
+            auto value = hpack::get_header_string<8>(stream);
+            auto field = to_field(name);
+            std::pair<FIELD, std::string> header { field, value };
+            // TODO: move header
+            if (N) dynamic_table.insert(header);
+            add_field(header);
+        }
+    }
+} // namespace header
 
 } // namespace rohit::http::v2
