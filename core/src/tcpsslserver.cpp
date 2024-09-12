@@ -58,7 +58,7 @@ err_t connection_t::ProcessRead() {
 
 EXIT_LOOP:
     if (readbuffer.index()) {
-        protocol_implementation->ProcessRead(ConstStream {readbuffer.begin(), readbuffer.curr()});
+        protocol_implementation->ProcessRead(make_const_stream(readbuffer.begin(), readbuffer.curr()));
         log<log_t::TCP_CONNECTION_READ>(GetFD(), readbuffer.index());
     }
     else log<log_t::TCP_CONNECTION_EMPTY_READ>(GetFD());

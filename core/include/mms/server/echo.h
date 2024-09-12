@@ -14,7 +14,7 @@ class echo_t : public net::protocol_t {
 public:
     using net::protocol_t::protocol_t;
 
-    void ProcessRead(const ConstStream &stream) override {
+    void ProcessRead(const Stream &stream) override {
         Write(stream);
     }
 };

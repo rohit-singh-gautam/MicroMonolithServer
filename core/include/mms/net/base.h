@@ -46,7 +46,7 @@ public:
 
     void SetProcessor(listener::processor_t *processor) { this->processor = processor; }
 
-    virtual void ProcessRead(const ConstStream &stream) = 0;
+    virtual void ProcessRead(const Stream &stream) = 0;
 
     void WriteNoCopy(FixedBuffer &&buffer) { processor->WriteNoCopy(std::move(buffer)); };
 

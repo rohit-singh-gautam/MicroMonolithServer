@@ -25,7 +25,7 @@ void CreateHeaderFrame(hpack::dynamic_table_t &dynamic_table, FullStream &stream
     new (frame_buffer) frame{ static_cast<uint32_t>(stream.GetSizeFrom(start_frame_body)), frame::type_t::HEADERS, frame::flags_t::END_HEADERS, stream_identifier };
 }
 
-void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const ConstStream &bodystream, uint32_t stream_identifier) {
+void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const Stream &bodystream, uint32_t stream_identifier) {
     const uint32_t max_body_size = max_frame_size - sizeof(frame);
     const uint32_t first_body_size = std::min(max_body_size, static_cast<uint32_t>(bodystream.remaining_buffer()));
     {

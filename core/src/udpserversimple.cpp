@@ -57,7 +57,7 @@ err_t server_t::ProcessRead() {
         }
         if (readbuffer.index()) {
             current_client_addr = &client_addr;
-            protocol_implementation->ProcessRead(ConstStream {readbuffer.begin(), readbuffer.curr()});
+            protocol_implementation->ProcessRead(make_const_stream(readbuffer.begin(), readbuffer.curr()));
             current_client_addr = nullptr;
             log<log_t::UDP_CONNECTION_READ>(GetFD(), readbuffer.index());
         }

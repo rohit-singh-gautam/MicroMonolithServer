@@ -18,3 +18,11 @@ TEST(StreamTest, Stream) {
     EXPECT_TRUE(reinterpret_cast<uint8_t *>(text.data()) + 5 == stream.curr());
     
 }
+
+TEST(StreamTest, ConstStream) {
+    const char *text { "This is a test" };
+    auto textsize = strlen(text);
+    auto stream = MMS::make_const_stream(text, textsize);
+
+    EXPECT_TRUE(stream.remaining_buffer() == textsize);
+}

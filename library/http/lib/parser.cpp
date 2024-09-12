@@ -76,7 +76,7 @@ std::string response::to_string() const {
     return ret;
 }
 
-std::string parse_till_space(const ConstFullStream &stream) {
+std::string parse_till_space(const FullStream &stream) {
     auto start = stream.curr();
     while(*stream != ' ' && stream.remaining_buffer()) {
         ++stream;
@@ -89,7 +89,7 @@ std::string parse_till_space(const ConstFullStream &stream) {
     return { reinterpret_cast<const char *>(start), static_cast<size_t>(stream.curr() - start)};
 }
 
-std::string parse_till_colon(const ConstFullStream &stream) {
+std::string parse_till_colon(const FullStream &stream) {
     while(*stream == ' ' && stream.remaining_buffer()) {
         ++stream;
     }
@@ -114,7 +114,7 @@ std::string parse_till_colon(const ConstFullStream &stream) {
     return ret;
 }
 
-std::string parse_till_CRLF(const ConstFullStream &stream) {
+std::string parse_till_CRLF(const FullStream &stream) {
     while(*stream == ' ' && stream.remaining_buffer()) {
         ++stream;
     }
@@ -142,13 +142,13 @@ std::string parse_till_CRLF(const ConstFullStream &stream) {
     return ret;
 }
 
-void parse_skip_one(const ConstFullStream &stream) {
+void parse_skip_one(const FullStream &stream) {
     if (stream.full()) throw MMS::http_parser_failed_t(stream);
     ++stream;
 }
 
 
-bool parse_check_CRLF(const ConstFullStream &stream) {
+bool parse_check_CRLF(const FullStream &stream) {
     if (*stream == '\r') {
         ++stream;
         if (stream.full() || *stream != '\n') throw MMS::http_parser_failed_t(stream);
@@ -162,13 +162,13 @@ bool parse_check_CRLF(const ConstFullStream &stream) {
 }
 
 template <bool crlf_end>
-void header::parse_version(const ConstFullStream &stream) {
+void header::parse_version(const FullStream &stream) {
     const auto versiontext = crlf_end ? parse_till_CRLF(stream) : parse_till_space(stream);
     version = to_version(versiontext);
     if (version == VERSION::VER_UNKNOWN) throw MMS::http_parser_failed_t(stream);
 }
 
-void header::parse_fields(const ConstFullStream &stream) {
+void header::parse_fields(const FullStream &stream) {
     while(true) {
         auto fieldtext = parse_till_colon(stream);
         auto value = parse_till_CRLF(stream);
@@ -179,20 +179,20 @@ void header::parse_fields(const ConstFullStream &stream) {
     }
 }
 
-void header::parse_method(const ConstFullStream &stream) {
+void header::parse_method(const FullStream &stream) {
     auto methodtext = parse_till_space(stream);
     SetMethod(std::move(methodtext));
     if (GetMethod() == METHOD::IGNORE_THIS) throw MMS::http_parser_failed_t(stream);
 }
 
-void header::parse_request_uri(const ConstFullStream &stream) {
+void header::parse_request_uri(const FullStream &stream) {
     auto requesturi = parse_till_space(stream);
     SetPath(std::move(requesturi));
 }
 
 // Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
 // We will allow CR
-void header::parse_request_line(const ConstFullStream &stream) {
+void header::parse_request_line(const FullStream &stream) {
     parse_method(stream);
     parse_skip_one(stream);
     parse_request_uri(stream);
@@ -200,7 +200,7 @@ void header::parse_request_line(const ConstFullStream &stream) {
     parse_version<true>(stream);
 }
 
-void request::parse(const ConstFullStream &stream) {
+void request::parse(const FullStream &stream) {
     parse_request_line(stream);
     if (stream.remaining_buffer()) {
         parse_fields(stream);
@@ -208,7 +208,7 @@ void request::parse(const ConstFullStream &stream) {
     }
 }
 
-request::request(const ConstFullStream &stream) {
+request::request(const FullStream &stream) {
     parse(stream);
 }
 
@@ -263,13 +263,13 @@ response response::CreateErrorResponse(CODE code, const std::string &errortext, 
     return res;
 }
 
-void response_header::parse_code(const ConstFullStream &stream) {
+void response_header::parse_code(const FullStream &stream) {
     auto codetext = parse_till_space(stream);
     code = to_code_map(codetext);
     if (code == CODE::_0) throw MMS::http_parser_failed_t(stream);
 }
 
-void response_header::parse_response_line(const ConstFullStream &stream) {
+void response_header::parse_response_line(const FullStream &stream) {
     parse_version<false>(stream);
     parse_skip_one(stream);
     parse_code(stream);
@@ -277,7 +277,7 @@ void response_header::parse_response_line(const ConstFullStream &stream) {
     parse_till_CRLF(stream);
 }
 
-void response::parse(const ConstFullStream &stream) {
+void response::parse(const FullStream &stream) {
     parse_response_line(stream);
     if (stream.remaining_buffer()) {
         parse_fields(stream);
@@ -285,7 +285,7 @@ void response::parse(const ConstFullStream &stream) {
     }
 }
 
-response::response(const ConstFullStream &stream) {
+response::response(const FullStream &stream) {
     parse(stream);
 }
 

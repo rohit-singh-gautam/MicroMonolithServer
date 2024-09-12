@@ -76,11 +76,11 @@ public:
 
 
     virtual void WriteError(const CODE code, const std::string &errortext) =  0;
-    virtual void Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
+    virtual void Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
     virtual void Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
 
     template <typecheck::fieldentrypair... fieldlist>
-    inline void Write(const CODE code, const ConstStream &bodystream, const fieldlist& ... field) {
+    inline void Write(const CODE code, const Stream &bodystream, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
         Write(code, bodystream, fields);
     }
@@ -88,7 +88,7 @@ public:
     template <typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const std::string &body, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
-        ConstStream bodystream { body.c_str(), body.size() };
+        auto bodystream = make_const_stream(body.c_str(), body.size());
         Write(code, bodystream,  fields);
     }
 

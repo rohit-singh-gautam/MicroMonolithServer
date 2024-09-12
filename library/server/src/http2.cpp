@@ -30,10 +30,10 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
     if (icode >= 400 && icode <= 599) fields.emplace_back( FIELD::Connection, std::string { "close" } );
     if (icode == 405) fields.emplace_back( FIELD::Connection, std::string { "GET, PRI" } );
 
-    Write(code, ConstStream { body }, fields);
+    Write(code, make_const_stream(body), fields);
 }
 
-void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
+void protocol_t::Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
     fields.emplace_back(FIELD::Server, configuration->ServerName);
     fields.emplace_back(FIELD::Content_Length, std::to_string(bodystream.remaining_buffer()));
     MMS::http::v2::CreateHeaderFrame(dynamic_table, response_buffer, header_request->stream_identifier, code, fields);
@@ -56,7 +56,7 @@ void protocol_t::FinalizeWrite() {
 }
 
 void protocol_t::AddBase64Settings(const std::string &settings) {
-    peer_settings.parse_base64( ConstStream { settings.c_str(), settings.size() }, &configuration->limits);
+    peer_settings.parse_base64(make_const_stream(settings.c_str(), settings.size()), &configuration->limits);
 }
 
 void protocol_t::AddSettingResponse() {
@@ -114,7 +114,7 @@ void protocol_t::ProcessRequest() {
     }
 }
 
-void protocol_t::ProcessRead(const ConstStream &stream) {
+void protocol_t::ProcessRead(const Stream &stream) {
     response_buffer.Reset();
     try {
         MMS::http::v2::request request { dynamic_table, peer_settings };

@@ -256,7 +256,7 @@ public:
 // Integer representation, decode and encode is defined in
 // https://www.rfc-editor.org/rfc/rfc7541.html#section-5.1
 template <uint32_t N>
-constexpr auto decode_integer(const ConstStream &stream) {
+constexpr auto decode_integer(const Stream &stream) {
     constexpr uint32_t mask = (1 << N) - 1;
     uint32_t value = *stream++ & mask;
     if (value < mask) {
@@ -341,9 +341,9 @@ node *created_huffman_tree();
 
 extern const node *huffman_root;
 
-std::string get_huffman_string(const ConstStream &stream);
+std::string get_huffman_string(const Stream &stream);
 
-inline auto get_header_string(const ConstStream &stream) {
+inline auto get_header_string(const Stream &stream) {
     size_t len = *stream & 0x7f;
     ++stream;
     std::string value = *stream & 0x80 ? get_huffman_string(stream.GetSimpleStream()) : std::string {reinterpret_cast<const char *>(stream.curr()), len };
@@ -351,16 +351,16 @@ inline auto get_header_string(const ConstStream &stream) {
     return value;
 }
 
-inline size_t huffman_string_size(const ConstStream &stream) {
+inline size_t huffman_string_size(const Stream &stream) {
     size_t size = 7;
     while(!stream.full()) size += static_huffman[*stream++].code_len;
     return size / 8;
 }
 
-void add_huffman_string(Stream &stream, const ConstStream &valstream);
+void add_huffman_string(Stream &stream, const Stream &valstream);
 
 inline auto add_header_string(Stream &stream, const std::string &value) {
-    auto strstream = ConstFullStream { value };
+    auto strstream = make_const_fullstream(value);
     size_t size = huffman_string_size(strstream);
     if (size < value.size()) {
         // Encoded string is smaller hence we are encoded
@@ -373,7 +373,7 @@ inline auto add_header_string(Stream &stream, const std::string &value) {
     }
 }
 
-inline auto get_header_field(const ConstStream &stream) {
+inline auto get_header_field(const Stream &stream) {
     auto header_string = get_header_string(stream);
     return to_field(header_string);
 }

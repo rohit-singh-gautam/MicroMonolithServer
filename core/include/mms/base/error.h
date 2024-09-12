@@ -266,13 +266,13 @@ inline std::ostream& operator<<(std::ostream& os, const exception_t &error) {
     return os << errdata.to_string();
 }
 
-class ConstFullStream;
+class FullStream;
 
 class http_parser_failed_t : public exception_t {
-    const ConstFullStream &stream;
+    const FullStream &stream;
 
 public:
-    constexpr http_parser_failed_t(const ConstFullStream &stream) 
+    constexpr http_parser_failed_t(const FullStream &stream) 
         : exception_t(err_t::HTTP11_PARSER_FAILURE), stream { stream } { }
 
     std::string to_string();

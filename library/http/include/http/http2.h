@@ -333,7 +333,7 @@ public:
                 SETTINGS_MAX_HEADER_LIST_SIZE(constant::SETTINGS_MAX_HEADER_LIST_SIZE)
     {}
 
-    inline const auto parse_one(const ConstStream &stream, const http_limits_t *const configuration) {
+    inline const auto parse_one(const Stream &stream, const http_limits_t *const configuration) {
         auto psettings = reinterpret_cast<const settings *>(stream.GetCurrAndIncrease(sizeof(settings)));
         switch(psettings->get_identifier()) {
         case settings::identifier_t::SETTINGS_HEADER_TABLE_SIZE:
@@ -360,17 +360,17 @@ public:
         }
     }
 
-    constexpr void parse_frame(const ConstStream &stream, const http_limits_t *const configuration) {
+    constexpr void parse_frame(const Stream &stream, const http_limits_t *const configuration) {
         while(stream.remaining_buffer()) {
             parse_one(stream, configuration);
         }
     }
 
-    inline void parse_base64(const ConstStream &stream, const http_limits_t *const configuration) {
+    inline void parse_base64(const Stream &stream, const http_limits_t *const configuration) {
         const size_t decode_len = base64_decode_len(stream.curr(), stream.remaining_buffer());
         auto decoded_buffer = std::make_unique<uint8_t[]>(decode_len);
         base64_decode(stream.curr(), stream.remaining_buffer(), decoded_buffer.get());
-        ConstStream decoded_stream { decoded_buffer.get(), decode_len };
+        const Stream decoded_stream { decoded_buffer.get(), decode_len };
         parse_frame( decoded_stream, configuration );
     }
 };
@@ -547,7 +547,7 @@ public:
     header_request(const header_request &) = delete;
     header_request &operator=(const header_request &) = delete;
 
-    void parse_header(const ConstStream &stream, const uint32_t stream_identifier, hpack::dynamic_table_t &dynamic_table) {
+    void parse_header(const Stream &stream, const uint32_t stream_identifier, hpack::dynamic_table_t &dynamic_table) {
         this->stream_identifier = stream_identifier;
         while(stream.remaining_buffer()) {
             if ((*stream & 0x80) == 0x80) {
@@ -691,7 +691,7 @@ public:
         header_map.insert(std::make_pair(pheader->stream_identifier, pheader));
     }
 
-    bool CheckAndParseSetting(const ConstStream &stream, const http_limits_t *configuration) {
+    bool CheckAndParseSetting(const Stream &stream, const http_limits_t *configuration) {
         const frame *pframe = reinterpret_cast<const frame *>(stream.curr());
         if (pframe->get_type() == frame::type_t::SETTINGS) {
             if (!pframe->contains(frame::flags_t::ACK)) {
@@ -699,7 +699,7 @@ public:
                 const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
                 const auto frame_length = pframe->get_length();
                 auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
-                ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
+                auto frameStream = make_const_stream(frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes);
                 peer_settings.parse_frame(frameStream, configuration);
                 dynamic_table.update_size(peer_settings.SETTINGS_HEADER_TABLE_SIZE);
                 return true;
@@ -708,7 +708,7 @@ public:
         return false;
     }
 
-    err_t parse(const ConstStream &stream, Stream &writestream) {
+    err_t parse(const Stream &stream, Stream &writestream) {
         while(stream.CheckCapacity(sizeof(frame))) {
             const frame *pframe = reinterpret_cast<const frame *>(stream.GetCurrAndIncrease(sizeof(frame)));
             const auto stream_identifier = pframe->get_stream_identifier();
@@ -716,7 +716,7 @@ public:
             const uint8_t padded_bytes = pframe->contains(frame::flags_t::PADDED) ? *stream++ : 0;
             const auto frame_length = pframe->get_length();
             auto frameStreamBuffer = stream.GetCurrAndIncrease(frame_length);
-            ConstStream frameStream { frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes};
+            auto frameStream = make_const_stream(frameStreamBuffer, frameStreamBuffer +  frame_length - padded_bytes);
 
             switch(pframe->get_type()) {
                 // rfc7540 - 6.1.  DATA
@@ -929,6 +929,6 @@ template <> constexpr void request::copy_http_header_response<FIELD::Status, COD
 
 void CreateHeaderFrame(hpack::dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields);
 
-void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const ConstStream &bodystream, uint32_t stream_identifier);
+void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const Stream &bodystream, uint32_t stream_identifier);
 
 } // namespace MMS::http::v2

@@ -37,7 +37,7 @@ node *created_huffman_tree() {
     return root;
 }
 
-std::string get_huffman_string(const ConstStream &stream) {
+std::string get_huffman_string(const Stream &stream) {
     std::string value;
     const node *curr = huffman_root;
     while(!stream.full()) {
@@ -62,7 +62,7 @@ std::string get_huffman_string(const ConstStream &stream) {
     return value;
 }
 
-void add_huffman_string(Stream &stream, const ConstStream &valstream) {
+void add_huffman_string(Stream &stream, const Stream &valstream) {
     constexpr uint8_t mask[] = {0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01};
     uint8_t bit_index = 0;
     *stream = 0; // Clean all existing value

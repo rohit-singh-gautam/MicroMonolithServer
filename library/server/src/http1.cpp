@@ -34,7 +34,7 @@ net::protocol_t *creator_t::create_protocol(int fd, const std::string_view &prot
     return nullptr;
 }
 
-void protocol_t::ProcessRead(const ConstStream &stream) {
+void protocol_t::ProcessRead(const Stream &stream) {
     try {
         // Check for HTTP 2.0 Pri
         if (configuration->version.http2pri) {
@@ -58,7 +58,7 @@ void protocol_t::ProcessRead(const ConstStream &stream) {
             WriteError(CODE::_505, { "HTTP1 not supported" });
             return;
         }
-        MMS::http::request request { ConstFullStream { stream.curr(), stream.end() }};
+        MMS::http::request request { make_const_fullstream(stream.curr(), stream.end())};
         if (configuration->version.http2) {
             if (request.upgrade_version() == VERSION::VER_2) {
                 log<log_t::HTTP2_UPGRADE>(GetFD());
@@ -118,14 +118,14 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
     }
 }
 
-void protocol_t::Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
+void protocol_t::Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
     auto response = response::CreateBasicResponse(code);
     std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
     response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
     response.add_field(FIELD::Content_Length, bodystream.remaining_buffer());
     Write(
-        ConstStream { response.to_string() },
-        ConstStream { bodystream });
+        make_const_stream(response.to_string()),
+        bodystream);
 }
 
 void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) {

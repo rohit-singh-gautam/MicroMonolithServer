@@ -25,8 +25,8 @@ protected:
     fields_t fields { };
 
     template <bool crlf_end>
-    void parse_version(const ConstFullStream &);
-    void parse_fields(const ConstFullStream &);
+    void parse_version(const FullStream &);
+    void parse_fields(const FullStream &);
 
 public:
     constexpr header() { }
@@ -58,9 +58,9 @@ public:
     }
 
 protected:
-    void parse_request_uri(const ConstFullStream &);
-    void parse_method(const ConstFullStream &);
-    void parse_request_line(const ConstFullStream &);
+    void parse_request_uri(const FullStream &);
+    void parse_method(const FullStream &);
+    void parse_request_line(const FullStream &);
 
     void SetMethod(const METHOD method) { fields.emplace(FIELD::Method, to_string(method)); }
     void SetMethod(const std::string &method) { fields.emplace(FIELD::Method, method); }
@@ -115,12 +115,12 @@ protected:
     std::string body { };
 
 public:
-    request(const ConstFullStream &);
+    request(const FullStream &);
     request(request &&other) : header { std::move(other) }, body { std::move(body) } { }
 
     constexpr const auto &GetBody() const { return body; }
 
-    void parse(const ConstFullStream &);
+    void parse(const FullStream &);
 
     response CreateErrorResponse(CODE code, const std::string &errortext, const std::string &servername) const;
 
@@ -133,8 +133,8 @@ protected:
     constexpr response_header() { }
     constexpr response_header(VERSION version) : header { version } { }
 
-    void parse_code(const ConstFullStream &);
-    void parse_response_line(const ConstFullStream &);
+    void parse_code(const FullStream &);
+    void parse_response_line(const FullStream &);
 public:
     constexpr auto GetCode() const { return code; };
 };
@@ -145,7 +145,7 @@ class response : public response_header {
 
 public:
     constexpr response() { }
-    response(const ConstFullStream &);
+    response(const FullStream &);
 
     constexpr void UpdateContentLength() {
         if (!body.empty()) {
@@ -161,7 +161,7 @@ public:
     auto SetBody(const std::string &value) { body = value; }
     auto SetBody(std::string &&value) { body = std::move(value); }
 
-    void parse(const ConstFullStream &);
+    void parse(const FullStream &);
 
     std::string to_string() const;
 }; // response

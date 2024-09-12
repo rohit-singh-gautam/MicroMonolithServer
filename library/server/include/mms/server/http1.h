@@ -28,9 +28,9 @@ public:
     protocol_t(const protocol_t &) = delete;
     protocol_t &operator=(const protocol_t &) = delete;
     using net::protocol_t::Write;
-    void ProcessRead(const ConstStream &stream) override;
+    void ProcessRead(const Stream &stream) override;
     void WriteError(const CODE code, const std::string &errortext) override;
-    void Write(const CODE code, const ConstStream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) override;
+    void Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) override;
     void Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) override;
 };
 

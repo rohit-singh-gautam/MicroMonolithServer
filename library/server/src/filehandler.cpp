@@ -69,7 +69,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         return;
     }
     if (method == http::METHOD::GET) {
-        ConstStream stream { filecacheentry.buffer, filecacheentry.size };
+        auto stream = make_const_stream(filecacheentry.buffer, filecacheentry.size);
         writer->Write(http::CODE::_200, stream, 
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
