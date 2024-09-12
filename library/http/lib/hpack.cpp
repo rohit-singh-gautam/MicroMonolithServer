@@ -7,7 +7,7 @@
 
 #include <http/hpack.h>
 
-namespace MMS::http::v2 {
+namespace MMS::http::hpack {
 
 const node *huffman_root = created_huffman_tree();
 
@@ -101,4 +101,4 @@ const static_table_t static_table = {
 #undef HTTP2_STATIC_TABLE_ENTRY
 };
 
-} // namespace MMS::http::v2
+} // namespace MMS::http::hpack

@@ -4,6 +4,10 @@
 // This code is proprietary and confidential. Unauthorized copying of this file, via any   //
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
+//
+// HPack is based on https://www.rfc-editor.org/rfc/rfc7541.html
+//
+/////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 #include <http/httpparser.h>
@@ -24,7 +28,7 @@ struct hash<std::pair<MMS::http::FIELD, std::string>>
 };
 } // namespace std
 
-namespace MMS::http::v2 {
+namespace MMS::http::hpack {
 
 class map_table_t {
 private:
@@ -156,6 +160,15 @@ public:
     }
 };
 
+class static_table_t : public map_table_t {
+public:
+    using map_table_t::map_table_t;
+};
+
+extern const static_table_t static_table;
+
+// Static table entry defined in
+// https://www.rfc-editor.org/rfc/rfc7541.html#appendix-A
 #define HTTP2_STATIC_TABLE_LIST \
     HTTP2_STATIC_TABLE_ENTRY( 0, FIELD::IGNORE_THIS, "") /* 0 is not used */ \
     HTTP2_STATIC_TABLE_ENTRY( 1, FIELD::Authority, "") \
@@ -221,13 +234,6 @@ public:
     HTTP2_STATIC_TABLE_ENTRY(61, FIELD::WWW_Authenticate, "") \
     LIST_DEFINITION_END
 
-class static_table_t : public map_table_t {
-public:
-    using map_table_t::map_table_t;
-};
-
-extern const static_table_t static_table;
-
 class node {
     int16_t symbol;
 
@@ -247,13 +253,8 @@ public:
     constexpr auto get_symbol() const { return static_cast<char>(symbol); }
 };
 
-struct huffman_entry {
-    const uint32_t code;
-    const uint32_t code_len;
-
-    constexpr huffman_entry(const uint32_t code, const uint32_t code_len) : code(code), code_len(code_len) { }
-};
-
+// Integer representation, decode and encode is defined in
+// https://www.rfc-editor.org/rfc/rfc7541.html#section-5.1
 template <uint32_t N>
 constexpr auto decode_integer(const ConstStream &stream) {
     constexpr uint32_t mask = (1 << N) - 1;
@@ -289,6 +290,17 @@ constexpr void encode_integer(Stream &stream, const uint8_t head, std::unsigned_
     }
 }
 
+// String representation is defined in
+// https://www.rfc-editor.org/rfc/rfc7541.html#section-5.2
+struct huffman_entry {
+    const uint32_t code;
+    const uint32_t code_len;
+
+    constexpr huffman_entry(const uint32_t code, const uint32_t code_len) : code(code), code_len(code_len) { }
+};
+
+// Huffnam table entry defined at
+// https://www.rfc-editor.org/rfc/rfc7541.html#appendix-B
 constexpr const huffman_entry static_huffman[] = {
     {    0x1ff8, 13}, {  0x7fffd8, 23}, { 0xfffffe2, 28}, { 0xfffffe3, 28}, { 0xfffffe4, 28}, { 0xfffffe5, 28}, { 0xfffffe5, 28}, { 0xfffffe7, 28}, //000-007
     { 0xfffffe8, 28}, {  0xffffea, 24}, {0x3ffffffc, 30}, { 0xfffffe9, 28}, { 0xfffffea, 28}, {0x3ffffffd, 30}, { 0xfffffeb, 28}, { 0xfffffec, 28}, //008-015
@@ -366,4 +378,4 @@ inline auto get_header_field(const ConstStream &stream) {
     return to_field(header_string);
 }
 
-} // namespace rohit::http::v2
+} // namespace rohit::http::hpack

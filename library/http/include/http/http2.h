@@ -384,20 +384,20 @@ inline std::ostream& operator<<(std::ostream& os, const settings &settings) {
 }
 
 inline void copy_http_header_response(
-            dynamic_table_t &dynamic_table,
+            hpack::dynamic_table_t &dynamic_table,
             Stream &stream,
             const std::pair<FIELD, std::string> &header_line,
             bool add_index) {
     // 6.1.  Indexed Header Field Representation
     // Case 1: found entry in static table
-    if (static_table.contains(header_line)) {
-        encode_integer<7>(stream, (uint8_t)0x80, static_table[header_line]);
+    if (hpack::static_table.contains(header_line)) {
+        hpack::encode_integer<7>(stream, (uint8_t)0x80, hpack::static_table[header_line]);
         return;
     }
 
     // Case 2: found entry in dynamic table
     if (dynamic_table.contains(header_line)) {
-        encode_integer<7>(stream, (uint8_t)0x80, dynamic_table[header_line]);
+        hpack::encode_integer<7>(stream, (uint8_t)0x80, dynamic_table[header_line]);
         return;
     }
 
@@ -406,21 +406,21 @@ inline void copy_http_header_response(
         // 6.2.1.  Literal Header Field with Incremental Indexing
         // Result will go in dynamic table
         // Case 1: Field indexed
-        if (static_table.contains(header_line.first)) {
+        if (hpack::static_table.contains(header_line.first)) {
             // Subcase 1: Static table
-            encode_integer<6>(stream, (uint8_t)0x40, static_table[header_line.first]);
-            add_header_string(stream, header_line.second);
+            hpack::encode_integer<6>(stream, (uint8_t)0x40, hpack::static_table[header_line.first]);
+            hpack::add_header_string(stream, header_line.second);
         } else
         if (dynamic_table.contains(header_line.first)) {
             // Subcase 2: Dynamic table
-            encode_integer<6>(stream, (uint8_t)0x40, dynamic_table[header_line.first]);
-            add_header_string(stream, header_line.second);
+            hpack::encode_integer<6>(stream, (uint8_t)0x40, dynamic_table[header_line.first]);
+            hpack::add_header_string(stream, header_line.second);
             return;
         } else {
             // Case 2: No index
             *stream++ = 0x40;
-            add_header_string(stream, to_string(header_line.first));
-            add_header_string(stream, header_line.second);
+            hpack::add_header_string(stream, to_string(header_line.first));
+            hpack::add_header_string(stream, header_line.second);
         }
 
         dynamic_table.insert(header_line);
@@ -428,21 +428,21 @@ inline void copy_http_header_response(
     } else {
         // 6.2.2.  Literal Header Field without Indexing
         // Case 1: Field indexed
-        if (static_table.contains(header_line.first)) {
+        if (hpack::static_table.contains(header_line.first)) {
             // Subcase 1: Static table
-            encode_integer<4>(stream, (uint8_t)0x00, static_table[header_line.first]);
-            add_header_string(stream, header_line.second);
+            hpack::encode_integer<4>(stream, (uint8_t)0x00, hpack::static_table[header_line.first]);
+            hpack::add_header_string(stream, header_line.second);
         } else
         if (dynamic_table.contains(header_line.first)) {
             // Subcase 2: Dynamic table
-            encode_integer<4>(stream, (uint8_t)0x00, dynamic_table[header_line.first]);
-            add_header_string(stream, header_line.second);
+            hpack::encode_integer<4>(stream, (uint8_t)0x00, dynamic_table[header_line.first]);
+            hpack::add_header_string(stream, header_line.second);
             return;
         } else {
             // Case 2: No index
             *stream++ = 0x00;
-            add_header_string(stream, to_string(header_line.first));
-            add_header_string(stream, header_line.second);
+            hpack::add_header_string(stream, to_string(header_line.first));
+            hpack::add_header_string(stream, header_line.second);
         }
         return;
     }
@@ -547,56 +547,56 @@ public:
     header_request(const header_request &) = delete;
     header_request &operator=(const header_request &) = delete;
 
-    void parse_header(const ConstStream &stream, const uint32_t stream_identifier, dynamic_table_t &dynamic_table) {
+    void parse_header(const ConstStream &stream, const uint32_t stream_identifier, hpack::dynamic_table_t &dynamic_table) {
         this->stream_identifier = stream_identifier;
         while(stream.remaining_buffer()) {
             if ((*stream & 0x80) == 0x80) {
                 // rfc7541 # 6.1 Indexed Header Field Representation
-                uint32_t index = decode_integer<7>(stream);
+                uint32_t index = hpack::decode_integer<7>(stream);
                 // Dynamic table check is internal
-                auto header = index < 62 ? static_table[index] : dynamic_table[index - 62];
+                auto header = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
                 add_field(header);
             } else if (*stream == 0x40) {
                 ++stream;
-                auto field = get_header_field(stream);
-                auto value = get_header_string(stream);
+                auto field = hpack::get_header_field(stream);
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 dynamic_table.insert(header);
                 add_field(header);
             } else if ((*stream & 0xc0) == 0x40) {
                 // rfc7541 # 6.2.1 Literal Header Field with Incremental Indexing
-                uint32_t index = decode_integer<6>(stream);
-                auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(stream);
+                uint32_t index = hpack::decode_integer<6>(stream);
+                auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 dynamic_table.insert(header);
                 add_field(header);
             } else if (*stream == 0x00) {
                 ++stream;
-                auto field = get_header_field(stream);
-                auto value = get_header_string(stream);
+                auto field = hpack::get_header_field(stream);
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
             } else if ((*stream & 0xf0) == 0x00) {
-                uint32_t index = decode_integer<4>(stream);
-                auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(stream);
+                uint32_t index = hpack::decode_integer<4>(stream);
+                auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
             } else if (*stream == 0x10) {
                 ++stream;
-                auto field = get_header_field(stream);
-                auto value = get_header_string(stream);
+                auto field = hpack::get_header_field(stream);
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(field, value);
                 add_field(header);
             } else if ((*stream & 0xf0) == 0x10) {
-                uint32_t index = decode_integer<4>(stream);
-                auto header_for_field = index < 62 ? static_table[index] : dynamic_table[index - 62];
-                auto value = get_header_string(stream);
+                uint32_t index = hpack::decode_integer<4>(stream);
+                auto header_for_field = index < 62 ? hpack::static_table[index] : dynamic_table[index - 62];
+                auto value = hpack::get_header_string(stream);
                 auto header = std::make_pair(header_for_field.first, value);
                 add_field(header);
             } else if ((*stream &0xe0) == 0x20) {
-                uint32_t index = decode_integer<5>(stream);;
+                uint32_t index = hpack::decode_integer<5>(stream);;
                 dynamic_table.update_size(index);
             }
         }
@@ -622,7 +622,7 @@ public:
 
 class request {
     //Stream_count
-    dynamic_table_t &dynamic_table; // This will be share by the multiple request in a connection
+    hpack::dynamic_table_t &dynamic_table; // This will be share by the multiple request in a connection
     header_request *first;
     header_request *last;
 
@@ -636,7 +636,7 @@ class request {
 
 public:
     inline request(
-            dynamic_table_t &dynamic_table,
+            hpack::dynamic_table_t &dynamic_table,
             MMS::http::v2::settings_store &peer_settings)
                 :   dynamic_table(dynamic_table),
                     first(nullptr), last(nullptr), header_map(),
@@ -927,7 +927,7 @@ template <> constexpr void request::copy_http_header_response<FIELD::Status, COD
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_404>(Stream &stream) { *stream++ = 0x80 + 13; }
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_500>(Stream &stream) { *stream++ = 0x80 + 14; }
 
-void CreateHeaderFrame(dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields);
+void CreateHeaderFrame(hpack::dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields);
 
 void CreateBodyFrame(FullStream &stream, uint32_t max_frame_size, const ConstStream &bodystream, uint32_t stream_identifier);
 

@@ -28,7 +28,7 @@ class protocol_t : public MMS::server::http::protocol_t{
     MMS::http::v2::header_request *header_request { nullptr };
     FullStreamAutoAlloc response_buffer { response_buffe_initial_size };
 
-    MMS::http::v2::dynamic_table_t dynamic_table { };
+    MMS::http::hpack::dynamic_table_t dynamic_table { };
     MMS::http::v2::settings_store peer_settings { };
 
 public:
