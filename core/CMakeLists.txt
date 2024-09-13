@@ -27,7 +27,7 @@ target_link_libraries(corelib PUBLIC
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 
-add_executable(core_test test/coretest.cpp test/streamtest.cpp)
+add_executable(core_test test/coretest.cpp test/streamtest.cpp test/quictest.cpp)
 target_link_libraries(core_test PRIVATE GTest::gtest_main)
 
 add_test(core_test core_test)

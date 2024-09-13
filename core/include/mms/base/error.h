@@ -110,6 +110,8 @@ namespace MMS {
     \
     ERROR_T_ENTRY(HTTP11_PARSER_FAILURE, "HTTP 1.1 parser failed") \
     \
+    ERROR_T_ENTRY(QUIC_ENCODE_INTEGER_FAILED, "Quick unable to encode given integer value") \
+    \
     ERROR_T_ENTRY(MAX_FAILURE, "Max failure nothing beyond this") \
     LIST_DEFINITION_END
 
@@ -351,6 +353,11 @@ public:
 class StreamOverflowException : public StreamException {
 public:
     StreamOverflowException() : StreamException { err_t::STREAM_OVERFLOW } { }
+};
+
+class QUICEncodeIntgegerFailed: public exception_t {
+public:
+    constexpr QUICEncodeIntgegerFailed() : exception_t { err_t::QUIC_ENCODE_INTEGER_FAILED } { }
 };
 
 } // namespace MMS

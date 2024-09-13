@@ -132,10 +132,10 @@ public:
         return temp;
     }
 
-    bool IsNull() { return _begin == nullptr; }
+    bool IsNull() const { return _begin == nullptr; }
     auto GetRawFullBuffer() { return std::make_pair(_begin, capacity()); }
-    void Reset() { _curr = _begin; }
-    bool empty() { return _curr == _begin; }
+    void Reset() const { _curr = _begin; }
+    bool empty() const { return _curr == _begin; }
 };
 
 class StreamAutoFree : public FullStream {

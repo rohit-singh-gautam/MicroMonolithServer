@@ -4,9 +4,9 @@
 // This code is proprietary and confidential. Unauthorized copying of this file, via any   //
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
-//
-// HPack is based on https://www.rfc-editor.org/rfc/rfc7541.html
-//
+//                                                                                         //
+// HPack is based on https://www.rfc-editor.org/rfc/rfc7541.html                           //
+//                                                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
