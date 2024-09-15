@@ -98,23 +98,23 @@ public:
         }
 
 #if defined(DEBUG) || defined(NDEBUG)
-            auto entry_itr = entry_map.find(entry.first);
-            if (entry_itr != entry_map.end()) {
-                if (entry_itr->second.second == 1) {
-                    entry_map.erase(entry.first);
-                } else {
-                    entry_itr->second.second--;
-                }
-            } else {
-                throw exception_t(err_t::HTTP2_HPACK_TABLE_ERROR);
-            }
-#else
-            auto entry_itr = entry_map.find(entry.first);
+        auto entry_itr = entry_map.find(entry.first);
+        if (entry_itr != entry_map.end()) {
             if (entry_itr->second.second == 1) {
                 entry_map.erase(entry.first);
             } else {
                 entry_itr->second.second--;
             }
+        } else {
+            throw exception_t(err_t::HTTP2_HPACK_TABLE_ERROR);
+        }
+#else
+        auto entry_itr = entry_map.find(entry.first);
+        if (entry_itr->second.second == 1) {
+            entry_map.erase(entry.first);
+        } else {
+            entry_itr->second.second--;
+        }
 #endif
     }
 
