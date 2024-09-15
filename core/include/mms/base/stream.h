@@ -51,8 +51,8 @@ public:
     virtual Stream &operator+=(size_t len) { _curr += len; return *this; }
     virtual const Stream &operator+=(size_t len) const { _curr += len; return *this; }
 
-    virtual constexpr inline uint8_t &operator*() { return *_curr; }
-    virtual constexpr inline uint8_t operator*() const { return *_curr; }
+    constexpr inline uint8_t &operator*() { return *_curr; }
+    constexpr inline uint8_t operator*() const { return *_curr; }
     virtual constexpr inline Stream &operator++() { ++_curr; return *this; }
     virtual constexpr inline Stream &operator--() { --_curr; return *this;}
     virtual constexpr inline const Stream &operator++() const { ++_curr; return *this; }
@@ -95,14 +95,6 @@ public:
     constexpr inline void Copy(const auto *begin, size_t size) { Reserve(size); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(begin) + size, _curr); }
 };
 
-class StreamChecked : public Stream {
-public:
-    using Stream::Stream;
-    constexpr inline uint8_t &operator*() override { CheckOverflow(); return *_curr; }
-    constexpr inline uint8_t operator*() const override { CheckOverflow(); return *_curr; }
-    constexpr inline void Reserve(const size_t) override { }
-};
-
 class FullStream : public Stream {
 protected:
     friend class FixedBuffer;
@@ -141,20 +133,6 @@ public:
 class StreamAutoFree : public FullStream {
 public:
     ~StreamAutoFree() { free(_begin); }
-};
-
-class FullStreamChecked : public FullStream {
-public:
-    using FullStream::FullStream;
-    constexpr inline uint8_t &operator*() override { CheckOverflow(); return *_curr; }
-    constexpr inline uint8_t operator*() const override { CheckOverflow(); return *_curr; }
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Weffc++"
-    constexpr inline Stream &operator--() override { CheckUnderflow(); --_curr; return *this;}
-    constexpr inline const Stream &operator--() const override { CheckUnderflow(); --_curr; return *this;}
-    constexpr inline uint8_t *operator--(int) override { CheckUnderflow(); uint8_t *temp = _curr; --_curr; return temp; };
-    constexpr inline const uint8_t *operator--(int) const override { CheckUnderflow(); uint8_t *temp = _curr; --_curr; return temp; };
-    #pragma GCC diagnostic pop
 };
 
 class FullStreamLimitChecked : public FullStream {
