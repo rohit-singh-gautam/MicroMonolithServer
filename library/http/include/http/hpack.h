@@ -43,16 +43,13 @@ private:
 
 public:
     inline map_table_t() { }
-    inline map_table_t(const std::initializer_list<std::pair<FIELD, std::string>> &list) {
-        for(auto &entry: list) {
-            push_back(entry);
-        }
-    }
+    inline map_table_t(const std::initializer_list<std::pair<FIELD, std::string>> &list) : entries { list } { }
     map_table_t(const map_table_t &) = delete;
     map_table_t &operator=(const map_table_t &) = delete;
 
     inline const auto &operator[](const size_t index) const {
         if (index >= entries.size()) {
+            // TODO: Add exceptions instead of returning empty
             return empty;
         } else {
             return entries[index];
@@ -62,6 +59,7 @@ public:
     inline size_t operator[](const std::pair<FIELD, std::string> &header_line) const {
         auto entry_itr = entry_value_map.find(header_line);
         if (entry_itr == entry_value_map.end()) {
+            // TODO: Add exceptions instead of returning -1
             return -1;
         }
         return entry_itr->second;
@@ -70,6 +68,7 @@ public:
     inline size_t operator[](const FIELD &field) const {
         auto entry_itr = entry_map.find(field);
         if (entry_itr == entry_map.end()) {
+            // TODO: Add exceptions instead of returning -1
             return -1;
         }
         return entry_itr->second.first;
@@ -143,7 +142,7 @@ private:
     size_t max_size;
 
 public:
-    dynamic_table_t(size_t max_size = 12) : map_table_t(), max_size(max_size) {}
+    dynamic_table_t(size_t max_size = 12) : map_table_t { }, max_size { max_size } {}
 
     inline void update_size(size_t new_size) {
         if (max_size == new_size) return;
@@ -237,13 +236,13 @@ extern const static_table_t static_table;
     LIST_DEFINITION_END
 
 class node {
-    int16_t symbol;
+    int16_t symbol { -1 };
 
 public:
-    node *left;
-    node *right;
+    node *left { nullptr };
+    node *right { nullptr };
 
-    constexpr node() : symbol(-1), left(nullptr), right(nullptr) { }
+    constexpr node() { }
 
     constexpr auto is_leaf() const { return left == nullptr && right == nullptr; }
     
@@ -259,8 +258,8 @@ public:
 // https://www.rfc-editor.org/rfc/rfc7541.html#section-5.1
 template <uint32_t N>
 constexpr auto decode_integer(const Stream &stream) {
-    constexpr uint32_t mask = (1 << N) - 1;
-    uint32_t value = *stream++ & mask;
+    constexpr uint32_t mask { (1 << N) - 1 };
+    uint32_t value { *stream++ & mask };
     if (value < mask) {
         return value;
     }
@@ -278,7 +277,7 @@ constexpr auto decode_integer(const Stream &stream) {
 
 template <uint32_t N>
 constexpr void encode_integer(Stream &stream, const uint8_t head, std::unsigned_integral auto value) {
-    constexpr uint32_t mask = (1 << N) - 1;
+    constexpr uint32_t mask { (1 << N) - 1 };
     if (value < mask) {
         *stream++ = head + static_cast<uint8_t>(value);
     } else {
@@ -356,16 +355,16 @@ std::string get_huffman_string(const Stream &stream);
 // N must be 4 for above example
 template <uint32_t N>
 inline auto get_header_string(const Stream &stream) {
-    size_t len = hpack::decode_integer<N - 1>(stream);
+    const size_t len = hpack::decode_integer<N - 1>(stream);
     bool H = *stream & (1 << (N - 1));
     ++stream;
-    std::string value = H ? get_huffman_string(stream.GetSimpleStream()) : std::string {reinterpret_cast<const char *>(stream.curr()), len };
+    std::string value = H ? get_huffman_string(stream.GetSimpleStream()) : std::string { reinterpret_cast<const char *>(stream.curr()), len };
     stream += len;
     return value;
 }
 
 inline size_t huffman_string_size(const Stream &stream) {
-    size_t size = 7;
+    size_t size { 7 };
     while(!stream.full()) size += static_huffman[*stream++].code_len;
     return size / 8;
 }
