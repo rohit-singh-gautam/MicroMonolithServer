@@ -66,14 +66,35 @@
                     "HEADER LIST SIZE": [8, 128, 48] 
                 },
                 "Handlers" : {
-                    "/": { "Type": "File Handler", "File Path": "conf/www1" },
-                    "/1": { "Type": "File Handler", "File Path": "conf/www" },
-                },
-                "Default File": [
-                    "index.html",
-                    "default.html"
-                ],
-                "MIMEMAP" : {
+                    "/": { "Type": "File Handler" },
+                    "/1": { "Type": "File Handler1" },
+                }
+            }
+        }
+    },
+    "Handlers": {
+        "File Handler": {
+            "Type": "File",
+            "File Path": "conf/www",
+            "Default File List" : "Default File",
+            "Mime Map": "MIME"
+        },
+        "File Handler1": {
+            "Type": "File",
+            "File Path": "conf/www1",
+            "Default File List" : "Default File",
+            "Mime Map": "MIME"
+        },
+    },
+    "Data" : {
+        "List" : {
+            "Default File": [
+                "index.html",
+                "default.html"
+            ]
+        },
+        "Map" : {
+            "MIME" : {
                     ".txt": "text/plain",
                     ".html": "text/html",
                     ".htm": "text/html",
@@ -99,7 +120,6 @@
                     ".doc": "application/msword",
                     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 }
-            }
         }
     }
 }

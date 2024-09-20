@@ -19,7 +19,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
 // This check is already present at caller of this function
 // Additional check will be only in debug mode
     if (!IsSupported(method)) {
-        writer->WriteError(http::CODE::_405, std::format("Method {} not allowed", to_string(method)));
+        writer->WriteError(http::CODE::Method_Not_Allowed, std::format("Method {} not allowed", to_string(method)));
         return;
     }
 #endif
@@ -32,7 +32,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         std::string errortext { "File/Path: "};
         errortext += request.GetPath();
         errortext += " forbidden.";
-        writer->WriteError(http::CODE::_403, errortext);
+        writer->WriteError(http::CODE::Forbidden, errortext);
         return;
     }
 
@@ -43,7 +43,7 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
         std::string errortext { "File: "};
         errortext += request.GetPath();
         errortext += " not found";
-        writer->WriteError(http::CODE::_404, errortext);
+        writer->WriteError(http::CODE::Not_Found, errortext);
         return;
     }
 
@@ -53,30 +53,30 @@ void httpfilehandler::ProcessRead(const MMS::http::request &request, const std::
     if (!etag_match_list.empty()) {
         bool matchetag = match_etag(etag_match_list, etag_str);
         if (matchetag) {
-            writer->Write(http::CODE::_304, std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } });
+            writer->Write(http::CODE::Not_Modified, std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } });
             return;
         }
     }
 
     const auto extension = newpath.extension().string();
-    auto contenttype = conf.mimemap.find(extension);
-    if (contenttype == std::end(conf.mimemap)) {
+    auto contenttype = mimemap.find(extension);
+    if (contenttype == std::end(mimemap)) {
         log<log_t::HTTP_UNKNOWN_EXTENSION>(writer->GetFD());
         std::string errortext { "File: "};
         errortext += request.GetPath();
         errortext += " not found";
-        writer->WriteError(http::CODE::_404, errortext);
+        writer->WriteError(http::CODE::Not_Found, errortext);
         return;
     }
     if (method == http::METHOD::GET) {
         auto stream = make_const_stream(filecacheentry.buffer, filecacheentry.size);
-        writer->Write(http::CODE::_200, stream, 
+        writer->Write(http::CODE::OK, stream, 
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::ETag, { etag_str } }
         );
     } else { // if (method == http::METHOD::HEAD)
-        writer->Write(http::CODE::_200, 
+        writer->Write(http::CODE::OK, 
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Cache_Control, { "private, max-age=2592000" } },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Type, contenttype->second },
             std::pair<http::FIELD, std::string> { MMS::http::FIELD::Content_Length, std::to_string(filecacheentry.size) },

@@ -87,6 +87,8 @@ namespace MMS {
     ERROR_T_ENTRY(LISTNER_EVENT_REMOVE_FAILED, "Event remove failed") \
     ERROR_T_ENTRY(LISTENER_TERMINATE_THREAD, "Listener will stop loop hence terminate the thread. All allocation must be RAII for this to be successful.") \
     \
+    ERROR_T_ENTRY(HPACK_TABLE_OUT_OF_RANGE, "HPACK table index out of range") \
+    \
     ERROR_T_ENTRY(HTTP2_HPACK_TABLE_ERROR, "HTTP 2 HPACK internal error") \
     ERROR_T_ENTRY(HTTP2_INITIATE_GOAWAY, "HTTP 2 goaway initiated") \
     \
@@ -358,6 +360,16 @@ public:
 class QUICEncodeIntgegerFailed: public exception_t {
 public:
     constexpr QUICEncodeIntgegerFailed() : exception_t { err_t::QUIC_ENCODE_INTEGER_FAILED } { }
+};
+
+class HTTPException : public exception_t {
+public:
+    using exception_t::exception_t;
+};
+
+class HPACKException : public HTTPException {
+public:
+    using HTTPException::HTTPException;
 };
 
 } // namespace MMS

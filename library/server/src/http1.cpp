@@ -82,7 +82,7 @@ void protocol_t::ProcessRead(const Stream &stream) {
         std::string newpath { };
         auto &handler = configuration->handlermap.search(request.GetPath(), newpath);
         if (handler == nullptr) {
-            WriteError(CODE::_404,  std::format("Path {} not found", request.GetPath()));
+            WriteError(CODE::Not_Found,  std::format("Path {} not found", request.GetPath()));
         }
         else {
             current_request = &request;
@@ -95,16 +95,16 @@ void protocol_t::ProcessRead(const Stream &stream) {
                 std::vector<std::pair<FIELD, std::string>> fields {
                     std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
                 };
-                Write(http::CODE::_204, fields);
+                Write(http::CODE::No_Content, fields);
             } else {
                 const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
-                WriteError(http::CODE::_405, errstr);
+                WriteError(http::CODE::Method_Not_Allowed, errstr);
             }
             current_request = nullptr;
         }
     }
-    catch(http_parser_failed_t &parser_failed) {
-        WriteError(CODE::_400, parser_failed.to_string());
+    catch(exception_t &failed) {
+        WriteError(CODE::Bad_Request, failed.to_string());
     }
 }
 

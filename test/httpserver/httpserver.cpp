@@ -29,22 +29,23 @@ int main(int, char *[]) {
     std::string_view rootpath1 { "./www1" };
     MMS::server::filecache filecache { };
 
+    std::vector<std::string> defaultlist { "index.html", "default.html" };
+    std::map<std::string, std::string> minemap {
+        {".html", "text/html"},
+        {".json", "application/json"},
+        {".jpeg", "image/jpeg"},
+        {".jpg", "image/jpeg"},
+        {".gif", "image/gif"},
+        {".ico", "image/x-icon"},
+        {".png", "image/png"},
+    };
+
     MMS::server::http::configuration_t configuration { "MicroMonolithServer" };
-    std::unique_ptr<MMS::server::http::handler_t> handlerptr { new MMS::server::httpfilehandler { filecache, rootpath, configuration } };
-    std::unique_ptr<MMS::server::http::handler_t> handlerptr1 { new MMS::server::httpfilehandler { filecache, rootpath1, configuration } };
+    MMS::server::httpfilehandler handlerptr { filecache, rootpath, defaultlist, minemap };
+    MMS::server::httpfilehandler handlerptr1 { filecache, rootpath1, defaultlist, minemap };
 
-    configuration.AddHandler({"/simple" }, std::move(handlerptr));
-    configuration.AddHandler({"/" }, std::move(handlerptr1));
-    configuration.mimemap.emplace(".html", "text/html");
-    configuration.mimemap.emplace(".json", "application/json");
-    configuration.mimemap.emplace(".jpeg", "image/jpeg");
-    configuration.mimemap.emplace(".jpg", "image/jpeg");
-    configuration.mimemap.emplace(".gif", "image/gif");
-    configuration.mimemap.emplace(".ico", "image/x-icon");
-    configuration.mimemap.emplace(".png", "image/png");
-
-    configuration.defaultlist.emplace_back("index.html");
-    configuration.defaultlist.emplace_back("default.html");
+    configuration.AddHandler({"/simple" }, &handlerptr);
+    configuration.AddHandler({"/" }, &handlerptr1);
 
     MMS::server::http::v1::creator_t httpcretor { &configuration };
     

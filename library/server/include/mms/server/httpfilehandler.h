@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <list>
 #include <unordered_map>
+#include <map>
 #include <memory>
 
 namespace MMS::server {
@@ -107,15 +108,16 @@ public:
 class httpfilehandler : public http::handler_t {
     filecache &cache;
     const std::filesystem::path rootpath;
-    const http::configuration_t &conf;
+    const std::vector<std::string> &defaultlist;
+    const std::map<std::string, std::string> &mimemap;
 
 public:
-    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const http::configuration_t &conf)
-        : cache { cache }, rootpath { std::filesystem::canonical(rootpath) }, conf { conf } { }
+    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const std::vector<std::string> &defaultlist, const std::map<std::string, std::string> &mimemap)
+        : cache { cache }, rootpath { std::filesystem::canonical(rootpath) }, defaultlist { defaultlist }, mimemap { mimemap } { }
 
     const filecacheentry &GetFromfileCahce(const std::filesystem::path &fullpath) {
         if (std::filesystem::is_directory(fullpath)) {
-            for(const auto &defaultfile: conf.defaultlist) {
+            for(const auto &defaultfile: defaultlist) {
                 auto newpath = fullpath;
                 newpath /= defaultfile;
                 return cache.GetCache(newpath);

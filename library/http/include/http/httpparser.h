@@ -91,7 +91,14 @@ public:
             return field_itr->second;
         }
         return empty;
-     }
+    }
+
+    constexpr const auto GetPathBase() const { 
+        auto &path = GetPath();
+        auto pos = path.rfind('/');
+        if (pos == std::string::npos) return path;
+        else return path.substr(pos);
+    }
 
     constexpr auto upgrade_version() {
         auto field_itr = fields.find(FIELD::Upgrade);

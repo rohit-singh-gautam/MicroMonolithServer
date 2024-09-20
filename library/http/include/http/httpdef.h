@@ -277,58 +277,58 @@ namespace MMS::http {
     LIST_DEFINITION_END // HTTP_METHOD_LIST
 
 #define HTTP_CODE_LIST \
-    HTTP_CODE_ENTRY(0, "Unknown") \
+    HTTP_CODE_ENTRY(0, Unknown, "Unknown") \
     /* Informational 1xx */ \
-    HTTP_CODE_ENTRY(100, "Continue") \
-    HTTP_CODE_ENTRY(101, "Switching Protocols") \
+    HTTP_CODE_ENTRY(100, Continue, "Continue") \
+    HTTP_CODE_ENTRY(101, Switching_Protocols, "Switching Protocols") \
     \
     /* Successful 2xx */ \
-    HTTP_CODE_ENTRY(200, "OK") \
-    HTTP_CODE_ENTRY(201, "Created") \
-    HTTP_CODE_ENTRY(202, "Accepted") \
-    HTTP_CODE_ENTRY(203, "Non-Authoritative Information") \
-    HTTP_CODE_ENTRY(204, "No Content") \
-    HTTP_CODE_ENTRY(205, "Reset Content") \
-    HTTP_CODE_ENTRY(206, "Partial Content") \
+    HTTP_CODE_ENTRY(200, OK, "OK") \
+    HTTP_CODE_ENTRY(201, Created, "Created") \
+    HTTP_CODE_ENTRY(202, Accepted, "Accepted") \
+    HTTP_CODE_ENTRY(203, Non_Authoritative_Information, "Non-Authoritative Information") \
+    HTTP_CODE_ENTRY(204, No_Content,  "No Content") \
+    HTTP_CODE_ENTRY(205, Reset_Content, "Reset Content") \
+    HTTP_CODE_ENTRY(206, Partial_Content, "Partial Content") \
     \
     /* Redirection 3xx */ \
-    HTTP_CODE_ENTRY(300, "Multiple Choices") \
-    HTTP_CODE_ENTRY(301, "Moved Permanently") \
-    HTTP_CODE_ENTRY(302, "Found") \
-    HTTP_CODE_ENTRY(303, "See Other") \
-    HTTP_CODE_ENTRY(304, "Not Modified") \
-    HTTP_CODE_ENTRY(305, "Use Proxy") \
+    HTTP_CODE_ENTRY(300, Multiple_Choices, "Multiple Choices") \
+    HTTP_CODE_ENTRY(301, Moved_Permanently, "Moved Permanently") \
+    HTTP_CODE_ENTRY(302, Found, "Found") \
+    HTTP_CODE_ENTRY(303, See_Other, "See Other") \
+    HTTP_CODE_ENTRY(304, Not_Modified, "Not Modified") \
+    HTTP_CODE_ENTRY(305, Use_Proxy, "Use Proxy") \
     \
     /* 306 is unused */ \
-    HTTP_CODE_ENTRY(307, "Temporary Redirect") \
+    HTTP_CODE_ENTRY(307, Temporary_Redirect, "Temporary Redirect") \
     \
     /* Client Error 4xx */ \
-    HTTP_CODE_ENTRY(400, "Bad Request") \
-    HTTP_CODE_ENTRY(401, "Unauthorized") \
-    HTTP_CODE_ENTRY(402, "Payment Required") \
-    HTTP_CODE_ENTRY(403, "Forbidden") \
-    HTTP_CODE_ENTRY(404, "Not Found") \
-    HTTP_CODE_ENTRY(405, "Method Not Allowed") \
-    HTTP_CODE_ENTRY(406, "Not Acceptable") \
-    HTTP_CODE_ENTRY(407, "Proxy Authentication Required") \
-    HTTP_CODE_ENTRY(408, "Request Timeout") \
-    HTTP_CODE_ENTRY(409, "Conflict") \
-    HTTP_CODE_ENTRY(410, "Gone") \
-    HTTP_CODE_ENTRY(411, "Length Required") \
-    HTTP_CODE_ENTRY(412, "Precondition Failed") \
-    HTTP_CODE_ENTRY(413, "Request Entity Too Large") \
-    HTTP_CODE_ENTRY(414, "Request-URI Too Long") \
-    HTTP_CODE_ENTRY(415, "Unsupported Media Type") \
-    HTTP_CODE_ENTRY(416, "Requested Range Not Satisfiable") \
-    HTTP_CODE_ENTRY(417, "Expectation Failed") \
+    HTTP_CODE_ENTRY(400, Bad_Request, "Bad Request") \
+    HTTP_CODE_ENTRY(401, Unauthorized, "Unauthorized") \
+    HTTP_CODE_ENTRY(402, Payment_Required, "Payment Required") \
+    HTTP_CODE_ENTRY(403, Forbidden, "Forbidden") \
+    HTTP_CODE_ENTRY(404, Not_Found, "Not Found") \
+    HTTP_CODE_ENTRY(405, Method_Not_Allowed, "Method Not Allowed") \
+    HTTP_CODE_ENTRY(406, Not_Acceptable, "Not Acceptable") \
+    HTTP_CODE_ENTRY(407, Proxy_Authentication_Required, "Proxy Authentication Required") \
+    HTTP_CODE_ENTRY(408, Request_Timeout, "Request Timeout") \
+    HTTP_CODE_ENTRY(409, Conflict, "Conflict") \
+    HTTP_CODE_ENTRY(410, Gone, "Gone") \
+    HTTP_CODE_ENTRY(411, Length_Required, "Length Required") \
+    HTTP_CODE_ENTRY(412, Precondition_Failed, "Precondition Failed") \
+    HTTP_CODE_ENTRY(413, Request_Entity_Too_Large, "Request Entity Too Large") \
+    HTTP_CODE_ENTRY(414, Request_URI_Too_Long, "Request-URI Too Long") \
+    HTTP_CODE_ENTRY(415, Unsupported_Media_Type, "Unsupported Media Type") \
+    HTTP_CODE_ENTRY(416, Requested_Range_Not_Satisfiable, "Requested Range Not Satisfiable") \
+    HTTP_CODE_ENTRY(417, Expectation_Failed, "Expectation Failed") \
     \
     /* Server Error 5xx */ \
-    HTTP_CODE_ENTRY(500, "Internal Server Error") \
-    HTTP_CODE_ENTRY(501, "Not Implemented") \
-    HTTP_CODE_ENTRY(502, "Bad Gateway") \
-    HTTP_CODE_ENTRY(503, "Service Unavailable") \
-    HTTP_CODE_ENTRY(504, "Gateway Timeout") \
-    HTTP_CODE_ENTRY(505, "HTTP Version Not Supported") \
+    HTTP_CODE_ENTRY(500, Internal_Server_Error, "Internal Server Error") \
+    HTTP_CODE_ENTRY(501, Not_Implemented, "Not Implemented") \
+    HTTP_CODE_ENTRY(502, Bad_Gateway, "Bad Gateway") \
+    HTTP_CODE_ENTRY(503, Service_Unavailable, "Service Unavailable") \
+    HTTP_CODE_ENTRY(504, Gateway_Timeout, "Gateway Timeout") \
+    HTTP_CODE_ENTRY(505, HTTP_Version_Not_Supported, "HTTP Version Not Supported") \
     LIST_DEFINITION_END // HTTP_CODE_LIST
 
 enum class VERSION {
@@ -344,7 +344,7 @@ enum class FIELD {
 };
 
 enum class CODE {
-#define HTTP_CODE_ENTRY(x, y) _##x = x,
+#define HTTP_CODE_ENTRY(x, y, z) _##x = x, y = x,
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
 };
@@ -376,7 +376,7 @@ static constexpr std::string to_string(const FIELD field) {
 static constexpr std::string to_string(const CODE code) {
     switch(code) {
     default:
-#define HTTP_CODE_ENTRY(x, y) case CODE::_##x: return { y, sizeof(y) -1 };
+#define HTTP_CODE_ENTRY(x, y, z) case CODE::_##x: return { z, sizeof(z) -1 };
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
     }

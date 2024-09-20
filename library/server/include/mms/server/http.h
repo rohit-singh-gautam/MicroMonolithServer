@@ -46,19 +46,16 @@ public:
 
 struct configuration_t {
     std::string ServerName;
-    prefixmap<std::string, std::unique_ptr<handler_t>> handlermap { };
-    std::unordered_map<std::string, std::string> mimemap { };
-    std::vector<std::string> defaultlist { };
+    prefixmap<std::string, handler_t *> handlermap { };
     uint32_t max_frame_size { 16384 };
     MMS::http::http_version_t version { };
     MMS::http::http_limits_t limits { };
     configuration_t(const std::string &ServerName) : ServerName { ServerName } { }
     configuration_t(configuration_t &&configuration) 
-        : ServerName { std::move(configuration.ServerName) }, handlermap { std::move(configuration.handlermap) }, 
-            mimemap { std::move(configuration.mimemap) }, defaultlist { std::move(defaultlist) } { }
+        : ServerName { std::move(configuration.ServerName) }, handlermap { std::move(configuration.handlermap) } { }
 
-    void AddHandler(const std::string &path, std::unique_ptr<handler_t> &&handler) {
-        handlermap.insert(path, std::move(handler));
+    void AddHandler(const std::string &path, handler_t *handler) {
+        handlermap.insert(path, handler);
     }
 };
 

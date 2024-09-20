@@ -21,6 +21,8 @@ class prefixmap {
         std::unordered_map<char, std::unique_ptr<prefixentry>> children { };
         prefixentry() { }
         prefixentry(prefixentry &&pe) : value { std::move(pe.value) }, match { std::move(pe.match) }, children { std::move(children) } { }
+        prefixentry(const prefixentry &) = delete;
+        prefixentry &operator=(const prefixentry &) = delete;
     };
 
     StoreType emptyvalue { };
@@ -44,6 +46,8 @@ class prefixmap {
 public:
     prefixmap() { }
     prefixmap(prefixmap &&pm) : root { std::move(pm.root) } { }
+    prefixmap(const prefixmap &) = delete;
+    prefixmap &operator=(const prefixmap &) = delete;
 
     void insert(const stringtype &key, const StoreType &value) {
         auto copyvalue = value;

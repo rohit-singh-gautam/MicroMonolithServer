@@ -157,49 +157,12 @@ bool Container::ReadHTTPConfiguration() {
                     return false;
                 }
                 auto &HandlerType = HandlerTypejson.GetString();
-                if (HandlerType == "File Handler") {
-                    auto &HandlerPathJson = handlerjson["File Path"];
-                    if (!HandlerPathJson.IsString()) {
-                        std::cerr << "Expected File Path as string\n";
-                        return false;
-                    }
-                    auto &HandlerPath = HandlerPathJson.GetString();
-                    std::unique_ptr<MMS::server::http::handler_t> handlerptr { new MMS::server::httpfilehandler { filecache, HandlerPath, *ptrconf } };
-                    ptrconf->AddHandler(ServerPath, std::move(handlerptr));
-                }
-            }
-            
-            // Adding Dafault File that will be servered if server path is requested
-            auto &DefaultFileListJson = confjson["Default File"];
-            if (!DefaultFileListJson.IsArray()) {
-                std::cerr << "Expected Default File list\n";
-                return false;
-            }
-
-            for(auto &FileNameJson: DefaultFileListJson) {
-                if (!FileNameJson.IsString()) {
-                    std::cerr << "Expected filename as string in Default file list\n";
+                auto handleritr = handlers.find(HandlerType);
+                if (handleritr == std::end(handlers)) {
+                    std::cerr << "Unable to find handler name " << HandlerType << std::endl;
                     return false;
                 }
-                auto &FileName = FileNameJson.GetString();
-                ptrconf->defaultlist.push_back(FileName);
-            }
-
-            // MIMEMAP
-            auto &MIMEMAPJson = confjson["MIMEMAP"];
-            if (!MIMEMAPJson.IsObject()) {
-                std::cerr << "MIMEMAP required as object\n";
-                return false;
-            }
-            for(auto &MimeMapEntry: MIMEMAPJson) {
-                auto &ext = MimeMapEntry.GetKey();
-                auto &MIMEJson = MimeMapEntry.GetValue();
-                if (!MIMEJson.IsString()) {
-                    std::cerr << "MIME is expected as string\n";
-                    return false;
-                }
-                auto &mime = MIMEJson.GetString();
-                ptrconf->mimemap.emplace(ext, mime);
+                ptrconf->AddHandler(ServerPath, handleritr->second.get());
             }
 
             // Finally adding a configuration
@@ -285,6 +248,44 @@ bool Container::ReadServerConfiguration() {
     return true;
 }
 
+bool Container::ReadHandlerConfiguration() {
+    try {
+        auto &json = ref["Handlers"];
+        if (!json.IsObject()) {
+            return true;
+        }
+        for(auto &memberjson: json) {
+            auto &handlername = memberjson.GetKey();
+            auto &handlerjson = memberjson.GetValue();
+            auto &type_name = handlerjson["Type"].GetString();
+            if (type_name == "File") {
+                auto &filepath = handlerjson["File Path"].GetString();
+                auto &defaultfile = handlerjson["Default File List"].GetString();
+                auto defaultfileitr = string_lists.find(defaultfile);
+                if (defaultfileitr == std::end(string_lists)) {
+                    std::cerr << "Unable to find default file list for file handler" << std::endl; 
+                    return false;
+                }
+                auto &mimemap = handlerjson["Mime Map"].GetString();
+                auto mimemapitr = string_maps.find(mimemap);
+                if (mimemapitr == std::end(string_maps)) {
+                    std::cerr << "Unable to find map by name " << mimemap << std::endl;
+                    return false;
+                }
+                auto handlerptr = new MMS::server::httpfilehandler { filecache, filepath, defaultfileitr->second, mimemapitr->second };
+                handlers.emplace(handlername, handlerptr);
+            } else if (type_name == "RESTCache") {
+                // TODO: Implement RESTCache
+            }
+        }
+    } catch(rohit::json::Exception &e) {
+        std::cerr << "Json error: " << e.what() << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool Container::ReadSystemConfiguration() {
     try {
         auto &json = ref["System"];
@@ -314,7 +315,40 @@ bool Container::ReadSystemConfiguration() {
     return true;
 }
 
+bool Container::ReadData() {
+    try {
+        auto &json = ref["Data"];
+        // Data is optional
+        if (json.IsError()) return true;
+        auto &listjson = json["List"];
+        for(auto &memberlist: listjson) {
+            auto &name = memberlist.GetKey();
+            std::vector<std::string> list = memberlist.GetValue().GetStringVector(true);
+            string_lists.emplace(name, std::move(list));
+        }
+
+        auto &mapjson = json["Map"];
+        for(auto &membermap: mapjson) {
+            auto &name = membermap.GetKey();
+            std::map<std::string, std::string> map = membermap.GetValue().GetStringMap(true);
+            string_maps.emplace(name, std::move(map));
+        }
+    } catch(rohit::json::Exception &e) {
+        std::cerr << "Json error: " << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
 bool Container::ReadConfigurations() {
+    if (!ReadData()) {
+        std::cerr << "Unable to read Data types\n";
+        return false;
+    }
+    if (!ReadHandlerConfiguration()) {
+        std::cerr << "Unable to read Handler Configuration\n";
+        return false;
+    }
     if (!ReadSystemConfiguration()) {
         std::cerr << "Unable to read System Configuration\n";
         return false;

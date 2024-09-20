@@ -23,7 +23,7 @@ const std::unordered_map<std::string, METHOD> method_map = {
 };
 
 const std::unordered_map<std::string, CODE> code_map_raw = {
-#define HTTP_CODE_ENTRY(x, y) {#x, CODE::_##x},
+#define HTTP_CODE_ENTRY(x, y, z) {#x, CODE::_##x},
     HTTP_CODE_LIST
 #undef HTTP_CODE_ENTRY
 };

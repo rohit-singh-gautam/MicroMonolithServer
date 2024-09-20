@@ -49,8 +49,7 @@ public:
 
     inline const auto &operator[](const size_t index) const {
         if (index >= entries.size()) {
-            // TODO: Add exceptions instead of returning empty
-            return empty;
+            throw HPACKException { err_t::HPACK_TABLE_OUT_OF_RANGE };
         } else {
             return entries[index];
         }
@@ -59,7 +58,6 @@ public:
     inline size_t operator[](const std::pair<FIELD, std::string> &header_line) const {
         auto entry_itr = entry_value_map.find(header_line);
         if (entry_itr == entry_value_map.end()) {
-            // TODO: Add exceptions instead of returning -1
             return -1;
         }
         return entry_itr->second;
@@ -68,7 +66,6 @@ public:
     inline size_t operator[](const FIELD &field) const {
         auto entry_itr = entry_map.find(field);
         if (entry_itr == entry_map.end()) {
-            // TODO: Add exceptions instead of returning -1
             return -1;
         }
         return entry_itr->second.first;

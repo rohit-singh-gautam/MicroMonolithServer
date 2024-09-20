@@ -84,7 +84,7 @@ void protocol_t::Upgrade(MMS::http::request &&request) {
         header_request = nullptr;
     }
     catch(http_parser_failed_t &parser_failed) {
-        WriteError(CODE::_400, parser_failed.to_string());
+        WriteError(CODE::Bad_Request, parser_failed.to_string());
     }
     FinalizeWrite();
 }
@@ -93,7 +93,7 @@ void protocol_t::ProcessRequest() {
     std::string newpath { };
     auto &handler = configuration->handlermap.search(header_request->GetPath(), newpath);
     if (handler == nullptr) {
-        WriteError(CODE::_404,  std::format("Path {} not found", header_request->GetPath()));
+        WriteError(CODE::Not_Found,  std::format("Path {} not found", header_request->GetPath()));
     }
     else {
         auto method = header_request->GetMethod();
@@ -106,10 +106,10 @@ void protocol_t::ProcessRequest() {
             std::vector<std::pair<FIELD, std::string>> fields {
                 std::pair<FIELD, std::string> {http::FIELD::Allow, optionsstr}
             };
-            Write(http::CODE::_204, fields);
+            Write(http::CODE::No_Content, fields);
         } else {
             const std::string errstr = CreateSupportedMethodErrorString(method, handler->GetSupportedMethod(), http::METHOD::PRI, http::METHOD::OPTIONS);
-            WriteError(http::CODE::_405, errstr);
+            WriteError(http::CODE::Method_Not_Allowed, errstr);
         }
     }
 }
@@ -136,8 +136,8 @@ void protocol_t::ProcessRead(const Stream &stream) {
             }
         }
     }
-    catch(http_parser_failed_t &parser_failed) {
-        WriteError(CODE::_400, parser_failed.to_string());
+    catch(exception_t &failed) {
+        WriteError(CODE::Bad_Request, failed.to_string());
     }
 
     header_request = nullptr;

@@ -7,6 +7,7 @@
 #pragma once
 #include <json.h>
 #include <mms/server/httpfilehandler.h>
+#include <mms/server/implementation.h>
 #include <mms/net/tcpserver.h>
 #include <mms/net/tcpsslserver.h>
 #include <filesystem>
@@ -25,12 +26,20 @@ class Container {
     std::unordered_map<std::string, std::unique_ptr<net::ssl::common>> SSLConfigurations { };
     std::unordered_map<std::string, std::unique_ptr<listener::processor_t>> Servers { };
     std::unordered_map<std::string, std::unique_ptr<net::protocol_creator_t>> protocols { };
+    std::unordered_map<std::string, std::unique_ptr<server::http::handler_t>> handlers { };
+    std::unordered_map<std::string, std::unique_ptr<server::implementation>> services { };
+    std::unordered_map<std::string, std::vector<std::string>> string_lists { };
+    // TODO: Change map to unordered_map
+    std::unordered_map<std::string, std::map<std::string, std::string>> string_maps { };
+
 
     bool ReadSystemConfiguration();
     bool ReadHTTPConfiguration();
     bool ReadServerConfiguration();
     bool ReadSSLConfiguration();
     bool ReadProtocolConfiguration();
+    bool ReadHandlerConfiguration();
+    bool ReadData();
 
 public:
     Container(listener::listener_t *listener, const std::filesystem::path &path) : listener { listener }, ref { rohit::json::Parse(ReadStringFromFile(path)) } { }

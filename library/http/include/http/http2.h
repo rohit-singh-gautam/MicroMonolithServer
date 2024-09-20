@@ -920,12 +920,12 @@ public:
     constexpr const header_request *get_first_header() const { return first; }
 }; // class request
 
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_200>(Stream &stream) { *stream++ = 0x80 + 8; }
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_204>(Stream &stream) { *stream++ = 0x80 + 9;}
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_206>(Stream &stream) { *stream++ = 0x80 + 10; }
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_304>(Stream &stream) { *stream++ = 0x80 + 11; }
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_400>(Stream &stream) { *stream++ = 0x80 + 12; }
-template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_404>(Stream &stream) { *stream++ = 0x80 + 13; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::OK>(Stream &stream) { *stream++ = 0x80 + 8; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::No_Content>(Stream &stream) { *stream++ = 0x80 + 9;}
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::Partial_Content>(Stream &stream) { *stream++ = 0x80 + 10; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::Not_Modified>(Stream &stream) { *stream++ = 0x80 + 11; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::Bad_Request>(Stream &stream) { *stream++ = 0x80 + 12; }
+template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::Not_Found>(Stream &stream) { *stream++ = 0x80 + 13; }
 template <> constexpr void request::copy_http_header_response<FIELD::Status, CODE::_500>(Stream &stream) { *stream++ = 0x80 + 14; }
 
 void CreateHeaderFrame(hpack::dynamic_table_t &dynamic_table, FullStream &stream, uint32_t stream_identifier, CODE code, const std::vector<std::pair<FIELD, std::string>> &fields);
