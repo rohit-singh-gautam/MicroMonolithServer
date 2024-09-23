@@ -30,7 +30,7 @@ int main(int, char *[]) {
     MMS::server::filecache filecache { };
 
     std::vector<std::string> defaultlist { "index.html", "default.html" };
-    std::map<std::string, std::string> minemap {
+    std::unordered_map<std::string, std::string> minemap {
         {".html", "text/html"},
         {".json", "application/json"},
         {".jpeg", "image/jpeg"},

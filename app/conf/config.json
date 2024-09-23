@@ -68,6 +68,7 @@
                 "Handlers" : {
                     "/": { "Type": "File Handler" },
                     "/1": { "Type": "File Handler1" },
+                    "/cache": { "Type": "RESTCache" },
                 }
             }
         }
@@ -75,16 +76,25 @@
     "Handlers": {
         "File Handler": {
             "Type": "File",
-            "File Path": "conf/www",
+            "File Path": "conf/www1",
             "Default File List" : "Default File",
             "Mime Map": "MIME"
         },
         "File Handler1": {
             "Type": "File",
-            "File Path": "conf/www1",
+            "File Path": "conf/www",
             "Default File List" : "Default File",
             "Mime Map": "MIME"
         },
+        "RESTCache": {
+            "Type": "REST",
+            "Services": "Cache" 
+        },
+    },
+    "Services" : {
+        "Cache": {
+            "Type": "Cache"
+        }
     },
     "Data" : {
         "List" : {

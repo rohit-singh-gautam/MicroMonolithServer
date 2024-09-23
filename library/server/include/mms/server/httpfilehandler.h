@@ -109,10 +109,10 @@ class httpfilehandler : public http::handler_t {
     filecache &cache;
     const std::filesystem::path rootpath;
     const std::vector<std::string> &defaultlist;
-    const std::map<std::string, std::string> &mimemap;
+    const std::unordered_map<std::string, std::string> &mimemap;
 
 public:
-    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const std::vector<std::string> &defaultlist, const std::map<std::string, std::string> &mimemap)
+    httpfilehandler(filecache &cache, const std::filesystem::path &rootpath, const std::vector<std::string> &defaultlist, const std::unordered_map<std::string, std::string> &mimemap)
         : cache { cache }, rootpath { std::filesystem::canonical(rootpath) }, defaultlist { defaultlist }, mimemap { mimemap } { }
 
     const filecacheentry &GetFromfileCahce(const std::filesystem::path &fullpath) {

@@ -215,7 +215,7 @@ public:
         }
     }
 
-    void ForceTerminateLogThread() { IsTerminated = false; }
+    void ForceTerminateLogThread() { IsTerminated = true; }
 
     void SetReadBufferLimits(const streamlimit_t &limits) { processor_t::readlimits = limits; }
 };

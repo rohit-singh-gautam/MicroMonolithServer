@@ -7,6 +7,9 @@
 
 #pragma once
 #include <mms/base/error.h>
+#include <charconv>
+#include <concepts>
+#include <type_traits>
 
 namespace MMS {
 
@@ -53,6 +56,8 @@ public:
 
     constexpr inline uint8_t &operator*() { return *_curr; }
     constexpr inline uint8_t operator*() const { return *_curr; }
+    constexpr inline uint8_t &at_unchecked() { return *_curr; }
+    constexpr inline uint8_t at_unchecked() const { return *_curr; }
     virtual constexpr inline Stream &operator++() { ++_curr; return *this; }
     virtual constexpr inline Stream &operator--() { --_curr; return *this;}
     virtual constexpr inline const Stream &operator++() const { ++_curr; return *this; }
@@ -90,10 +95,39 @@ public:
     auto GetRawCurrentBuffer() { return std::make_pair(_curr, remaining_buffer()); }
 
     virtual constexpr inline void Reserve(const size_t len) { CheckOverflow(len); }
+    constexpr inline void Reserve(const auto *_begin, const auto *_end) { 
+        const size_t len = reinterpret_cast<const char *>(_end) - reinterpret_cast<const char *>(_begin);
+        CheckOverflow(len);
+    }
+    constexpr inline void Copy(const std::string &source) { Reserve(source.size()); _curr = std::copy(std::begin(source), std::end(source), _curr); }
     constexpr inline void Copy(const Stream &source) { Reserve(source.remaining_buffer()); _curr = std::copy(source.curr(), source.end(), _curr); }
-    constexpr inline void Copy(const auto *begin, const auto *end) { Reserve(static_cast<size_t>(end - begin)); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(end), _curr); }
+    constexpr inline void Copy(const auto *begin, const auto *end) { Reserve(begin, end); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(end), _curr); }
     constexpr inline void Copy(const auto *begin, size_t size) { Reserve(size); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(begin) + size, _curr); }
-};
+
+    template <typename ValueType>
+    void Write(const ValueType &value) {
+        if constexpr (std::is_same_v<ValueType, char>) {
+            at_unchecked() = value;
+            operator++();
+        } else if constexpr (std::is_integral_v<ValueType>) {
+            char buffer[std::numeric_limits<ValueType>::digits10 + 3] { 0 };
+            auto result = std::to_chars(std::begin(buffer), std::end(buffer), value);
+            Copy(buffer, result.ptr);
+        } else if constexpr (std::is_array_v<ValueType>) {
+            if constexpr (sizeof(ValueType) == 1) {
+                Copy(std::begin(value), std::end(value));
+            }
+        } else if constexpr (std::is_same_v<ValueType, std::string>) {
+            Copy(value);
+        }
+        static_assert(true, "Unsupported type");
+    }
+
+    template<typename... ValueType> 
+    void Write(const ValueType& ...value) {
+        ((Write(value)), ...);
+    }
+}; // class Stream
 
 class FullStream : public Stream {
 protected:

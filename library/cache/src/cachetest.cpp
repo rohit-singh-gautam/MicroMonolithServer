@@ -5,28 +5,10 @@
 // medium, is strictly prohibited.                                                         //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include <mms/base/stream.h>
-#include <http/httpdef.h>
+#include <server/rest.h>
+#include <gtest/gtest.h>
 
-namespace MMS::server {
-using MMS::http::METHOD;
-using MMS::http::CODE;
-
-enum class ResponseType {
-    Empty,
-    JSON,
-    XML,
-    CSV,
-    Binary
-};
-
-
-class implementation {
-public:
-    virtual ~implementation() = default;
-    virtual CODE CallAPI(const METHOD method, const std::string &api, ResponseType &type, const std::string &requestdata, Stream &responsedata) = 0;
-};
-
-
-} // namespace MMS::server
+int main(int argc, char *argv[]) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

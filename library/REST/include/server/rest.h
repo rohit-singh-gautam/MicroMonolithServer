@@ -7,12 +7,12 @@
 
 #pragma once
 #include <mms/server/http.h>
-#include <mms/server/implementation.h>
+#include <mms/server/ServiceBase.h>
 
 namespace MMS::server::rest {
 
 class handler : public http::handler_t {
-    implementation *impl;
+    ServiceBase *impl;
 
 public:
     void ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) override;

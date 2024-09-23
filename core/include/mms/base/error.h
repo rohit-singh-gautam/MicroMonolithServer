@@ -44,6 +44,7 @@ namespace MMS {
     \
     ERROR_T_ENTRY(STREAM_UNDERFLOW, "Stream moved before begin") \
     ERROR_T_ENTRY(STREAM_OVERFLOW, "Stream moved to end") \
+    ERROR_T_ENTRY(STREAM_UNSUPPORTED_DATATYPE, "Attempt to write unsupported data type to stream") \
     \
     ERROR_T_ENTRY(SIGNAL_POLLING_FAILED, "Signal polling failed") \
     ERROR_T_ENTRY(SIGNAL_READ_FAILED, "Signal read failed") \
@@ -355,6 +356,11 @@ public:
 class StreamOverflowException : public StreamException {
 public:
     StreamOverflowException() : StreamException { err_t::STREAM_OVERFLOW } { }
+};
+
+class StreamUnsupportedDataType : public StreamException {
+public:
+    StreamUnsupportedDataType() : StreamException { err_t::STREAM_UNSUPPORTED_DATATYPE } { }
 };
 
 class QUICEncodeIntgegerFailed: public exception_t {

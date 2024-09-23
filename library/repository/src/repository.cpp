@@ -330,7 +330,7 @@ bool Container::ReadData() {
         auto &mapjson = json["Map"];
         for(auto &membermap: mapjson) {
             auto &name = membermap.GetKey();
-            std::map<std::string, std::string> map = membermap.GetValue().GetStringMap(true);
+            std::unordered_map<std::string, std::string> map = membermap.GetValue().GetStringMap(true);
             string_maps.emplace(name, std::move(map));
         }
     } catch(rohit::json::Exception &e) {

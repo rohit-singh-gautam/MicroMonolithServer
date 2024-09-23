@@ -9,7 +9,7 @@
 
 namespace MMS::server::rest {
 
-void handler::ProcessRead(const MMS::http::request &request, const std::string &, http::protocol_t *writer) {
+void handler::ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) {
     const auto method = request.GetMethod();
 #if defined(DEBUG) || defined(NDEBUG)
 // This check is already present at caller of this function
@@ -19,12 +19,11 @@ void handler::ProcessRead(const MMS::http::request &request, const std::string &
         return;
     }
 #endif
-    auto api = request.GetPathBase();
     // TODO: Add mappings and translations
     assert(impl);
     auto responsetype = ResponseType::JSON;
     FullStreamAutoAlloc response_body { };
-    auto ret = impl->CallAPI(method, api, responsetype, request.GetBody(), response_body);
+    auto ret = impl->CallAPI(method, relative_path, responsetype, request.GetBody(), response_body);
     auto body_stream = make_const_stream(response_body.begin(), response_body.end());
     writer->Write(ret, body_stream);
 }
