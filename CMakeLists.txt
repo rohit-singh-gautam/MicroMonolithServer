@@ -13,7 +13,8 @@ set(GLOBAL_INCLUDE ${PROJECT_SOURCE_DIR}/core/include/)
 
 add_subdirectory(core)
 add_subdirectory(library)
-add_subdirectory(test)
 add_subdirectory(app)
+add_subdirectory(mmsclient)
 add_subdirectory(tools)
+add_subdirectory(test)
 
