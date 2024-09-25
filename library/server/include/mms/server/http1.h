@@ -19,10 +19,10 @@ class protocol_t;
 
 namespace MMS::server::http::v1 {
 
-class creator_t;
 class protocol_t : public MMS::server::http::protocol_t {
+    static constexpr size_t response_buffer_initial_size = 1_kb;
     MMS::http::request *current_request { nullptr };
-
+    FullStreamAutoAlloc response_buffer {response_buffer_initial_size};
 public:
     using MMS::server::http::protocol_t::protocol_t;
     protocol_t(const protocol_t &) = delete;
@@ -43,4 +43,25 @@ public:
     net::protocol_t *create_protocol(int logid, const std::string_view &protoname) override;
 };
 
-} // namespace MMS::server::http
+} // namespace MMS::server::http::v1
+
+namespace MMS::server::http::v2 {
+class protocol_t;
+} // namespace MMS::server::http::v2
+
+namespace MMS::client::http::v1 {
+
+class protocol_t : public MMS::server::http::protocol_t {
+    MMS::http::request *current_request { nullptr };
+
+public:
+    using MMS::server::http::protocol_t::protocol_t;
+    protocol_t(const protocol_t &) = delete;
+    protocol_t &operator=(const protocol_t &) = delete;
+    using net::protocol_t::Write;
+    void ProcessRead(const Stream &stream) override;
+    void Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) override;
+    void Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) override;
+};
+
+} // namespace MMS::client::http::v1

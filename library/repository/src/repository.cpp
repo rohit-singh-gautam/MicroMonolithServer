@@ -243,6 +243,10 @@ bool Container::ReadServerConfiguration() {
     } catch(rohit::json::Exception &e) {
         std::cerr << "Json error: " << e.what() << std::endl;
         return false;
+    } catch(MMS::bind_fail_t &e) {
+        std::cerr << e.to_string() << std::endl;
+        std::cerr << "Run 'sudo ./netmem.sh" << std::endl;
+        return false;
     }
 
     return true;

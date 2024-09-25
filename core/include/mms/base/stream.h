@@ -105,7 +105,7 @@ public:
     constexpr inline void Copy(const auto *begin, size_t size) { Reserve(size); _curr = std::copy(reinterpret_cast<const uint8_t *>(begin), reinterpret_cast<const uint8_t *>(begin) + size, _curr); }
 
     template <typename ValueType>
-    void Write(const ValueType &value) {
+    constexpr inline void Copy(const ValueType &value) {
         if constexpr (std::is_same_v<ValueType, char>) {
             at_unchecked() = value;
             operator++();
@@ -114,18 +114,22 @@ public:
             auto result = std::to_chars(std::begin(buffer), std::end(buffer), value);
             Copy(buffer, result.ptr);
         } else if constexpr (std::is_array_v<ValueType>) {
-            if constexpr (sizeof(ValueType) == 1) {
-                Copy(std::begin(value), std::end(value));
-            }
+            if constexpr (sizeof(value[0]) == 1) {
+                constexpr auto array_size = sizeof(value)/sizeof(value[0]);
+                if constexpr (array_size >= 1) {
+                    if (value[array_size - 1] == '\0')
+                        Copy(std::begin(value), array_size - 1);
+                    else Copy(std::begin(value), std::end(value));
+                }
+            } else static_assert(false, "Unsupported type");
         } else if constexpr (std::is_same_v<ValueType, std::string>) {
             Copy(value);
-        }
-        static_assert(true, "Unsupported type");
+        } else static_assert(false, "Unsupported type");
     }
 
     template<typename... ValueType> 
-    void Write(const ValueType& ...value) {
-        ((Write(value)), ...);
+    constexpr inline void Write(const ValueType& ...value) {
+        ((Copy(value)), ...);
     }
 }; // class Stream
 

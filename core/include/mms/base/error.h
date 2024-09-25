@@ -329,8 +329,15 @@ public:
 };
 
 class bind_fail_t : public socket_fail_t {
+    const int port;
 public:
-    constexpr bind_fail_t() : socket_fail_t { err_t::BIND_FAILURE } { }
+    constexpr bind_fail_t(const int port) : socket_fail_t { err_t::BIND_FAILURE }, port { port } { }
+    std::string to_string() {
+        std::string ret { "Bind failed for port: "};
+        ret += std::to_string(port);
+        ret += ", this port may be already in used on a privileged port, enable this app to run on privileged. Also, stop any application runing on same port";
+        return ret;
+    }
 };
 
 class listen_fail_t : public socket_fail_t {

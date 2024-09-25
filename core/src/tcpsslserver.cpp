@@ -96,6 +96,8 @@ err_t connection_t::ProcessWrite() {
             writeoffset += actualwritten;
             if (static_cast<size_t>(actualwritten) < size)  return err_t::SOCKET_RETRY;
         }
+
+        writeoffset = 0;
         pending_wirte.pop();
     }
     return err_t::SUCCESS;

@@ -49,7 +49,7 @@ void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string
 
 void protocol_t::FinalizeWrite() {
     if (!response_buffer.empty()) {
-        auto writestream = response_buffer.ReturnOldAndAlloc(response_buffe_initial_size);
+        auto writestream = response_buffer.ReturnOldAndAlloc(response_buffer_initial_size);
         FixedBuffer writebuffer { std::move(writestream) };
         WriteNoCopy(std::move(writebuffer));
     }

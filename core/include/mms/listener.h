@@ -92,16 +92,13 @@ class terminate_t : public processor_t {
 public:
     terminate_t(listener_t &listener);
     err_t ProcessRead() override;
+    void StopListenerThread(bool from_listener);
 }; // terminate_t
 
 class thread_stopper_t : public processor_t {
-    volatile bool running;
 public:
     thread_stopper_t();
     err_t ProcessRead() override;
-
-    auto GetRunning() const { return running; }
-    void SetRunning() { running = true;}
 };
 
 /*! Only one instannce of listener can be created.
@@ -114,6 +111,7 @@ public:
 private:
     friend class terminate_t;
     size_t threadcount;
+    std::atomic<size_t> running_thread { 0 };
 
     int epollfd { };
 
@@ -196,6 +194,7 @@ public:
     size_t SetThreadCount(size_t threadcount);
 
     auto GetThreadCount() const { return threadcount; }
+    size_t GetRunningThreadCount() const { return running_thread; }
 
     void close();
 

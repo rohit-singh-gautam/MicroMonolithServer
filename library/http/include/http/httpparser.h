@@ -204,4 +204,19 @@ struct http_limits_t {
     uint32_t GetHeaderListSize(uint32_t value) const { return GetSize(HeaderListSizeMin, HeaderListSizeMax, value); }
 };
 
+constexpr void WriteResponseLine(Stream &stream, const CODE code) { stream.Write("HTTP/1.1 ", std::to_string(static_cast<unsigned short>(code)), ' ', to_string(code), "\r\n"); }
+constexpr void WriteRequestLine(Stream &stream, const METHOD method, const std::string &uri) { stream.Write(to_string(method), ' ', uri, " HTTP/1.1\r\n"); }
+constexpr void WriteFieldLine(Stream &stream, const FIELD field, const std::string &value) { stream.Write(to_string(field), ": ", value, "\r\n"); }
+constexpr void WriteFieldLine(Stream &stream, const std::vector<std::pair<FIELD, std::string>> &fields) { for(auto &field: fields) WriteFieldLine(stream, field.first, field.second); }
+constexpr void WriteDateLine(Stream &stream) {
+    constexpr uint64_t max_date_string_size = 92;
+    std::time_t now_time = std::time(0);   // get time now
+    std::tm* now_tm = std::gmtime(&now_time);
+    char date_str[max_date_string_size];
+    auto date_size = strftime(date_str, max_date_string_size, "%a, %d %b %Y %H:%M:%S %Z", now_tm);
+    stream.Write(to_string(FIELD::Date), ": ");
+    stream.Copy(date_str, date_size);
+    stream.Write("\r\n");
+}
+
 } // namespace MMS::http

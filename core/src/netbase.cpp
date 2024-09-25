@@ -31,7 +31,7 @@ int CreateTCPServerSocket(int port) {
 
     if (bind(socket_id, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         ::close(socket_id);
-        throw bind_fail_t { };
+        throw bind_fail_t { port };
     }
     log<log_t::TCP_SOCKET_BIND_SUCCESS>(socket_id, port);
 
@@ -60,7 +60,7 @@ int CreateUDPServerSocket(int port) {
 
     if (bind(socket_id, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         ::close(socket_id);
-        throw bind_fail_t { };
+        throw bind_fail_t { port };
     }
     log<log_t::UDP_SOCKET_BIND_SUCCESS>(socket_id, port);
 

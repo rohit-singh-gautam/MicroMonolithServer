@@ -19,14 +19,13 @@ using MMS::http::FIELD;
 using MMS::http::METHOD;
 using MMS::http::request;
 using MMS::http::response;
-using MMS::server::http::typecheck::fieldentrypair;
 
 class protocol_t : public MMS::server::http::protocol_t{
-    static constexpr size_t response_buffe_initial_size = 1_kb;
+    static constexpr size_t response_buffer_initial_size = 1_kb;
     bool first_frame { true };
     bool settings_responded { false };
     MMS::http::v2::header_request *header_request { nullptr };
-    FullStreamAutoAlloc response_buffer { response_buffe_initial_size };
+    FullStreamAutoAlloc response_buffer { response_buffer_initial_size };
 
     MMS::http::hpack::dynamic_table_t dynamic_table { };
     MMS::http::v2::settings_store peer_settings { };

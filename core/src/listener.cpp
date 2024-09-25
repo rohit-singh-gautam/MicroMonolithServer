@@ -40,9 +40,7 @@ static int CreateSignalFD() {
     return signal_fd;
 }
 
-terminate_t::terminate_t(listener_t &listener) : processor_t { CreateSignalFD() }, listener { listener } {
-
-}
+terminate_t::terminate_t(listener_t &listener) : processor_t { CreateSignalFD() }, listener { listener } { }
 
 err_t terminate_t::ProcessRead() {
     listener.remove(this);
@@ -53,17 +51,22 @@ err_t terminate_t::ProcessRead() {
         log<log_t::SIGNAL_READ_FAILED>(errno);
         throw signal_read_failed_t();
     }
-    
+    StopListenerThread(true);
+    throw listener_terminate_thread_t();
+}    
+
+void terminate_t::StopListenerThread(bool from_listener) {
+    size_t last_thread = !!from_listener;
     thread_stopper_t stopper { };
 
-    auto stopthread { listener.GetThreadCount() - 1 };
     listener.add(&stopper);
-    for(; stopthread; --stopthread) {
-        while(stopper.GetRunning()) {
+    while (true) {
+        const auto current_thread_count = listener.GetRunningThreadCount();
+        if (current_thread_count <= last_thread) break;
+        while(current_thread_count == listener.GetRunningThreadCount()) {
             // This will reduce the CPU usage to almost zero
             std::this_thread::sleep_for(10ms);
         }
-        stopper.SetRunning();
         listener.enable(&stopper, false);
     }
 
@@ -73,13 +76,12 @@ err_t terminate_t::ProcessRead() {
     
     listener.close();
     MMS::logger::all.flush();
-    throw listener_terminate_thread_t();
+
 }
 
-thread_stopper_t::thread_stopper_t() : processor_t { eventfd(1, EFD_NONBLOCK | EFD_CLOEXEC)  }, running { true } {}
+thread_stopper_t::thread_stopper_t() : processor_t { eventfd(1, EFD_NONBLOCK | EFD_CLOEXEC)  } {}
 
 err_t thread_stopper_t::ProcessRead() {
-    running = false;
     throw listener_terminate_thread_t { };
 }
 
@@ -119,6 +121,9 @@ listener_t::listener_t(const std::filesystem::path &filename, const size_t max_e
 }
 
 listener_t::~listener_t() {
+    terminatehandler.StopListenerThread(false);
+    ForceTerminateLogThread();
+    log_thread.join();
     MMS::logger::all.flush();
 }
 
@@ -153,8 +158,16 @@ size_t listener_t::SetThreadCount(size_t threadcount) {
     return this->threadcount;
 }
 
+class RunningThread {
+    std::atomic<size_t> &running_thread;
+public:
+    RunningThread(std::atomic<size_t> &running_thread) : running_thread { running_thread } { ++running_thread; }
+    ~RunningThread() { --running_thread; }
+};
+
 void listener_t::loop() {
     log<log_t::LISTENER_LOOP_CREATED>();
+    RunningThread raii_running_thread { running_thread };
     auto events = std::make_unique<epoll_event[]>(max_event_epoll_return);
     try {
         for(;;) {

@@ -11,6 +11,11 @@
 #include <http/httpparser.h>
 #include <unordered_map>
 
+namespace MMS::http::typecheck {
+    template <typename T>
+    concept fieldentrypair = std::is_same_v<T, std::pair<MMS::http::FIELD, std::string>>;
+} // namespace MMS::typecheck
+
 namespace MMS::server::http {
 using MMS::http::VERSION;
 using MMS::http::CODE;
@@ -18,11 +23,6 @@ using MMS::http::FIELD;
 using MMS::http::METHOD;
 using MMS::http::request;
 using MMS::http::response;
-
-namespace typecheck {
-template <typename T>
-concept fieldentrypair = std::is_same_v<T, std::pair<FIELD, std::string>>;
-} // namespace typecheck
 
 class configuration_t;
 class protocol_t;
@@ -59,7 +59,6 @@ struct configuration_t {
     }
 };
 
-class creator_t;
 class protocol_t : public net::protocol_t {
 protected:
     const configuration_t * const configuration;
@@ -76,20 +75,20 @@ public:
     virtual void Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
     virtual void Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
 
-    template <typecheck::fieldentrypair... fieldlist>
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const Stream &bodystream, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
         Write(code, bodystream, fields);
     }
 
-    template <typecheck::fieldentrypair... fieldlist>
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const std::string &body, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
         auto bodystream = make_const_stream(body.c_str(), body.size());
         Write(code, bodystream,  fields);
     }
 
-    template <typecheck::fieldentrypair... fieldlist>
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
     inline void Write(const CODE code, const fieldlist& ... field) {
         std::vector<std::pair<FIELD, std::string>> fields { field... };
         Write(code, fields);
@@ -124,4 +123,44 @@ public:
     creator_t &operator=(const creator_t &) = delete;
 };
 
+} // namespace MMS::server::http
+
+namespace MMS::client::http {
+using MMS::http::VERSION;
+using MMS::http::CODE;
+using MMS::http::FIELD;
+using MMS::http::METHOD;
+using MMS::http::request;
+using MMS::http::response;
+
+class protocol_t : public net::protocol_t {
+public:
+    protocol_t(const protocol_t &) = delete;
+    protocol_t &operator=(const protocol_t &) = delete;
+
+    using net::protocol_t::Write;
+
+    virtual void Write(const METHOD method, const std::string &uri) = 0;
+    virtual void Write(const METHOD method, const std::string &uri, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
+    virtual void Write(const METHOD method, const std::string &uri, std::vector<std::pair<FIELD, std::string>> &fields) = 0;
+
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
+    inline void Write(const METHOD method, const std::string &uri, const Stream &bodystream, const fieldlist& ... field) {
+        std::vector<std::pair<FIELD, std::string>> fields { field... };
+        Write(method, uri, bodystream, fields);
+    }
+
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
+    inline void Write(const METHOD method, const std::string &uri, const std::string &body, const fieldlist& ... field) {
+        std::vector<std::pair<FIELD, std::string>> fields { field... };
+        auto bodystream = make_const_stream(body.c_str(), body.size());
+        Write(method, uri, bodystream,  fields);
+    }
+
+    template <MMS::http::typecheck::fieldentrypair... fieldlist>
+    inline void Write(const METHOD method, const std::string &uri, const fieldlist& ... field) {
+        std::vector<std::pair<FIELD, std::string>> fields { field... };
+        Write(method, uri, fields);
+    }
+};
 } // namespace MMS::server::http

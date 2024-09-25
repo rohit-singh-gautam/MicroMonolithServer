@@ -119,20 +119,29 @@ void protocol_t::WriteError(const CODE code, const std::string &errortext) {
 }
 
 void protocol_t::Write(const CODE code, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
-    auto response = response::CreateBasicResponse(code);
-    std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
-    response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
-    response.add_field(FIELD::Content_Length, bodystream.remaining_buffer());
-    Write(
-        make_const_stream(response.to_string()),
-        bodystream);
+    MMS::http::WriteResponseLine(response_buffer, code);
+    MMS::http::WriteDateLine(response_buffer);
+    MMS::http::WriteFieldLine(response_buffer, FIELD::Server, configuration->ServerName);
+    MMS::http::WriteFieldLine(response_buffer, fields);
+    MMS::http::WriteFieldLine(response_buffer, FIELD::Content_Length, std::to_string(bodystream.remaining_buffer()));
+    response_buffer.Write("\r\n");
+    response_buffer.Copy(bodystream);
+    auto writestream = response_buffer.ReturnOldAndAlloc(response_buffer_initial_size);
+    FixedBuffer writebuffer { std::move(writestream) };
+    WriteNoCopy(std::move(writebuffer));
 }
 
 void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string>> &fields) {
-    auto response = response::CreateBasicResponse(code);
-    std::ranges::for_each(fields, [&response](const std::pair<FIELD, std::string> &field) { response.add_field(field); });
-    response.add_field(MMS::http::FIELD::Server, configuration->ServerName);
-    Write(response.to_string());
+    MMS::http::WriteResponseLine(response_buffer, code);
+    MMS::http::WriteDateLine(response_buffer);
+    MMS::http::WriteFieldLine(response_buffer, FIELD::Server, configuration->ServerName);
+    MMS::http::WriteFieldLine(response_buffer, fields);
+    auto writestream = response_buffer.ReturnOldAndAlloc(response_buffer_initial_size);
+    FixedBuffer writebuffer { std::move(writestream) };
+    WriteNoCopy(std::move(writebuffer));
 }
 
 } // namespace MMS::server::http
+
+namespace MMS::server::http::v1 {
+}
