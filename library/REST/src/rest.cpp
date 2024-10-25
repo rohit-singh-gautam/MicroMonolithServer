@@ -29,3 +29,13 @@ void handler::ProcessRead(const MMS::http::request &request, const std::string &
 }
 
 } // namespace MMS::server::rest
+
+namespace MMS::client::rest {
+void cache::ProcessRead(const MMS::http::response &response, MMS::client::http::protocol_t *)
+{
+    auto type = GetResponseTypeFromMIME(response.GetField(MMS::http::FIELD::Content_Type));
+    auto responsebody = response.GetBody();
+    const Stream stream { responsebody.data(), responsebody.size() };
+    impl->Response(response.GetCode(), type, stream);
+}
+} // namespace MMS::client::rest

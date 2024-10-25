@@ -34,3 +34,16 @@ public:
 };
 
 } // namespace MMS::server::rest
+
+
+namespace MMS::client::rest {
+
+class cache : public MMS::client::http::handler_t {
+    ClientBase *impl;
+public:
+    void ProcessRead(const MMS::http::response &response, MMS::client::http::protocol_t *writer) override;
+
+
+};
+
+} // namespace MMS::client::rest

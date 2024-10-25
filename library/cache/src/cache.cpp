@@ -22,6 +22,7 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
             case METHOD::POST: {
                 // TODO: Check for validity
                 auto &name = ref["name"].GetString();
+                responsedata.Write("{\"name\":\"", name, "\"}");
                 auto mapitr = string_maps.find(name);
                 if (mapitr == string_maps.end()) {
                     string_maps.emplace(name, std::map<std::string, std::string> { });
@@ -39,10 +40,12 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                 }
                 auto &keyjson = ref["key"];
                 if (keyjson.IsError()) {
+                    responsedata.Write("{\"name\":\"", name, "\"}");
                     string_maps.erase(mapitr);
                     return CODE::OK;
                 } else {
                     const auto key = keyjson.GetString();
+                    responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\"}");
                     auto dataitr = mapitr->second.find(key);
                     if (dataitr == std::end(mapitr->second)) {
                         return CODE::No_Content;
@@ -66,6 +69,7 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                 // As json ref is not being use beyond this point
                 // std::move for value will avoid one copy
                 // Helpful for large data.
+                responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\"}");
                 if (dataitr == std::end(currmap)) {
                     currmap.emplace(key, std::move(value));
                     return CODE::Created;
@@ -84,7 +88,7 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                     const auto &key = ref["key"].GetString();
                     auto dataitr = mapitr->second.find(key);
                     if (dataitr != std::end(mapitr->second)) {
-                        responsedata.Write("{\"value\":", dataitr->second, '}');
+                        responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\",\"value\":\"", dataitr->second, "\"}");
                         return CODE::OK;
                     }
                 }
@@ -100,3 +104,36 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
 }
 
 } // namespace MMS::server
+
+namespace MMS::client {
+
+void cache::Response(const CODE code, ResponseType &type, const Stream &responsedata) {
+    assert(type == ResponseType::JSON);
+    switch(code) {
+    case CODE::OK: {
+        auto ref = rohit::json::Parse(responsedata.curr(), responsedata.end());
+        auto &keyjson = ref["key"];
+        if (keyjson.IsError()) {
+            responseFn(err_t::SUCCESS, {});
+        } else {
+            responseFn(err_t::SUCCESS, ref["value"].GetString());
+        }
+        break;
+    }
+
+    case CODE::Created:
+        responseFn(err_t::SUCCESS, {});
+        break;
+
+    case CODE::No_Content:
+    case CODE::Not_Found:
+        responseFn(err_t::NOT_FOUND, {});
+        break;
+
+    default:
+        responseFn(err_t::FAILURE, {});
+        break;
+    }
+}
+
+} // namespace MMS::client

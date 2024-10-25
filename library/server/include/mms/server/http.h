@@ -133,8 +133,19 @@ using MMS::http::METHOD;
 using MMS::http::request;
 using MMS::http::response;
 
-class protocol_t : public net::protocol_t {
+class protocol_t;
+class handler_t {
 public:
+    virtual ~handler_t() = default;
+    virtual void ProcessRead(const MMS::http::response &response, protocol_t *writer) = 0;
+};
+
+class protocol_t : public net::protocol_t {
+protected:
+    handler_t &handler;
+    
+public:
+    protocol_t(handler_t &handler) : handler { handler } {  }
     protocol_t(const protocol_t &) = delete;
     protocol_t &operator=(const protocol_t &) = delete;
 
@@ -163,4 +174,5 @@ public:
         Write(method, uri, fields);
     }
 };
-} // namespace MMS::server::http
+
+} // namespace MMS::client::http

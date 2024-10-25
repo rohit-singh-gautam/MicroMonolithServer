@@ -143,5 +143,28 @@ void protocol_t::Write(const CODE code, std::vector<std::pair<FIELD, std::string
 
 } // namespace MMS::server::http
 
-namespace MMS::server::http::v1 {
+namespace MMS::client::http::v1 {
+void protocol_t::Write(const METHOD method, const std::string &uri) { MMS::http::WriteRequestLine(request_buffer, method, uri); }
+void protocol_t::Write(const METHOD method, const std::string &uri, std::vector<std::pair<FIELD, std::string>> &fields) {
+    MMS::http::WriteRequestLine(request_buffer, method, uri);
+    MMS::http::WriteFieldLine(request_buffer, fields);
+    auto writestream = request_buffer.ReturnOldAndAlloc(request_buffer_initial_size);
+    FixedBuffer writebuffer { std::move(writestream) };
+    WriteNoCopy(std::move(writebuffer));
 }
+void protocol_t::Write(const METHOD method, const std::string &uri, const Stream &bodystream, std::vector<std::pair<FIELD, std::string>> &fields) {
+    MMS::http::WriteRequestLine(request_buffer, method, uri);
+    MMS::http::WriteFieldLine(request_buffer, fields);
+    MMS::http::WriteFieldLine(request_buffer, FIELD::Content_Length, std::to_string(bodystream.remaining_buffer()));
+    request_buffer.Write("\r\n");
+    request_buffer.Copy(bodystream);
+    auto writestream = request_buffer.ReturnOldAndAlloc(request_buffer_initial_size);
+    FixedBuffer writebuffer { std::move(writestream) };
+    WriteNoCopy(std::move(writebuffer));
+}
+
+void protocol_t::ProcessRead(const Stream &stream) {
+    MMS::http::response response { make_const_fullstream(stream.curr(), stream.end()) };
+    handler.ProcessRead(response, this);
+}
+} // MMS::client::http::v1

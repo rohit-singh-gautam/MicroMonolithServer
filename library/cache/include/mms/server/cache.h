@@ -7,6 +7,7 @@
 
 #pragma once
 #include <mms/server/ServiceBase.h>
+#include <mms/server/http.h>
 #include <unordered_map>
 #include <map>
 #include <memory>
@@ -23,3 +24,25 @@ public:
 };
 
 } // namespace MMS::server
+
+namespace MMS::client
+{
+
+using response_function = std::function<void(err_t, const std::string &)>;
+
+class cache : public ClientBase {
+    std::unordered_map<std::string, std::map<std::string, const std::string>> string_maps { };
+    response_function responseFn;
+
+public:
+    void Response(const CODE code, ResponseType &type, const Stream &responsedata) override;
+
+    err_t CreateMap(const std::string &mapname, response_function responseFn);
+    err_t DeleteMap(const std::string &mapname, response_function responseFn);
+    err_t AddMapEntry(const std::string &mapname, const std::string &key, const std::string &value, response_function responseFn);
+    err_t GetMapEntry(const std::string &mapname, const std::string &key, response_function responseFn);
+    err_t DeleteMapEntry(const std::string &mapname, const std::string &key, response_function responseFn);
+};
+    
+} // namespace MMS::client
+
