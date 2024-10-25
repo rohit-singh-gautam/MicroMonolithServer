@@ -27,6 +27,7 @@ namespace MMS {
 
 #define ERROR_T_LIST \
     ERROR_T_ENTRY(SUCCESS, "SUCCESS") \
+    ERROR_T_ENTRY(FAILURE, "FAILURE") \
     ERROR_T_ENTRY(SUCCESS_NONBLOCKING, "Call is non blocking") \
     ERROR_T_ENTRY(INITIATE_CLOSE, "This will initiate closure for class that returns this. This can be used in multiple way and is implementation dependent") \
     ERROR_T_ENTRY(SOCKET_CONNECT_ALREADY_CONNECTED, "Socket is already connected") \
@@ -114,6 +115,8 @@ namespace MMS {
     ERROR_T_ENTRY(HTTP11_PARSER_FAILURE, "HTTP 1.1 parser failed") \
     \
     ERROR_T_ENTRY(QUIC_ENCODE_INTEGER_FAILED, "Quick unable to encode given integer value") \
+    \
+    ERROR_T_ENTRY(NOT_FOUND, "Not Found") \
     \
     ERROR_T_ENTRY(MAX_FAILURE, "Max failure nothing beyond this") \
     LIST_DEFINITION_END
