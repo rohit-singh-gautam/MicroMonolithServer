@@ -19,6 +19,9 @@
 #include <mms/base/error.h>
 #include <mms/net/sslcommon.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 namespace MMS::net::ssl {
 
 bool common::initialized { false };

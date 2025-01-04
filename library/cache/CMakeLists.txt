@@ -12,6 +12,7 @@ set(HTTP_INCLUDE PUBLIC
     ${CMAKE_SOURCE_DIR}/library/REST/include
     ${CMAKE_SOURCE_DIR}/library/json/include
     ${CMAKE_SOURCE_DIR}/library/cache/include
+    ${CMAKE_SOURCE_DIR}/library/lockfree/include
 )
 
 set(CTEST_OUTPUT_ON_FAILURE 1)

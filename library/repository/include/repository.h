@@ -47,7 +47,8 @@ class Container {
     bool ReadServerConfiguration();
     bool ReadSSLConfiguration();
     bool ReadProtocolConfiguration();
-    bool ReadHandlerConfiguration();
+    bool ReadHandlerConfiguration();\
+    bool ReadServiceConfiguration();
     bool ReadData();
 
 public:

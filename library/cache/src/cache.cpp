@@ -33,35 +33,35 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                 // TODO: Check for validity
                 auto &name = ref["name"].GetString();
                 responsedata.Write("{\"name\":\"", name, "\"}");
-                auto mapitr = string_maps.find(name);
-                if (mapitr == string_maps.end()) {
-                    string_maps.emplace(name, std::map<std::string, std::string> { });
+                if (!string_maps.contains(name)) {
+                    string_maps.insert(std::move(name), SplitOrderList<std::string, std::string> { });
                     return CODE::Created;
                 } else return CODE::OK;
-                break;
             }
 
             case METHOD::DELETE: {
                 // TODO: Check for validity
                 auto &name = ref["name"].GetString();
-                auto mapitr = string_maps.find(name);
-                if (mapitr == string_maps.end()) {
-                    return CODE::No_Content;
-                }
                 auto &keyjson = ref["key"];
                 if (keyjson.IsError()) {
                     responsedata.Write("{\"name\":\"", name, "\"}");
-                    string_maps.erase(mapitr);
-                    return CODE::OK;
+                    if(string_maps.remove(name)) {
+                        return CODE::OK;
+                    } else {
+                        return CODE::No_Content;
+                    }
                 } else {
+                    auto mapopt = string_maps.find(name);
+                    if (!mapopt) {
+                        return CODE::No_Content;
+                    }
+                    auto &mapval = mapopt.value().get();
                     const auto key = keyjson.GetString();
                     responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\"}");
-                    auto dataitr = mapitr->second.find(key);
-                    if (dataitr == std::end(mapitr->second)) {
-                        return CODE::No_Content;
-                    } else {
-                        mapitr->second.erase(dataitr);
+                    if (mapval.remove(key)) {
                         return CODE::OK;
+                    } else {
+                        return CODE::No_Content;
                     }
                 }
                 break;
@@ -74,17 +74,20 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                 auto &value = ref["value"].GetString();
                 
                 // This will create map if it does not exists.
-                auto &currmap = string_maps[name];
-                auto dataitr = currmap.find(key);
+                auto curropt = string_maps.find(name);
+                if (!curropt) return CODE::Not_Found;
+                auto &currmap = curropt.value().get();
+                auto dataopt = currmap.find(key);
                 // As json ref is not being use beyond this point
                 // std::move for value will avoid one copy
                 // Helpful for large data.
                 responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\"}");
-                if (dataitr == std::end(currmap)) {
-                    currmap.emplace(key, std::move(value));
+                if (!dataopt) {
+                    currmap.insert(key, std::move(value));
                     return CODE::Created;
                 } else {
-                    dataitr->second = std::move(value);
+                    auto &dataval = dataopt.value().get();
+                    std::swap(dataval, value);
                     return CODE::OK;
                 }
                 break;
@@ -93,15 +96,16 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
             case METHOD::GET: {
                 // TODO:Check for validity
                 const auto &name = ref["name"].GetString();
-                auto mapitr = string_maps.find(name);
-                if (mapitr != string_maps.end()) {
+                auto mapopt = string_maps.find(name);
+                if (mapopt) {
                     const auto &key = ref["key"].GetString();
-                    auto dataitr = mapitr->second.find(key);
-                    if (dataitr != std::end(mapitr->second)) {
-                        responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\",\"value\":\"", dataitr->second, "\"}");
+                    auto &mapval = mapopt.value().get();
+                    auto dataopt = mapval.find(key);
+                    if (dataopt) {
+                        responsedata.Write("{\"name\":\"", name, "\",\"key\":\"", key, "\",\"value\":\"", dataopt.value().get(), "\"}");
                         return CODE::OK;
-                    }
-                }
+                    } else return CODE::Not_Found;
+                } else return CODE::Not_Found;
             }
 
             default:

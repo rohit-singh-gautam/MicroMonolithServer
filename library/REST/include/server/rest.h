@@ -25,6 +25,10 @@ class handler : public http::handler_t {
     ServiceBase *impl;
 
 public:
+    handler(ServiceBase *service) : impl { service } { }
+    handler(const handler &) = delete;
+    handler &operator=(const handler &) = delete;
+
     void ProcessRead(const MMS::http::request &request, const std::string &relative_path, http::protocol_t *writer) override;
 
     constexpr const std::vector<http::METHOD> &GetSupportedMethod() override {

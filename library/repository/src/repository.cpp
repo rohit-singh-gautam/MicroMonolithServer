@@ -19,10 +19,12 @@
 #include <mms/server/echo.h>
 #include <mms/server/http.h>
 #include <mms/server/http1.h>
+#include <mms/server/cache.h>
 #include <fstream>
 #include <sstream>
 #include <mms/listener.h>
 #include <mms/net/udpserversimple.h>
+#include <server/rest.h>
 
 namespace MMS::repository {
 
@@ -288,8 +290,16 @@ bool Container::ReadHandlerConfiguration() {
                 }
                 auto handlerptr = new MMS::server::httpfilehandler { filecache, filepath, defaultfileitr->second, mimemapitr->second };
                 handlers.emplace(handlername, handlerptr);
-            } else if (type_name == "RESTCache") {
+            } else if (type_name == "REST") {
                 // TODO: Implement RESTCache
+                auto &service = handlerjson["Services"].GetString();
+                auto serviceitr = services.find(service);
+                if (serviceitr == std::end(services)) {
+                    std::cerr << "Unable to find service by name " << service << std::endl;
+                    return false;
+                }
+                auto handlerptr = new MMS::server::rest::handler { serviceitr->second.get() };
+                handlers.emplace(handlername, handlerptr);
             }
         }
     } catch(rohit::json::Exception &e) {
@@ -297,6 +307,29 @@ bool Container::ReadHandlerConfiguration() {
         return false;
     }
 
+    return true;
+}
+
+bool Container::ReadServiceConfiguration()
+{
+    try {
+        auto &json = ref["Services"];
+        if (!json.IsObject()) {
+            return true;
+        }
+        for(auto &memberjson: json) {
+            auto &servicename = memberjson.GetKey();
+            auto &servicejson = memberjson.GetValue();
+            auto &type_name = servicejson["Type"].GetString();
+            if (type_name == "Cache") {
+                auto serviceptr = new MMS::server::cache { };
+                services.emplace(servicename, serviceptr);
+            }
+        }
+    } catch(rohit::json::Exception &e) {
+        std::cerr << "Json error: " << e.what() << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -357,6 +390,10 @@ bool Container::ReadData() {
 bool Container::ReadConfigurations() {
     if (!ReadData()) {
         std::cerr << "Unable to read Data types\n";
+        return false;
+    }
+    if (!ReadServiceConfiguration()) {
+        std::cerr << "Unable to read Service Configuration\n";
         return false;
     }
     if (!ReadHandlerConfiguration()) {
