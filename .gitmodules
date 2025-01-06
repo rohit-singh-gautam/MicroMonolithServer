@@ -1,3 +1,6 @@
 [submodule "library/json"]
 	path = library/json
 	url = git@github.com:rohit-singh-gautam/JSON.git
+[submodule "library/Serializer"]
+	path = library/Serializer
+	url = https://github.com/rohit-singh-gautam/Serializer
