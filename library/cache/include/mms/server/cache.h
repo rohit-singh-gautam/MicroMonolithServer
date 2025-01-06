@@ -28,7 +28,7 @@
 namespace MMS::server {
 
 class cache : public ServiceBase {
-    SplitOrderList<std::string, SplitOrderList<std::string, std::string>> string_maps { };
+    SplitOrderMap<std::string, SplitOrderMap<std::string, std::string>> string_maps { };
 
 public:
     CODE CallAPI(const METHOD method, const std::string &api, ResponseType &type, const std::string &requestdata, Stream &responsedata) override;

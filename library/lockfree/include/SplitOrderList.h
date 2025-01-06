@@ -23,7 +23,8 @@
 
 namespace MMS::server {
 template <typename Key, typename Value>
-class SplitOrderList {
+class SplitOrderMap {
+protected:
     struct Node {
         Key key;
         Value value;
@@ -51,14 +52,14 @@ class SplitOrderList {
     size_t capacity;
 
 public:
-    SplitOrderList(size_t initial_capacity = 16)
+    SplitOrderMap(size_t initial_capacity = 16)
         : table { }, size { 0 }, capacity { initial_capacity } {
             table.resize(capacity, { });
     }
 
-    SplitOrderList(const SplitOrderList& rhs) = default;
-    SplitOrderList(SplitOrderList&& rhs) : table { std::move(rhs.table) }, size { rhs.size.load() }, capacity { rhs.capacity }  { }
-    SplitOrderList& operator=(const SplitOrderList& rhs) = default;
+    SplitOrderMap(const SplitOrderMap& rhs) = default;
+    SplitOrderMap(SplitOrderMap&& rhs) : table { std::move(rhs.table) }, size { rhs.size.load() }, capacity { rhs.capacity }  { }
+    SplitOrderMap& operator=(const SplitOrderMap& rhs) = default;
 
     constexpr size_t get_index(const Key& key) const {
         size_t hash = std::hash<Key>{}(key);
@@ -168,6 +169,6 @@ public:
         return size.load(std::memory_order_relaxed);
     }
 
-}; // class SplitOrderList
+}; // class SplitOrderMap
 
 } // namespace MMS::server

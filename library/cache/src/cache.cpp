@@ -34,7 +34,7 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
                 auto &name = ref["name"].GetString();
                 responsedata.Write("{\"name\":\"", name, "\"}");
                 if (!string_maps.contains(name)) {
-                    string_maps.insert(std::move(name), SplitOrderList<std::string, std::string> { });
+                    string_maps.insert(std::move(name), SplitOrderMap<std::string, std::string> { });
                     return CODE::Created;
                 } else return CODE::OK;
             }
