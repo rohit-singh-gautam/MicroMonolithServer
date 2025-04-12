@@ -1,0 +1,45 @@
+//////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2024  Rohit Jairaj Singh (rohit@singh.org.in)          //
+//                                                                      //
+// This program is free software: you can redistribute it and/or modify //
+// it under the terms of the GNU General Public License as published by //
+// the Free Software Foundation, either version 3 of the License, or    //
+// (at your option) any later version.                                  //
+//                                                                      //
+// This program is distributed in the hope that it will be useful,      //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of       //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        //
+// GNU General Public License for more details.                         //
+//                                                                      //
+// You should have received a copy of the GNU General Public License    //
+// along with this program.  If not, see <https://www.gnu.org/licenses/>//
+//////////////////////////////////////////////////////////////////////////
+
+namespace mms::server {
+class cache_map_create {
+    string name;
+}
+class cache_map_delete {
+    string name;
+}
+
+class cache_map_key {
+    string name;
+    string key;
+}
+
+class cache_map_entry {
+    string name;
+    string key;
+    string value;
+}
+
+class cache_request {
+    union (cache_map_create = create, cache_map_delete = delete, cache_map_entry = insert_entry, cache_map_key = remove_entry, cache_map_entry = modify_entry, cache_map_key = get_entry) request;
+}
+
+class cache_response {
+    union (cache_map_create = create, cache_map_delete = delete, cache_map_entry = insert_entry, cache_map_key = remove_entry, cache_map_entry = modify_entry, cache_map_key = get_entry) request;
+}
+
+} // namespace mms::server

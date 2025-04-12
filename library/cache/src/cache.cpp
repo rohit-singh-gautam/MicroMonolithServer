@@ -121,7 +121,7 @@ CODE cache::CallAPI(const METHOD method, const std::string &api, ResponseType &t
 
 namespace MMS::client {
 
-void cache::Response(const CODE code, ResponseType &type, const Stream &responsedata) {
+void cache::Response(const CODE code, [[maybe_unused]] ResponseType &type, const Stream &responsedata) {
     assert(type == ResponseType::JSON);
     switch(code) {
     case CODE::OK: {

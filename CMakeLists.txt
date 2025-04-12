@@ -4,8 +4,7 @@ project(MicroMonolithServer)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -fanalyzer)
-add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -Wsuggest-override)
+add_compile_options(-Wall -Werror -Wpedantic -Wextra -Weffc++ -Wsuggest-override -Wno-stringop-overflow)
 
 enable_testing()
 

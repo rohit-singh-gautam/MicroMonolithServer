@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.28)
 
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/library/cache/cacheinterface.h
+    COMMAND serializer input ${CMAKE_SOURCE_DIR}/library/cache/cacheinterface.def output ${CMAKE_BINARY_DIR}/library/cache/cacheinterface.h
+    DEPENDS ${CMAKE_SOURCE_DIR}/library/cache/cacheinterface.def serializer
+    VERBATIM
+)
+
 find_package(GTest CONFIG REQUIRED)
 
 add_library(cachelib src/cache.cpp)

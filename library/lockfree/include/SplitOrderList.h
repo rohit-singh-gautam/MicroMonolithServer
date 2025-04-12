@@ -169,6 +169,31 @@ public:
         return size.load(std::memory_order_relaxed);
     }
 
+    // Before calling this function, there must be global lock on the map
+    void resize(size_t new_capacity) {
+        std::vector<Bucket> new_table;
+        new_table.resize(new_capacity, { });
+
+        for (size_t i = 0; i < capacity; i++) {
+            auto &bucket = table[i];
+
+            Node* current = bucket.head;
+            while (current) {
+                size_t index = std::hash<Key>{}(current->key) % new_capacity;
+                auto &new_bucket = new_table[index];
+
+                Node* new_node = new Node(current->key, current->value);
+                new_node->next = new_bucket.head;
+                new_bucket.head = new_node;
+
+                current = current->next;
+            }
+        }
+
+        table = std::move(new_table);
+        capacity = new_capacity;
+    }
+
 }; // class SplitOrderMap
 
 } // namespace MMS::server

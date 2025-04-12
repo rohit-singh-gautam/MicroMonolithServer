@@ -18,7 +18,7 @@ int main(int , char *[]) {
     const char* ip = "::1";
     int sockfd;
     struct sockaddr_in6 server_addr;
-    char buffer[] = "Test";
+    char buffer[BUFFER_SIZE] = "Test";
 
     // Create a UDP socket
     if ((sockfd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
