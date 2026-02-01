@@ -19,6 +19,7 @@
 #include <mms/server/ServiceBase.h>
 #include <mms/server/http.h>
 #include <SplitOrderList.h>
+#include <cacheinterface.h>
 #include <unordered_map>
 #include <map>
 #include <memory>

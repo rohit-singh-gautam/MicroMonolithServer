@@ -17,29 +17,35 @@
 
 namespace mms::server {
 class cache_map_create {
-    string name;
+    public string name;
 }
 class cache_map_delete {
-    string name;
+    public string name;
 }
 
 class cache_map_key {
-    string name;
-    string key;
+    public string name;
+    public string key;
 }
 
 class cache_map_entry {
-    string name;
-    string key;
-    string value;
+    public string name;
+    public string key;
+    public string value;
 }
 
 class cache_request {
-    union (cache_map_create = create, cache_map_delete = delete, cache_map_entry = insert_entry, cache_map_key = remove_entry, cache_map_entry = modify_entry, cache_map_key = get_entry) request;
+    public union (cache_map_create = create, cache_map_delete = remove, cache_map_entry = insert_entry, cache_map_key = remove_entry, cache_map_entry = modify_entry, cache_map_key = get_entry) request;
+}
+
+enum status {
+    success,
+    not_found,
 }
 
 class cache_response {
-    union (cache_map_create = create, cache_map_delete = delete, cache_map_entry = insert_entry, cache_map_key = remove_entry, cache_map_entry = modify_entry, cache_map_key = get_entry) request;
+    public status st;
+    public union (cache_map_create = create, cache_map_delete = remove, cache_map_key = insert_entry, cache_map_key = remove_entry, cache_map_key = modify_entry, cache_map_entry = get_entry) request;
 }
 
 } // namespace mms::server

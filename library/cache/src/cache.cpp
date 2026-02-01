@@ -149,5 +149,4 @@ void cache::Response(const CODE code, [[maybe_unused]] ResponseType &type, const
         break;
     }
 }
-
 } // namespace MMS::client
